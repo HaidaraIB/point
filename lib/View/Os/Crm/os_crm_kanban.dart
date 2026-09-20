@@ -11,6 +11,61 @@ import 'package:point/Utils/AppColors.dart';
 import 'package:point/Utils/app_theme_extension.dart';
 import 'package:point/View/Os/Crm/os_crm_labels.dart';
 import 'package:point/View/Os/os_finance_format.dart';
+import 'package:point/View/Shared/responsive.dart';
+
+/// Mobile-friendly stage picker (replaces broken RTL drag on narrow boards).
+Future<void> showOsCrmMoveStageSheet(
+  BuildContext context, {
+  required String currentStage,
+  required ValueChanged<String> onPick,
+}) async {
+  final theme = context.appTheme;
+  await showModalBottomSheet<void>(
+    context: context,
+    showDragHandle: true,
+    builder: (ctx) {
+      return SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 4, 20, 8),
+              child: Text(
+                AppLocaleKeys.osCrmChangeStage.tr,
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800,
+                  color: theme.primaryText,
+                ),
+              ),
+            ),
+            for (final s in OsCrmStage.ordered)
+              ListTile(
+                leading: Container(
+                  width: 10,
+                  height: 10,
+                  decoration: BoxDecoration(
+                    color: osCrmStageColor(s),
+                    shape: BoxShape.circle,
+                  ),
+                ),
+                title: Text(osCrmStageLabel(s)),
+                trailing: s == currentStage
+                    ? Icon(Icons.check_rounded, color: theme.accentText)
+                    : null,
+                onTap: () {
+                  Navigator.pop(ctx);
+                  if (s != currentStage) onPick(s);
+                },
+              ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      );
+    },
+  );
+}
 
 class CrmDragPayload {
   const CrmDragPayload({required this.client, required this.fromStage});
@@ -36,9 +91,10 @@ class OsCrmKanbanView extends StatefulWidget {
   final ValueChanged<String> onAdd;
   final Future<void> Function(ClientModel client, String stage) onChangeStage;
 
-  static const _columnWidth = 272.0;
+  static const _desktopColumnWidth = 272.0;
   static const _columnGap = 12.0;
   static const _horizontalPadding = 16.0;
+  static const _columnPeek = 52.0;
 
   @override
   State<OsCrmKanbanView> createState() => _OsCrmKanbanViewState();
@@ -49,8 +105,10 @@ class _OsCrmKanbanViewState extends State<OsCrmKanbanView> {
   final _boardKey = GlobalKey();
 
   Timer? _autoScrollTimer;
+  ScrollHoldController? _scrollHold;
   var _isDragging = false;
   var _dragPointerX = 0.0;
+  var _hasDragPointer = false;
 
   static const _edgeZone = 72.0;
   static const _maxScrollPerTick = 20.0;
@@ -58,9 +116,15 @@ class _OsCrmKanbanViewState extends State<OsCrmKanbanView> {
 
   @override
   void dispose() {
+    _releaseScrollHold();
     _stopAutoScroll();
     _horizontalController.dispose();
     super.dispose();
+  }
+
+  void _releaseScrollHold() {
+    _scrollHold?.cancel();
+    _scrollHold = null;
   }
 
   bool get _isMobile =>
@@ -68,20 +132,32 @@ class _OsCrmKanbanViewState extends State<OsCrmKanbanView> {
       defaultTargetPlatform == TargetPlatform.iOS;
 
   void _onDragStarted() {
+    // Do not setState here — rebuilding the board cancels LongPressDraggable.
     _isDragging = true;
-    _startAutoScroll();
+    _hasDragPointer = false;
+    _stopAutoScroll();
+    if (_horizontalController.hasClients) {
+      _scrollHold = _horizontalController.position.hold(() {});
+    }
   }
 
   void _onDragUpdate(DragUpdateDetails details) {
     _dragPointerX = details.globalPosition.dx;
+    _hasDragPointer = true;
+    if (_autoScrollTimer == null) {
+      _startAutoScroll();
+    }
   }
 
   void _onDragEnded() {
     _isDragging = false;
+    _hasDragPointer = false;
+    _releaseScrollHold();
     _stopAutoScroll();
   }
 
   void _startAutoScroll() {
+    if (_isMobile) return;
     _autoScrollTimer?.cancel();
     _autoScrollTimer = Timer.periodic(_autoScrollInterval, (_) {
       _tickAutoScroll();
@@ -94,7 +170,12 @@ class _OsCrmKanbanViewState extends State<OsCrmKanbanView> {
   }
 
   void _tickAutoScroll() {
-    if (!_isDragging || !_horizontalController.hasClients) return;
+    if (_isMobile ||
+        !_isDragging ||
+        !_hasDragPointer ||
+        !_horizontalController.hasClients) {
+      return;
+    }
 
     final box = _boardKey.currentContext?.findRenderObject() as RenderBox?;
     if (box == null || !box.hasSize) return;
@@ -105,10 +186,10 @@ class _OsCrmKanbanViewState extends State<OsCrmKanbanView> {
     final rightDist = rect.right - _dragPointerX;
 
     double delta = 0;
-    if (leftDist < _edgeZone) {
+    if (leftDist >= 0 && leftDist < _edgeZone) {
       final intensity = 1 - (leftDist / _edgeZone).clamp(0.0, 1.0);
       delta = -_maxScrollPerTick * intensity;
-    } else if (rightDist < _edgeZone) {
+    } else if (rightDist >= 0 && rightDist < _edgeZone) {
       final intensity = 1 - (rightDist / _edgeZone).clamp(0.0, 1.0);
       delta = _maxScrollPerTick * intensity;
     }
@@ -119,58 +200,141 @@ class _OsCrmKanbanViewState extends State<OsCrmKanbanView> {
     if (isRtl) delta = -delta;
 
     final position = _horizontalController.position;
-    final target = (_horizontalController.offset + delta)
-        .clamp(0.0, position.maxScrollExtent);
-    if (target != _horizontalController.offset) {
+    final atStart = position.pixels <= position.minScrollExtent + 0.5;
+    final atEnd = position.pixels >= position.maxScrollExtent - 0.5;
+    if ((delta < 0 && atStart) || (delta > 0 && atEnd)) {
+      return;
+    }
+
+    final target = (position.pixels + delta)
+        .clamp(position.minScrollExtent, position.maxScrollExtent);
+    if (target != position.pixels) {
       _horizontalController.jumpTo(target);
     }
   }
 
+  static double _columnWidthFor(BuildContext context, double maxWidth) {
+    if (!Responsive.isMobile(context)) {
+      return OsCrmKanbanView._desktopColumnWidth;
+    }
+    final w = maxWidth -
+        OsCrmKanbanView._horizontalPadding -
+        OsCrmKanbanView._columnPeek;
+    return w.clamp(220.0, 360.0);
+  }
+
   @override
   Widget build(BuildContext context) {
-    final board = KeyedSubtree(
-      key: _boardKey,
-      child: ListView.separated(
-        controller: _horizontalController,
-        primary: false,
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.fromLTRB(
-          OsCrmKanbanView._horizontalPadding,
-          0,
-          OsCrmKanbanView._horizontalPadding,
-          16,
-        ),
-        itemCount: OsCrmStage.ordered.length,
-        separatorBuilder: (_, __) =>
-            const SizedBox(width: OsCrmKanbanView._columnGap),
-        itemBuilder: (context, index) {
-          final stage = OsCrmStage.ordered[index];
-          return SizedBox(
-            width: OsCrmKanbanView._columnWidth,
-            child: _StageColumn(
-              stage: stage,
-              clients: widget.clients
-                  .where((c) => widget.crm.effectiveStage(c) == stage)
-                  .toList(),
-              crm: widget.crm,
-              onTap: widget.onTap,
-              onAdd: widget.onAdd,
-              onChangeStage: widget.onChangeStage,
-              onDragStarted: _onDragStarted,
-              onDragUpdate: _onDragUpdate,
-              onDragEnded: _onDragEnded,
-            ),
-          );
-        },
-      ),
-    );
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final columnWidth = _columnWidthFor(context, constraints.maxWidth);
+        final snap = Responsive.isMobile(context);
+        final snapExtent = columnWidth + OsCrmKanbanView._columnGap;
 
-    if (_isMobile) return board;
-    return Scrollbar(
-      controller: _horizontalController,
-      thumbVisibility: true,
-      scrollbarOrientation: ScrollbarOrientation.bottom,
-      child: board,
+        final board = KeyedSubtree(
+          key: _boardKey,
+          child: ListView.separated(
+            controller: _horizontalController,
+            primary: false,
+            scrollDirection: Axis.horizontal,
+            physics: snap
+                ? _KanbanSnapScrollPhysics(
+                    itemExtent: snapExtent,
+                    parent: const BouncingScrollPhysics(),
+                  )
+                : const BouncingScrollPhysics(),
+            padding: const EdgeInsets.fromLTRB(
+              OsCrmKanbanView._horizontalPadding,
+              0,
+              OsCrmKanbanView._horizontalPadding,
+              16,
+            ),
+            itemCount: OsCrmStage.ordered.length,
+            separatorBuilder: (_, __) =>
+                const SizedBox(width: OsCrmKanbanView._columnGap),
+            itemBuilder: (context, index) {
+              final stage = OsCrmStage.ordered[index];
+              return SizedBox(
+                width: columnWidth,
+                child: _StageColumn(
+                  stage: stage,
+                  clients: widget.clients
+                      .where((c) => widget.crm.effectiveStage(c) == stage)
+                      .toList(),
+                  crm: widget.crm,
+                  cardWidth: columnWidth,
+                  onTap: widget.onTap,
+                  onAdd: widget.onAdd,
+                  onChangeStage: widget.onChangeStage,
+                  onDragStarted: _onDragStarted,
+                  onDragUpdate: _onDragUpdate,
+                  onDragEnded: _onDragEnded,
+                ),
+              );
+            },
+          ),
+        );
+
+        if (_isMobile) return board;
+        return Scrollbar(
+          controller: _horizontalController,
+          thumbVisibility: true,
+          scrollbarOrientation: ScrollbarOrientation.bottom,
+          child: board,
+        );
+      },
+    );
+  }
+}
+
+/// Snaps horizontal kanban scroll to column boundaries on mobile.
+class _KanbanSnapScrollPhysics extends ScrollPhysics {
+  const _KanbanSnapScrollPhysics({
+    required this.itemExtent,
+    super.parent,
+  });
+
+  final double itemExtent;
+
+  @override
+  _KanbanSnapScrollPhysics applyTo(ScrollPhysics? ancestor) {
+    return _KanbanSnapScrollPhysics(
+      itemExtent: itemExtent,
+      parent: buildParent(ancestor),
+    );
+  }
+
+  double _targetPixels(ScrollMetrics position, double velocity) {
+    if (itemExtent <= 0) return position.pixels;
+    final tol = toleranceFor(position);
+    var page = position.pixels / itemExtent;
+    if (velocity.abs() >= tol.velocity) {
+      page = velocity > 0 ? page.ceilToDouble() : page.floorToDouble();
+    } else {
+      page = page.roundToDouble();
+    }
+    final maxPage = (position.maxScrollExtent / itemExtent).floorToDouble();
+    page = page.clamp(0.0, maxPage);
+    return page * itemExtent;
+  }
+
+  @override
+  Simulation? createBallisticSimulation(
+    ScrollMetrics position,
+    double velocity,
+  ) {
+    final tol = toleranceFor(position);
+    final target = _targetPixels(position, velocity);
+    if ((target - position.pixels).abs() < tol.distance &&
+        velocity.abs() < tol.velocity) {
+      return null;
+    }
+    return ScrollSpringSimulation(
+      spring,
+      position.pixels,
+      target,
+      velocity,
+      tolerance: tol,
     );
   }
 }
@@ -180,6 +344,7 @@ class _StageColumn extends StatelessWidget {
     required this.stage,
     required this.clients,
     required this.crm,
+    required this.cardWidth,
     required this.onTap,
     required this.onAdd,
     required this.onChangeStage,
@@ -191,6 +356,7 @@ class _StageColumn extends StatelessWidget {
   final String stage;
   final List<ClientModel> clients;
   final OsCrmController crm;
+  final double cardWidth;
   final ValueChanged<String> onTap;
   final ValueChanged<String> onAdd;
   final Future<void> Function(ClientModel client, String stage) onChangeStage;
@@ -244,6 +410,7 @@ class _StageColumn extends StatelessWidget {
                             client: client,
                             crm: crm,
                             stage: stage,
+                            feedbackWidth: cardWidth - 20,
                             onTap: () => onTap(client.id!),
                             onChangeStage: (s) => onChangeStage(client, s),
                             onDragStarted: onDragStarted,
@@ -369,6 +536,7 @@ class _DraggableCrmCard extends StatelessWidget {
     required this.client,
     required this.crm,
     required this.stage,
+    required this.feedbackWidth,
     required this.onTap,
     required this.onChangeStage,
     required this.onDragStarted,
@@ -379,6 +547,7 @@ class _DraggableCrmCard extends StatelessWidget {
   final ClientModel client;
   final OsCrmController crm;
   final String stage;
+  final double feedbackWidth;
   final VoidCallback onTap;
   final ValueChanged<String> onChangeStage;
   final VoidCallback onDragStarted;
@@ -387,10 +556,32 @@ class _DraggableCrmCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final card = _CrmCardBody(
+      client: client,
+      crm: crm,
+      stage: stage,
+      onTap: onTap,
+      onChangeStage: onChangeStage,
+      showDragHandle: !Responsive.isMobile(context),
+      onLongPress: Responsive.isMobile(context)
+          ? () => showOsCrmMoveStageSheet(
+                context,
+                currentStage: stage,
+                onPick: onChangeStage,
+              )
+          : null,
+    );
+
+    if (Responsive.isMobile(context)) {
+      return card;
+    }
+
     final payload = CrmDragPayload(client: client, fromStage: stage);
 
     return LongPressDraggable<CrmDragPayload>(
       data: payload,
+      dragAnchorStrategy: pointerDragAnchorStrategy,
+      rootOverlay: true,
       onDragStarted: onDragStarted,
       onDragUpdate: onDragUpdate,
       onDragEnd: (_) => onDragEnded(),
@@ -401,27 +592,27 @@ class _DraggableCrmCard extends StatelessWidget {
         child: Opacity(
           opacity: 0.92,
           child: SizedBox(
-            width: 248,
+            width: feedbackWidth.clamp(200.0, 320.0),
             child: _CrmCardBody(
               client: client,
               crm: crm,
               stage: stage,
               dragging: true,
+              showDragHandle: true,
             ),
           ),
         ),
       ),
       childWhenDragging: Opacity(
         opacity: 0.35,
-        child: _CrmCardBody(client: client, crm: crm, stage: stage),
+        child: _CrmCardBody(
+          client: client,
+          crm: crm,
+          stage: stage,
+          showDragHandle: true,
+        ),
       ),
-      child: _CrmCardBody(
-        client: client,
-        crm: crm,
-        stage: stage,
-        onTap: onTap,
-        onChangeStage: onChangeStage,
-      ),
+      child: card,
     );
   }
 }
@@ -456,6 +647,8 @@ class _CrmCardBody extends StatelessWidget {
     required this.stage,
     this.onTap,
     this.onChangeStage,
+    this.onLongPress,
+    this.showDragHandle = true,
     this.dragging = false,
   });
 
@@ -464,6 +657,8 @@ class _CrmCardBody extends StatelessWidget {
   final String stage;
   final VoidCallback? onTap;
   final ValueChanged<String>? onChangeStage;
+  final VoidCallback? onLongPress;
+  final bool showDragHandle;
   final bool dragging;
 
   @override
@@ -481,6 +676,7 @@ class _CrmCardBody extends StatelessWidget {
       borderRadius: BorderRadius.circular(14),
       child: InkWell(
         onTap: dragging ? null : onTap,
+        onLongPress: dragging ? null : onLongPress,
         borderRadius: BorderRadius.circular(14),
         child: Container(
           decoration: BoxDecoration(
@@ -508,12 +704,14 @@ class _CrmCardBody extends StatelessWidget {
                       children: [
                         Row(
                           children: [
-                            Icon(
-                              Icons.drag_indicator_rounded,
-                              size: 16,
-                              color: theme.mutedText.withValues(alpha: 0.7),
-                            ),
-                            const SizedBox(width: 4),
+                            if (showDragHandle) ...[
+                              Icon(
+                                Icons.drag_indicator_rounded,
+                                size: 16,
+                                color: theme.mutedText.withValues(alpha: 0.7),
+                              ),
+                              const SizedBox(width: 4),
+                            ],
                             Expanded(
                               child: Text(
                                 company,
@@ -641,22 +839,34 @@ class OsCrmViewToggle extends StatelessWidget {
         border: Border.all(color: theme.border),
       ),
       padding: const EdgeInsets.all(3),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          _ToggleChip(
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final stretch = constraints.maxWidth.isFinite;
+          final kanban = _ToggleChip(
             selected: isKanban,
             label: AppLocaleKeys.osCrmViewKanban.tr,
             icon: Icons.view_kanban_outlined,
             onTap: onKanban,
-          ),
-          _ToggleChip(
+          );
+          final list = _ToggleChip(
             selected: !isKanban,
             label: AppLocaleKeys.osCrmViewList.tr,
             icon: Icons.list_alt_outlined,
             onTap: onList,
-          ),
-        ],
+          );
+          if (!stretch) {
+            return Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [kanban, list],
+            );
+          }
+          return Row(
+            children: [
+              Expanded(child: kanban),
+              Expanded(child: list),
+            ],
+          );
+        },
       ),
     );
   }
@@ -685,8 +895,9 @@ class _ToggleChip extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(9),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
           child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
             mainAxisSize: MainAxisSize.min,
             children: [
               Icon(
@@ -695,12 +906,16 @@ class _ToggleChip extends StatelessWidget {
                 color: selected ? theme.accentText : theme.mutedText,
               ),
               const SizedBox(width: 6),
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                  color: selected ? theme.primaryText : theme.mutedText,
+              Flexible(
+                child: Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: selected ? theme.primaryText : theme.mutedText,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
             ],

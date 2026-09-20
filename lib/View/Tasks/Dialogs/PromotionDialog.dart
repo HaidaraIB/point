@@ -535,7 +535,7 @@ void showPromotionDialog(BuildContext context, {TaskModel? model}) {
                                               .pickMultiFiles();
                                           for (var file in files) {
                                             controller.uploadFiles(
-                                              filePathOrBytes: file.bytes!,
+                                              filePathOrBytes: file.bytes,
                                               fileName: file.name,
                                             );
                                           }

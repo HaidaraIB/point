@@ -10,7 +10,9 @@ import 'package:point/View/Os/Contracts/os_legal_contract_form_dialog.dart';
 import 'package:point/View/Os/os_button_styles.dart';
 
 class OsLegalContractsTemplatesTab extends StatelessWidget {
-  const OsLegalContractsTemplatesTab({super.key});
+  const OsLegalContractsTemplatesTab({super.key, this.compact = false});
+
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
@@ -18,11 +20,12 @@ class OsLegalContractsTemplatesTab extends StatelessWidget {
     final ctrl = Get.find<OsLegalContractsController>();
     final settings = ctrl.settings.value;
     final templates = ctrl.templates;
+    final pad = compact ? 12.0 : 16.0;
 
     return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+      padding: EdgeInsets.fromLTRB(pad, pad, pad, 24),
       children: [
-        _lawBanner(theme, settings),
+        _lawBanner(theme, settings, forceStacked: compact),
         const SizedBox(height: 20),
         Text(
           AppLocaleKeys.osLegalContractTemplateCatalog.tr,
@@ -55,7 +58,11 @@ class OsLegalContractsTemplatesTab extends StatelessWidget {
     );
   }
 
-  Widget _lawBanner(AppThemeExtension theme, OsContractSettings settings) {
+  Widget _lawBanner(
+    AppThemeExtension theme,
+    OsContractSettings settings, {
+    bool forceStacked = false,
+  }) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -82,7 +89,7 @@ class OsLegalContractsTemplatesTab extends StatelessWidget {
           const SizedBox(height: 12),
           LayoutBuilder(
             builder: (context, c) {
-              final wide = c.maxWidth >= 700;
+              final wide = !forceStacked && c.maxWidth >= 700;
               final cards = [
                 _lawCard(theme, AppLocaleKeys.osLegalContractLawLabor.tr,
                     settings.defaultLaborLawRef),

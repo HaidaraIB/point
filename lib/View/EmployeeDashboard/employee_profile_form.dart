@@ -123,7 +123,7 @@ class _EmployeeProfileFormState extends State<EmployeeProfileForm> {
                         await controller.pickoneImage().then((v) async {
                           if (v.isNotEmpty) {
                             await controller.uploadFiles(
-                              filePathOrBytes: v.first.bytes!,
+                              filePathOrBytes: v.first.bytes,
                               fileName: v.first.name,
                             );
                             if (mounted) setState(() {});

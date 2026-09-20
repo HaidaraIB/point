@@ -154,7 +154,6 @@ class _ContentFormMobilePageState extends State<ContentFormMobilePage> {
     final added = <String>[];
     for (final file in files) {
       final bytes = file.bytes;
-      if (bytes == null) continue;
       final url = await hc.uploadFiles(
         filePathOrBytes: bytes,
         fileName: file.name,

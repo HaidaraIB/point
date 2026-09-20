@@ -20,7 +20,9 @@ import 'package:point/View/Os/os_form_dialog.dart';
 import 'package:point/View/Os/os_list_filters.dart';
 import 'package:point/View/Os/os_page_header.dart';
 import 'package:point/View/Os/os_snackbar.dart';
+import 'package:point/View/Os/Finance/Mobile/OsFinanceMobileScreen.dart';
 import 'package:point/View/Shared/ResponsiveScaffold.dart';
+import 'package:point/View/Shared/responsive.dart';
 
 class OsFinancePage extends StatefulWidget {
   const OsFinancePage({super.key});
@@ -74,6 +76,10 @@ class _OsFinancePageState extends State<OsFinancePage>
       return Scaffold(body: Center(child: Text('errors.forbidden'.tr)));
     }
 
+    if (Responsive.isMobile(context)) {
+      return OsFinanceMobileScreen(tabs: _tabs);
+    }
+
     final theme = context.appTheme;
 
     return ResponsiveScaffold(
@@ -112,9 +118,9 @@ class _OsFinancePageState extends State<OsFinancePage>
             child: TabBarView(
               controller: _tabs,
               children: const [
-                _OverviewTab(),
-                _AccountsTab(),
-                _VouchersTab(),
+                OsFinanceOverviewTab(),
+                OsFinanceAccountsTab(),
+                OsFinanceVouchersTab(),
               ],
             ),
           ),
@@ -124,8 +130,10 @@ class _OsFinancePageState extends State<OsFinancePage>
   }
 }
 
-class _OverviewTab extends StatelessWidget {
-  const _OverviewTab();
+class OsFinanceOverviewTab extends StatelessWidget {
+  const OsFinanceOverviewTab({this.compact = false});
+
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
@@ -180,6 +188,27 @@ class _OverviewTab extends StatelessWidget {
       ]..sort((a, b) => b.date.compareTo(a.date));
       final recentSlice = recent.take(6).toList();
 
+      final liquidityCard = _LiquidityCard(
+        liquidity: liquidity,
+        accountCount: accountCount,
+        incoming: incoming,
+        outgoing: outgoing,
+        accounts: accounts,
+        compact: compact,
+      );
+      final recentCard = _RecentCard(items: recentSlice, compact: compact);
+
+      if (compact) {
+        return ListView(
+          padding: const EdgeInsets.fromLTRB(12, 8, 12, 24),
+          children: [
+            liquidityCard,
+            const SizedBox(height: 12),
+            recentCard,
+          ],
+        );
+      }
+
       return ListView(
         padding: const EdgeInsets.all(20),
         children: [
@@ -187,14 +216,6 @@ class _OverviewTab extends StatelessWidget {
             builder: (context, constraints) {
               final wide = constraints.maxWidth >= 900;
               const cardHeight = 360.0;
-              final liquidityCard = _LiquidityCard(
-                liquidity: liquidity,
-                accountCount: accountCount,
-                incoming: incoming,
-                outgoing: outgoing,
-                accounts: accounts,
-              );
-              final recentCard = _RecentCard(items: recentSlice);
               if (wide) {
                 return SizedBox(
                   height: cardHeight,
@@ -248,6 +269,7 @@ class _LiquidityCard extends StatelessWidget {
     required this.incoming,
     required this.outgoing,
     required this.accounts,
+    this.compact = false,
   });
 
   final double liquidity;
@@ -255,6 +277,7 @@ class _LiquidityCard extends StatelessWidget {
   final double incoming;
   final double outgoing;
   final List<OsBankAccountModel> accounts;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
@@ -299,14 +322,11 @@ class _LiquidityCard extends StatelessWidget {
           ),
           if (accounts.isNotEmpty) ...[
             const SizedBox(height: 10),
-            Expanded(
-              child: ListView.separated(
-                padding: EdgeInsets.zero,
-                itemCount: accounts.length,
-                separatorBuilder: (_, __) => const SizedBox(height: 4),
-                itemBuilder: (context, i) {
-                  final a = accounts[i];
-                  return Row(
+            if (compact)
+              ...accounts.take(6).map(
+                (a) => Padding(
+                  padding: const EdgeInsets.only(bottom: 4),
+                  child: Row(
                     children: [
                       Expanded(
                         child: Text(
@@ -329,11 +349,45 @@ class _LiquidityCard extends StatelessWidget {
                         ),
                       ),
                     ],
-                  );
-                },
+                  ),
+                ),
+              )
+            else
+              Expanded(
+                child: ListView.separated(
+                  padding: EdgeInsets.zero,
+                  itemCount: accounts.length,
+                  separatorBuilder: (_, __) => const SizedBox(height: 4),
+                  itemBuilder: (context, i) {
+                    final a = accounts[i];
+                    return Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            a.name,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: theme.primaryText,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                        Text(
+                          OsFinanceFormat.money(a.balance),
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: theme.accentText,
+                          ),
+                        ),
+                      ],
+                    );
+                  },
+                ),
               ),
-            ),
-          ] else
+          ] else if (!compact)
             const Spacer(),
           const SizedBox(height: 12),
           Row(
@@ -423,9 +477,10 @@ class _MiniStat extends StatelessWidget {
 }
 
 class _RecentCard extends StatelessWidget {
-  const _RecentCard({required this.items});
+  const _RecentCard({required this.items, this.compact = false});
 
   final List<_ActivityItem> items;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
@@ -457,18 +512,96 @@ class _RecentCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 14),
-          Expanded(
-            child: items.isEmpty
-                ? Center(
+          if (compact)
+            items.isEmpty
+                ? Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 16),
                     child: Text(
                       AppLocaleKeys.osFinanceEmptyActivity.tr,
                       style: TextStyle(color: theme.secondaryText),
                     ),
                   )
                 : ListView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
                     padding: EdgeInsets.zero,
                     itemCount: items.length,
                     itemBuilder: (context, index) {
+                      final item = items[index];
+                      final tone = item.isIn
+                          ? ((Theme.of(context).brightness == Brightness.dark)
+                              ? const Color(0xFF4ADE80)
+                              : Colors.green)
+                          : ((Theme.of(context).brightness == Brightness.dark)
+                              ? const Color(0xFFF87171)
+                              : Colors.redAccent);
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 6),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: tone.withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Icon(
+                                Icons.history,
+                                size: 18,
+                                color: tone,
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    item.description,
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w700,
+                                      color: theme.primaryText,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    '${item.accountName} · ${item.date}',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      color: theme.secondaryText,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Text(
+                              '${item.isIn ? '+' : '-'}${OsFinanceFormat.money(item.amount)}',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w800,
+                                fontSize: 13,
+                                color: tone,
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  )
+          else
+            Expanded(
+              child: items.isEmpty
+                  ? Center(
+                      child: Text(
+                        AppLocaleKeys.osFinanceEmptyActivity.tr,
+                        style: TextStyle(color: theme.secondaryText),
+                      ),
+                    )
+                  : ListView.builder(
+                      padding: EdgeInsets.zero,
+                      itemCount: items.length,
+                      itemBuilder: (context, index) {
                       final item = items[index];
                       final tone = item.isIn
                           ? ((Theme.of(context).brightness == Brightness.dark)
@@ -538,14 +671,16 @@ class _RecentCard extends StatelessWidget {
   }
 }
 
-class _AccountsTab extends StatefulWidget {
-  const _AccountsTab();
+class OsFinanceAccountsTab extends StatefulWidget {
+  const OsFinanceAccountsTab({this.compact = false});
+
+  final bool compact;
 
   @override
-  State<_AccountsTab> createState() => _AccountsTabState();
+  State<OsFinanceAccountsTab> createState() => _OsFinanceAccountsTabState();
 }
 
-class _AccountsTabState extends State<_AccountsTab> {
+class _OsFinanceAccountsTabState extends State<OsFinanceAccountsTab> {
   final _search = TextEditingController();
   var _type = 'ALL';
 
@@ -808,9 +943,12 @@ class _AccountsTabState extends State<_AccountsTab> {
     return Obx(() {
       final accounts = finance.bankAccounts.toList();
       final filtered = _filtered(accounts);
+      final compact = widget.compact;
       return Column(
         children: [
           OsListFilterBar(
+            dense: compact,
+            stacked: compact,
             chips: OsFilterChips(
               value: _type,
               onChanged: (v) => setState(() => _type = v),
@@ -829,6 +967,7 @@ class _AccountsTabState extends State<_AccountsTab> {
             search: OsSearchField(
               controller: _search,
               hint: AppLocaleKeys.osAccountsSearch.tr,
+              width: double.infinity,
               onChanged: (_) => setState(() {}),
             ),
             matchCount: accounts.isEmpty ? null : filtered.length,
@@ -856,10 +995,15 @@ class _AccountsTabState extends State<_AccountsTab> {
                   )
                 : LayoutBuilder(
                     builder: (context, constraints) {
-                      final narrow = constraints.maxWidth < 640;
+                      final narrow = compact || constraints.maxWidth < 640;
                       if (narrow) {
                         return ListView.separated(
-                          padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+                          padding: EdgeInsets.fromLTRB(
+                            compact ? 12 : 16,
+                            8,
+                            compact ? 12 : 16,
+                            24,
+                          ),
                           itemCount: filtered.length,
                           separatorBuilder: (_, __) =>
                               const SizedBox(height: 12),
@@ -1045,14 +1189,16 @@ class SoftGridDelegate extends SliverGridDelegateWithMaxCrossAxisExtent {
         );
 }
 
-class _VouchersTab extends StatefulWidget {
-  const _VouchersTab();
+class OsFinanceVouchersTab extends StatefulWidget {
+  const OsFinanceVouchersTab({this.compact = false});
+
+  final bool compact;
 
   @override
-  State<_VouchersTab> createState() => _VouchersTabState();
+  State<OsFinanceVouchersTab> createState() => _OsFinanceVouchersTabState();
 }
 
-class _VouchersTabState extends State<_VouchersTab> {
+class _OsFinanceVouchersTabState extends State<OsFinanceVouchersTab> {
   final _searchCtrl = TextEditingController();
   String _typeFilter = 'ALL';
   String? _selectedId;
@@ -1288,10 +1434,53 @@ class _VouchersTabState extends State<_VouchersTab> {
     }
   }
 
+  Future<void> _showVoucherDetailSheet(
+    BuildContext context,
+    OsFinanceController finance,
+    OsVoucherModel voucher,
+  ) async {
+    final accountName = finance.accountById(voucher.bankAccountId)?.name ??
+        AppLocaleKeys.osFinanceUnknownAccount.tr;
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      backgroundColor: context.appTheme.cardSurface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (sheetContext) {
+        return DraggableScrollableSheet(
+          expand: false,
+          initialChildSize: 0.92,
+          minChildSize: 0.45,
+          maxChildSize: 0.96,
+          builder: (_, scrollController) {
+            return SingleChildScrollView(
+              controller: scrollController,
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+              child: OsVoucherDetailPanel(
+                voucher: voucher,
+                accountName: accountName,
+                onDelete: OsPermissions.canDeleteCurrentOsRecords
+                    ? () async {
+                        Navigator.of(sheetContext).pop();
+                        await _confirmDeleteVoucher(voucher);
+                      }
+                    : null,
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final finance = Get.find<OsFinanceController>();
     final theme = context.appTheme;
+    final compact = widget.compact;
 
     return Obx(() {
       final filtered = _filtered(finance.vouchers.toList());
@@ -1299,6 +1488,120 @@ class _VouchersTabState extends State<_VouchersTab> {
             (v) => v?.id == _selectedId,
             orElse: () => filtered.isEmpty ? null : filtered.first,
           );
+
+      if (compact) {
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 10, 12, 0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(
+                        Icons.description_outlined,
+                        color: theme.accentText,
+                        size: 22,
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              AppLocaleKeys.osVouchersBookTitle.tr,
+                              style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w800,
+                                color: theme.primaryText,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              AppLocaleKeys.osVouchersSubtitle.tr,
+                              style: TextStyle(
+                                fontSize: 12,
+                                height: 1.4,
+                                color: theme.secondaryText,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  FilledButton.icon(
+                    onPressed: () => _openCreate(context),
+                    style: OsButtonStyles.primaryCompact(),
+                    icon: const Icon(Icons.add, size: 18),
+                    label: Text(AppLocaleKeys.osVouchersIssueNew.tr),
+                  ),
+                ],
+              ),
+            ),
+            OsListFilterBar(
+              dense: true,
+              stacked: true,
+              chips: OsFilterChips(
+                value: _typeFilter,
+                onChanged: (v) => setState(() => _typeFilter = v),
+                options: [
+                  OsFilterChipOption(
+                    value: 'ALL',
+                    label: AppLocaleKeys.osVouchersTypeAll.tr,
+                  ),
+                  OsFilterChipOption(
+                    value: OsVoucherType.receipt,
+                    label: OsFinanceFormat.voucherTypeLabel(
+                      OsVoucherType.receipt,
+                    ),
+                  ),
+                  OsFilterChipOption(
+                    value: OsVoucherType.payment,
+                    label: OsFinanceFormat.voucherTypeLabel(
+                      OsVoucherType.payment,
+                    ),
+                  ),
+                ],
+              ),
+              search: OsSearchField(
+                controller: _searchCtrl,
+                hint: AppLocaleKeys.osVouchersSearch.tr,
+                width: double.infinity,
+                onChanged: (_) => setState(() {}),
+              ),
+              matchCount: filtered.length,
+            ),
+            Expanded(
+              child: filtered.isEmpty
+                  ? OsEmptyState(
+                      message: finance.vouchers.isEmpty
+                          ? AppLocaleKeys.osVouchersEmpty.tr
+                          : AppLocaleKeys.osVouchersEmptyFilter.tr,
+                    )
+                  : ListView.separated(
+                      padding: const EdgeInsets.fromLTRB(12, 4, 12, 24),
+                      itemCount: filtered.length,
+                      separatorBuilder: (_, __) => const SizedBox(height: 10),
+                      itemBuilder: (context, index) {
+                        final v = filtered[index];
+                        return _VoucherMobileCard(
+                          voucher: v,
+                          accountName: finance.accountById(v.bankAccountId)?.name ??
+                              AppLocaleKeys.osFinanceUnknownAccount.tr,
+                          onTap: () =>
+                              _showVoucherDetailSheet(context, finance, v),
+                        );
+                      },
+                    ),
+            ),
+          ],
+        );
+      }
 
       return Column(
         children: [
@@ -1462,6 +1765,121 @@ class _VouchersTabState extends State<_VouchersTab> {
         ],
       );
     });
+  }
+}
+
+class _VoucherMobileCard extends StatelessWidget {
+  const _VoucherMobileCard({
+    required this.voucher,
+    required this.accountName,
+    required this.onTap,
+  });
+
+  final OsVoucherModel voucher;
+  final String accountName;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = context.appTheme;
+    final v = voucher;
+    final chipTone = (Theme.of(context).brightness == Brightness.dark)
+        ? const Color(0xFF4ADE80)
+        : Colors.green;
+    final payTone = (Theme.of(context).brightness == Brightness.dark)
+        ? const Color(0xFFF87171)
+        : Colors.redAccent;
+    final typeTone = v.type == OsVoucherType.receipt ? chipTone : payTone;
+    final desc = OsFinanceFormat.displayDescription(v.description);
+
+    return Material(
+      color: theme.cardSurface,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(14),
+        side: BorderSide(color: theme.border),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      OsFinanceFormat.voucherRef(v),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w800,
+                        color: theme.accentText,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: typeTone.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    child: Text(
+                      OsFinanceFormat.voucherTypeLabel(v.type),
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w800,
+                        color: typeTone,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Text(
+                v.payeeOrPayer,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                  color: theme.primaryText,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                OsFinanceFormat.money(v.amount),
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w900,
+                  color: theme.accentText,
+                ),
+              ),
+              if (desc.isNotEmpty) ...[
+                const SizedBox(height: 6),
+                Text(
+                  desc,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(fontSize: 12, color: theme.secondaryText),
+                ),
+              ],
+              const SizedBox(height: 8),
+              Text(
+                '$accountName · ${v.date}',
+                style: TextStyle(fontSize: 11, color: theme.mutedText),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }
 

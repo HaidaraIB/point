@@ -16,7 +16,9 @@ import 'package:point/View/Os/os_snackbar.dart';
 import 'package:point/View/Shared/app_data_table.dart';
 
 class OsContractsTab extends StatefulWidget {
-  const OsContractsTab({super.key});
+  const OsContractsTab({super.key, this.compact = false});
+
+  final bool compact;
 
   @override
   State<OsContractsTab> createState() => _OsContractsTabState();
@@ -71,6 +73,145 @@ class _OsContractsTabState extends State<OsContractsTab> {
     return Obx(() {
       final all = payroll.contracts.toList();
       final items = _filtered(all);
+
+      if (widget.compact) {
+        return CustomScrollView(
+          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+          slivers: [
+            SliverToBoxAdapter(
+              child: OsListFilterBar(
+                dense: true,
+                stacked: true,
+                chips: OsFilterChips(
+                  value: _status,
+                  onChanged: (v) => setState(() => _status = v),
+                  options: [
+                    OsFilterChipOption(
+                      value: 'ALL',
+                      label: AppLocaleKeys.osCommonFilterAll.tr,
+                    ),
+                    OsFilterChipOption(
+                      value: OsEmployeeContractStatus.active,
+                      label: AppLocaleKeys.osContractsStatusActive.tr,
+                    ),
+                    OsFilterChipOption(
+                      value: OsEmployeeContractStatus.expired,
+                      label: AppLocaleKeys.osContractsStatusExpired.tr,
+                    ),
+                  ],
+                ),
+                search: OsSearchField(
+                  controller: _search,
+                  hint: AppLocaleKeys.osContractsSearch.tr,
+                  width: double.infinity,
+                  onChanged: (_) => setState(() {}),
+                ),
+                actions: [
+                  FilledButton.icon(
+                    style: OsButtonStyles.primaryCompact(),
+                    onPressed: () => showOsContractFormDialog(context),
+                    icon: const Icon(Icons.add, size: 18),
+                    label: Text(AppLocaleKeys.osContractsAdd.tr),
+                  ),
+                ],
+                matchCount: all.isEmpty ? null : items.length,
+              ),
+            ),
+            if (items.isEmpty)
+              SliverFillRemaining(
+                hasScrollBody: false,
+                child: OsEmptyState(
+                  message: all.isEmpty
+                      ? AppLocaleKeys.osContractsEmpty.tr
+                      : AppLocaleKeys.osContractsEmptyFilter.tr,
+                ),
+              )
+            else
+              SliverPadding(
+                padding: EdgeInsets.fromLTRB(
+                  12,
+                  4,
+                  12,
+                  24 + MediaQuery.paddingOf(context).bottom,
+                ),
+                sliver: SliverList.separated(
+                  itemCount: items.length,
+                  separatorBuilder: (_, __) => const SizedBox(height: 10),
+                  itemBuilder: (context, index) {
+                    final c = items[index];
+                    final active =
+                        c.status == OsEmployeeContractStatus.active;
+                    return Material(
+                      color: theme.cardSurface,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        side: BorderSide(color: theme.border),
+                      ),
+                      clipBehavior: Clip.antiAlias,
+                      child: Padding(
+                        padding: const EdgeInsets.all(14),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    c.employeeName,
+                                    style: TextStyle(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w800,
+                                      color: theme.primaryText,
+                                    ),
+                                  ),
+                                ),
+                                _statusChip(theme, active),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              c.type,
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: theme.secondaryText,
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              '${AppLocaleKeys.osContractsColEnd.tr}: ${c.endDate}',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: theme.mutedText,
+                              ),
+                            ),
+                            if (OsPermissions.canDeleteCurrentOsRecords &&
+                                c.id != null) ...[
+                              const SizedBox(height: 10),
+                              Align(
+                                alignment: AlignmentDirectional.centerEnd,
+                                child: IconButton(
+                                  tooltip: AppLocaleKeys.osCommonDelete.tr,
+                                  onPressed: () =>
+                                      _delete(context, payroll, c.id!),
+                                  icon: Icon(
+                                    Icons.delete_outline,
+                                    color: theme.mutedText,
+                                    size: 22,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+          ],
+        );
+      }
+
       return Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [

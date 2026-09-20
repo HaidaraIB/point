@@ -8,6 +8,31 @@ import 'package:point/Models/Os/os_crm_enums.dart';
 import 'package:point/View/Os/Crm/os_crm_labels.dart';
 import 'package:point/View/Os/os_form_dialog.dart';
 import 'package:point/View/Os/os_snackbar.dart';
+import 'package:point/View/Shared/responsive.dart';
+
+Widget _crmFormFieldPair({
+  required bool stack,
+  required Widget first,
+  required Widget second,
+}) {
+  if (stack) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        first,
+        const SizedBox(height: 14),
+        second,
+      ],
+    );
+  }
+  return Row(
+    children: [
+      Expanded(child: first),
+      const SizedBox(width: 12),
+      Expanded(child: second),
+    ],
+  );
+}
 
 Future<void> showOsCrmClientFormDialog(
   BuildContext context, {
@@ -36,112 +61,100 @@ Future<void> showOsCrmClientFormDialog(
       final employees = home.employees
           .where((e) => (e.id ?? '').isNotEmpty)
           .toList();
+      final stack = Responsive.isMobile(context) ||
+          MediaQuery.sizeOf(context).width < 600;
+
+      final stageField = DropdownButtonFormField<String>(
+        key: ValueKey(stage),
+        initialValue: stage,
+        isExpanded: true,
+        decoration: osFinanceFieldDecoration(
+          AppLocaleKeys.osCrmStage.tr,
+        ),
+        items: [
+          for (final s in OsCrmStage.ordered)
+            DropdownMenuItem(
+              value: s,
+              child: Text(
+                osCrmStageLabel(s),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+        ],
+        onChanged: (v) {
+          if (v != null) setLocal(() => stage = v);
+        },
+      );
+
+      final assigneeField = DropdownButtonFormField<String?>(
+        key: ValueKey(employeeId),
+        initialValue: employeeId,
+        isExpanded: true,
+        decoration: osFinanceFieldDecoration(
+          AppLocaleKeys.osCrmAssignee.tr,
+        ),
+        items: [
+          DropdownMenuItem<String?>(
+            value: null,
+            child: Text(AppLocaleKeys.osCommonDash.tr),
+          ),
+          for (final e in employees)
+            DropdownMenuItem<String?>(
+              value: e.id,
+              child: Text(
+                e.name ?? AppLocaleKeys.osCommonDash.tr,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+        ],
+        onChanged: (v) => setLocal(() => employeeId = v),
+      );
 
       return Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Row(
-            children: [
-              Expanded(
-                child: osTypedTextField(
-                  controller: companyCtrl,
-                  style: const TextStyle(fontSize: 16),
-                  decoration: osFinanceFieldDecoration(
-                    AppLocaleKeys.osCrmCompany.tr,
-                  ),
-                ),
+          _crmFormFieldPair(
+            stack: stack,
+            first: osTypedTextField(
+              controller: companyCtrl,
+              style: const TextStyle(fontSize: 16),
+              decoration: osFinanceFieldDecoration(
+                AppLocaleKeys.osCrmCompany.tr,
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: osTypedTextField(
-                  controller: nameCtrl,
-                  style: const TextStyle(fontSize: 16),
-                  decoration: osFinanceFieldDecoration(
-                    AppLocaleKeys.osCrmContactName.tr,
-                  ),
-                ),
+            ),
+            second: osTypedTextField(
+              controller: nameCtrl,
+              style: const TextStyle(fontSize: 16),
+              decoration: osFinanceFieldDecoration(
+                AppLocaleKeys.osCrmContactName.tr,
               ),
-            ],
+            ),
           ),
           const SizedBox(height: 14),
-          Row(
-            children: [
-              Expanded(
-                child: osTypedTextField(
-                  controller: phoneCtrl,
-                  style: const TextStyle(fontSize: 16),
-                  keyboardType: TextInputType.phone,
-                  decoration: osFinanceFieldDecoration(
-                    AppLocaleKeys.osCrmPhone.tr,
-                  ),
-                ),
+          _crmFormFieldPair(
+            stack: stack,
+            first: osTypedTextField(
+              controller: phoneCtrl,
+              style: const TextStyle(fontSize: 16),
+              keyboardType: TextInputType.phone,
+              decoration: osFinanceFieldDecoration(
+                AppLocaleKeys.osCrmPhone.tr,
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: osTypedTextField(
-                  controller: emailCtrl,
-                  style: const TextStyle(fontSize: 16),
-                  keyboardType: TextInputType.emailAddress,
-                  decoration: osFinanceFieldDecoration(
-                    AppLocaleKeys.osCrmEmail.tr,
-                  ),
-                ),
+            ),
+            second: osTypedTextField(
+              controller: emailCtrl,
+              style: const TextStyle(fontSize: 16),
+              keyboardType: TextInputType.emailAddress,
+              decoration: osFinanceFieldDecoration(
+                AppLocaleKeys.osCrmEmail.tr,
               ),
-            ],
+            ),
           ),
           const SizedBox(height: 14),
-          Row(
-            children: [
-              Expanded(
-                child: DropdownButtonFormField<String>(
-                  key: ValueKey(stage),
-                  initialValue: stage,
-                  isExpanded: true,
-                  decoration: osFinanceFieldDecoration(
-                    AppLocaleKeys.osCrmStage.tr,
-                  ),
-                  items: [
-                    for (final s in OsCrmStage.ordered)
-                      DropdownMenuItem(
-                        value: s,
-                        child: Text(
-                          osCrmStageLabel(s),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                  ],
-                  onChanged: (v) {
-                    if (v != null) setLocal(() => stage = v);
-                  },
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: DropdownButtonFormField<String?>(
-                  key: ValueKey(employeeId),
-                  initialValue: employeeId,
-                  isExpanded: true,
-                  decoration: osFinanceFieldDecoration(
-                    AppLocaleKeys.osCrmAssignee.tr,
-                  ),
-                  items: [
-                    DropdownMenuItem<String?>(
-                      value: null,
-                      child: Text(AppLocaleKeys.osCommonDash.tr),
-                    ),
-                    for (final e in employees)
-                      DropdownMenuItem<String?>(
-                        value: e.id,
-                        child: Text(
-                          e.name ?? AppLocaleKeys.osCommonDash.tr,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                  ],
-                  onChanged: (v) => setLocal(() => employeeId = v),
-                ),
-              ),
-            ],
+          _crmFormFieldPair(
+            stack: stack,
+            first: stageField,
+            second: assigneeField,
           ),
           const SizedBox(height: 14),
           DropdownButtonFormField<String?>(

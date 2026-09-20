@@ -5,6 +5,7 @@ import 'package:point/Utils/AppFonts.dart';
 import 'package:point/Utils/app_theme_extension.dart';
 import 'package:point/View/Os/os_module_nav.dart';
 import 'package:point/View/Os/os_settings_gear_button.dart';
+import 'package:point/View/Shared/responsive.dart';
 
 /// Shared header for OS sub-routes: back to `/os` + title + optional actions.
 class OsPageHeader extends StatelessWidget {
@@ -43,7 +44,12 @@ class OsPageHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = context.appTheme;
     final width = MediaQuery.sizeOf(context).width;
-    final stackActions = width < 900 && (actions?.isNotEmpty ?? false);
+    final compact = Responsive.isMobile(context);
+    final stackActions =
+        width < 900 && (actions?.isNotEmpty ?? false);
+    final titleSize = compact ? 20.0 : 26.0;
+    final showSubtitle = subtitle != null &&
+        (!compact || width >= 600);
 
     final titleBlock = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -51,28 +57,43 @@ class OsPageHeader extends StatelessWidget {
         Text(
           title,
           style: Appfonts.text(
-            fontSize: 26,
+            fontSize: titleSize,
             fontWeight: FontWeight.w800,
             color: theme.primaryText,
           ),
+          maxLines: compact ? 2 : null,
+          overflow: compact ? TextOverflow.ellipsis : null,
         ),
-        if (subtitle != null) ...[
+        if (showSubtitle) ...[
           const SizedBox(height: 2),
           Text(
             subtitle!,
             style: Appfonts.text(
-              fontSize: 14,
+              fontSize: 13,
               color: theme.secondaryText,
             ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
         ],
       ],
     );
 
+    final Widget? stackedActions = actions == null || !stackActions
+        ? null
+        : Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              for (var i = 0; i < actions!.length; i++) ...[
+                if (i > 0) const SizedBox(height: 8),
+                actions![i],
+              ],
+            ],
+          );
+
     final actionsRow = actions == null
         ? null
         : Wrap(
-            // End = far side (left in RTL, right in LTR).
             alignment: WrapAlignment.end,
             crossAxisAlignment: WrapCrossAlignment.center,
             spacing: 8,
@@ -106,12 +127,9 @@ class OsPageHeader extends StatelessWidget {
                         if (showSettingsGear) const OsSettingsGearButton(),
                       ],
                     ),
-                    if (actionsRow != null) ...[
+                    if (stackedActions != null) ...[
                       const SizedBox(height: 10),
-                      Align(
-                        alignment: AlignmentDirectional.centerEnd,
-                        child: actionsRow,
-                      ),
+                      stackedActions,
                     ],
                   ],
                 )

@@ -11,13 +11,14 @@ import 'package:point/Utils/os_module_ids.dart';
 import 'package:point/Utils/app_theme_extension.dart';
 import 'package:point/View/Os/EmailHub/os_email_hub_helpers.dart';
 import 'package:point/View/Os/EmailHub/os_email_hub_logs_tab.dart';
-import 'package:point/View/Os/EmailHub/html_email_preview.dart';
 import 'package:point/View/Os/EmailHub/os_email_hub_app_tabs.dart';
 import 'package:point/View/Os/EmailHub/os_email_hub_tabs.dart';
 import 'package:point/View/Os/os_button_styles.dart';
 import 'package:point/View/Os/os_page_header.dart';
 import 'package:point/View/Os/os_snackbar.dart';
 import 'package:point/View/Shared/ResponsiveScaffold.dart';
+import 'package:point/View/Shared/responsive.dart';
+import 'package:point/View/Os/EmailHub/html_email_preview.dart';
 
 class OsEmailHubPage extends StatefulWidget {
   const OsEmailHubPage({super.key});
@@ -156,6 +157,7 @@ class _OsEmailHubPageState extends State<OsEmailHubPage> {
     }
 
     final theme = context.appTheme;
+    final compact = Responsive.isMobile(context);
 
     return ResponsiveScaffold(
       selectedTab: 14,
@@ -165,8 +167,9 @@ class _OsEmailHubPageState extends State<OsEmailHubPage> {
         children: [
           OsPageHeader(
             title: AppLocaleKeys.osEmailHubTitle.tr,
-            subtitle: AppLocaleKeys.osEmailHubSubtitle.tr,
+            subtitle: compact ? null : AppLocaleKeys.osEmailHubSubtitle.tr,
             currentRoute: '/os/email-hub',
+            showModuleNav: compact,
             actions: [
               FilledButton.icon(
                 onPressed: () => _selectPanel(OsEmailHubTabPersistence.logsIndex),
@@ -186,21 +189,16 @@ class _OsEmailHubPageState extends State<OsEmailHubPage> {
           ),
           Material(
             color: theme.cardSurface,
-            child: Scrollbar(
+            child: _EmailHubTabStrip(
+              compact: compact,
               controller: _tabBarScrollController,
-              thumbVisibility: true,
-              trackVisibility: true,
-              child: SingleChildScrollView(
-                controller: _tabBarScrollController,
-                scrollDirection: Axis.horizontal,
-                physics: const AlwaysScrollableScrollPhysics(),
-                padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
-                child: Row(
+              child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                   if (OsPermissions.canAccessModule(emp, OsModuleIds.invoices))
                     _dispatchTab(
                       theme,
+                      compact: compact,
                       index: 0,
                       icon: Icons.receipt_long_outlined,
                       label: AppLocaleKeys.osEmailHubTabInvoices.tr,
@@ -208,6 +206,7 @@ class _OsEmailHubPageState extends State<OsEmailHubPage> {
                   if (OsPermissions.canAccessModule(emp, OsModuleIds.quotations))
                     _dispatchTab(
                       theme,
+                      compact: compact,
                       index: 1,
                       icon: Icons.request_quote_outlined,
                       label: AppLocaleKeys.osEmailHubTabQuotations.tr,
@@ -215,18 +214,21 @@ class _OsEmailHubPageState extends State<OsEmailHubPage> {
                   if (OsPermissions.canAccessModule(emp, OsModuleIds.payroll))
                     _dispatchTab(
                       theme,
+                      compact: compact,
                       index: 2,
                       icon: Icons.badge_outlined,
                       label: AppLocaleKeys.osEmailHubTabPayslips.tr,
                     ),
                   _dispatchTab(
                     theme,
+                    compact: compact,
                     index: 3,
                     icon: Icons.emoji_events_outlined,
                     label: AppLocaleKeys.osEmailHubTabAppreciation.tr,
                   ),
                   _dispatchTab(
                     theme,
+                    compact: compact,
                     index: 4,
                     icon: Icons.warning_amber_rounded,
                     label: AppLocaleKeys.osEmailHubTabPenalties.tr,
@@ -234,6 +236,7 @@ class _OsEmailHubPageState extends State<OsEmailHubPage> {
                   if (OsPermissions.canAccessModule(emp, OsModuleIds.contracts))
                     _dispatchTab(
                       theme,
+                      compact: compact,
                       index: OsEmailHubTabPersistence.names
                           .indexOf(OsEmailHubTabPersistence.contracts),
                       icon: Icons.description_outlined,
@@ -241,6 +244,7 @@ class _OsEmailHubPageState extends State<OsEmailHubPage> {
                     ),
                   _dispatchTab(
                     theme,
+                    compact: compact,
                     index: OsEmailHubTabPersistence.names
                         .indexOf(OsEmailHubTabPersistence.chat),
                     icon: Icons.forum_outlined,
@@ -248,6 +252,7 @@ class _OsEmailHubPageState extends State<OsEmailHubPage> {
                   ),
                   _dispatchTab(
                     theme,
+                    compact: compact,
                     index: OsEmailHubTabPersistence.names.indexOf(
                       OsEmailHubTabPersistence.employeeNotifications,
                     ),
@@ -256,6 +261,7 @@ class _OsEmailHubPageState extends State<OsEmailHubPage> {
                   ),
                   _dispatchTab(
                     theme,
+                    compact: compact,
                     index: OsEmailHubTabPersistence.names.indexOf(
                       OsEmailHubTabPersistence.managerNotifications,
                     ),
@@ -264,6 +270,7 @@ class _OsEmailHubPageState extends State<OsEmailHubPage> {
                   ),
                   _dispatchTab(
                     theme,
+                    compact: compact,
                     index: OsEmailHubTabPersistence.names.indexOf(
                       OsEmailHubTabPersistence.clientNotifications,
                     ),
@@ -272,6 +279,7 @@ class _OsEmailHubPageState extends State<OsEmailHubPage> {
                   ),
                   _dispatchTab(
                     theme,
+                    compact: compact,
                     index: OsEmailHubTabPersistence.names.indexOf(
                       OsEmailHubTabPersistence.publishNotifications,
                     ),
@@ -280,6 +288,7 @@ class _OsEmailHubPageState extends State<OsEmailHubPage> {
                   ),
                   _dispatchTab(
                     theme,
+                    compact: compact,
                     index: OsEmailHubTabPersistence.names.indexOf(
                       OsEmailHubTabPersistence.adminNotifications,
                     ),
@@ -288,6 +297,7 @@ class _OsEmailHubPageState extends State<OsEmailHubPage> {
                   ),
                   _dispatchTab(
                     theme,
+                    compact: compact,
                     index: OsEmailHubTabPersistence.names
                         .indexOf(OsEmailHubTabPersistence.broadcast),
                     icon: Icons.campaign_outlined,
@@ -295,7 +305,6 @@ class _OsEmailHubPageState extends State<OsEmailHubPage> {
                   ),
                   ],
                 ),
-              ),
             ),
           ),
           Expanded(child: _buildPanelContent()),
@@ -306,21 +315,67 @@ class _OsEmailHubPageState extends State<OsEmailHubPage> {
 
   Widget _dispatchTab(
     AppThemeExtension theme, {
+    required bool compact,
     required int index,
     required IconData icon,
     required String label,
   }) {
     final selected = _panelIndex == index;
     return Padding(
-      padding: const EdgeInsetsDirectional.only(end: 8),
+      padding: EdgeInsetsDirectional.only(end: compact ? 10 : 8),
       child: FilledButton.icon(
         onPressed: () => _selectPanel(index),
         style: selected
             ? OsButtonStyles.primaryCompact()
             : OsButtonStyles.secondaryCompact(theme),
-        icon: Icon(icon, size: 16),
-        label: Text(label, style: OsButtonStyles.compactTextStyle),
+        icon: Icon(icon, size: compact ? 15 : 16),
+        label: Text(
+          label,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: OsButtonStyles.compactTextStyle.copyWith(
+            fontSize: compact ? 12 : null,
+          ),
+        ),
       ),
+    );
+  }
+}
+
+/// Horizontal email-type tabs; hide [Scrollbar] on mobile (it drew through the chips).
+class _EmailHubTabStrip extends StatelessWidget {
+  const _EmailHubTabStrip({
+    required this.compact,
+    required this.controller,
+    required this.child,
+  });
+
+  final bool compact;
+  final ScrollController controller;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final scrollView = SingleChildScrollView(
+      controller: controller,
+      scrollDirection: Axis.horizontal,
+      physics: const AlwaysScrollableScrollPhysics(),
+      padding: EdgeInsets.fromLTRB(
+        compact ? 10 : 12,
+        compact ? 4 : 0,
+        compact ? 10 : 12,
+        compact ? 10 : 8,
+      ),
+      child: child,
+    );
+
+    if (compact) return scrollView;
+
+    return Scrollbar(
+      controller: controller,
+      thumbVisibility: true,
+      trackVisibility: true,
+      child: scrollView,
     );
   }
 }
@@ -357,6 +412,9 @@ class OsEmailHubDispatchPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = context.appTheme;
+    final compact = Responsive.isMobile(context);
+    final pagePad = compact ? 12.0 : 16.0;
+    final cardPad = compact ? 14.0 : 18.0;
 
     if (emptyMessage != null) {
       return Center(
@@ -371,8 +429,54 @@ class OsEmailHubDispatchPanel extends StatelessWidget {
       );
     }
 
+    final sendPrimary = FilledButton.icon(
+      onPressed: isSending ? null : onSend,
+      style: OsButtonStyles.primaryCompact(),
+      icon: isSending
+          ? const SizedBox(
+              width: 18,
+              height: 18,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: Colors.white,
+              ),
+            )
+          : const Icon(Icons.send_rounded, size: 18),
+      label: Text(sendLabel ?? AppLocaleKeys.osEmailHubSend.tr),
+    );
+
+    final sendSecondary = secondaryLabel != null && onSecondaryAction != null
+        ? FilledButton.icon(
+            onPressed: isSending ? null : onSecondaryAction,
+            style: OsButtonStyles.secondaryCompact(theme),
+            icon: const Icon(Icons.groups_outlined, size: 18),
+            label: Text(secondaryLabel!),
+          )
+        : null;
+
+    final actionButtons = compact
+        ? Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              if (sendSecondary != null) ...[
+                SizedBox(width: double.infinity, child: sendSecondary),
+                const SizedBox(height: 8),
+              ],
+              SizedBox(width: double.infinity, child: sendPrimary),
+            ],
+          )
+        : Wrap(
+            alignment: WrapAlignment.end,
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              if (sendSecondary != null) sendSecondary,
+              sendPrimary,
+            ],
+          );
+
     final formCard = Container(
-      padding: const EdgeInsets.all(18),
+      padding: EdgeInsets.all(cardPad),
       decoration: BoxDecoration(
         color: theme.cardSurface,
         borderRadius: BorderRadius.circular(14),
@@ -382,8 +486,9 @@ class OsEmailHubDispatchPanel extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(icon, color: theme.accentText),
+              Icon(icon, color: theme.accentText, size: compact ? 22 : 24),
               const SizedBox(width: 10),
               Expanded(
                 child: Column(
@@ -392,7 +497,7 @@ class OsEmailHubDispatchPanel extends StatelessWidget {
                     Text(
                       title,
                       style: TextStyle(
-                        fontSize: 17,
+                        fontSize: compact ? 16 : 17,
                         fontWeight: FontWeight.w800,
                         color: theme.primaryText,
                       ),
@@ -401,7 +506,7 @@ class OsEmailHubDispatchPanel extends StatelessWidget {
                     Text(
                       subtitle,
                       style: TextStyle(
-                        fontSize: 13,
+                        fontSize: compact ? 12 : 13,
                         color: theme.secondaryText,
                         height: 1.4,
                       ),
@@ -411,47 +516,22 @@ class OsEmailHubDispatchPanel extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 18),
+          SizedBox(height: compact ? 14 : 18),
           ...children,
-          const SizedBox(height: 8),
-          Wrap(
-            alignment: WrapAlignment.end,
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              if (secondaryLabel != null && onSecondaryAction != null)
-                FilledButton.icon(
-                  onPressed: isSending ? null : onSecondaryAction,
-                  style: OsButtonStyles.secondaryCompact(theme),
-                  icon: const Icon(Icons.groups_outlined, size: 18),
-                  label: Text(secondaryLabel!),
-                ),
-              FilledButton.icon(
-                onPressed: isSending ? null : onSend,
-                style: OsButtonStyles.primaryCompact(),
-                icon: isSending
-                    ? const SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
-                        ),
-                      )
-                    : const Icon(Icons.send_rounded, size: 18),
-                label: Text(sendLabel ?? AppLocaleKeys.osEmailHubSend.tr),
-              ),
-            ],
-          ),
+          SizedBox(height: compact ? 12 : 8),
+          actionButtons,
         ],
       ),
     );
 
+    final previewWidget = preview;
+
     return LayoutBuilder(
       builder: (context, constraints) {
-        final wide = constraints.maxWidth >= 960 && preview != null;
+        final wide = !compact && constraints.maxWidth >= 960 && preview != null;
         return ListView(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+          padding: EdgeInsets.fromLTRB(pagePad, pagePad, pagePad, 24),
+          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
           children: [
             if (wide)
               Row(
@@ -459,14 +539,14 @@ class OsEmailHubDispatchPanel extends StatelessWidget {
                 children: [
                   Expanded(child: formCard),
                   const SizedBox(width: 16),
-                  Expanded(child: preview!),
+                  Expanded(child: previewWidget!),
                 ],
               )
             else ...[
               formCard,
-              if (preview != null) ...[
-                const SizedBox(height: 16),
-                preview!,
+              if (previewWidget != null) ...[
+                SizedBox(height: compact ? 12 : 16),
+                previewWidget,
               ],
             ],
           ],
@@ -507,11 +587,20 @@ void showEmailLogPreview(
 }) {
   final theme = context.appTheme;
   final failed = log.status == OsEmailLogStatus.failed;
+  final size = MediaQuery.sizeOf(context);
+  final dialogWide = size.width >= 720;
   showDialog<void>(
     context: context,
     builder: (ctx) => Dialog(
+      insetPadding: EdgeInsets.symmetric(
+        horizontal: dialogWide ? 24 : 12,
+        vertical: dialogWide ? 24 : 16,
+      ),
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 560, maxHeight: 520),
+        constraints: BoxConstraints(
+          maxWidth: dialogWide ? 560 : size.width - 24,
+          maxHeight: dialogWide ? 520 : size.height * 0.88,
+        ),
         child: Padding(
           padding: const EdgeInsets.all(20),
           child: Column(
@@ -553,13 +642,16 @@ void showEmailLogPreview(
               ),
               const SizedBox(height: 12),
               Expanded(
-                child: SingleChildScrollView(
-                  child: _isHtmlEmailContent(log.content)
-                      ? HtmlEmailPreview(
+                child: _isHtmlEmailContent(log.content)
+                    ? ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: HtmlEmailPreview(
                           html: log.content,
-                          minHeight: 360,
-                        )
-                      : Text(
+                          embedded: true,
+                        ),
+                      )
+                    : SingleChildScrollView(
+                        child: Text(
                           log.content,
                           style: TextStyle(
                             fontSize: 14,
@@ -567,7 +659,7 @@ void showEmailLogPreview(
                             height: 1.5,
                           ),
                         ),
-                ),
+                      ),
               ),
               const SizedBox(height: 16),
               Row(

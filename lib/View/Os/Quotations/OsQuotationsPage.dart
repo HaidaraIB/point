@@ -8,7 +8,6 @@ import 'package:point/Models/Os/OsQuotationModel.dart';
 import 'package:point/Models/Os/os_finance_enums.dart';
 import 'package:point/Services/FunHelper.dart';
 import 'package:point/Services/firestore/firestore_os_finance_api.dart';
-import 'package:point/Services/os_quote_template_settings.dart';
 import 'package:point/Utils/AppColors.dart';
 import 'package:point/Utils/OsPermissions.dart';
 import 'package:point/Utils/os_module_ids.dart';
@@ -20,7 +19,6 @@ import 'package:point/View/Os/Quotations/os_quotation_preview_dialog.dart';
 import 'package:point/View/Os/Quotations/os_quotation_share.dart';
 import 'package:point/View/Os/os_button_styles.dart';
 import 'package:point/View/Os/os_finance_format.dart';
-import 'package:point/View/Os/os_form_dialog.dart';
 import 'package:point/View/Os/os_page_header.dart';
 import 'package:point/View/Os/os_snackbar.dart';
 import 'package:point/View/Shared/ResponsiveScaffold.dart';
@@ -33,7 +31,6 @@ class OsQuotationsPage extends StatefulWidget {
 }
 
 class _OsQuotationsPageState extends State<OsQuotationsPage> {
-  var _customizingTemplate = false;
   String? _copiedId;
 
   @override
@@ -58,17 +55,6 @@ class _OsQuotationsPageState extends State<OsQuotationsPage> {
             currentRoute: '/os/quotations',
             actions: [
               FilledButton.icon(
-                onPressed: () => setState(
-                  () => _customizingTemplate = !_customizingTemplate,
-                ),
-                style: OsButtonStyles.secondaryCompact(
-                  theme,
-                  active: _customizingTemplate,
-                ),
-                icon: const Icon(Icons.tune, size: 18),
-                label: Text(AppLocaleKeys.osQuotationsCustomizeTemplate.tr),
-              ),
-              FilledButton.icon(
                 onPressed: () => showOsQuotationFormDialog(context),
                 style: OsButtonStyles.primaryCompact(),
                 icon: const Icon(Icons.add, size: 18),
@@ -82,13 +68,6 @@ class _OsQuotationsPageState extends State<OsQuotationsPage> {
               return ListView(
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
                 children: [
-                  if (_customizingTemplate) ...[
-                    _TemplatePanel(
-                      onClose: () =>
-                          setState(() => _customizingTemplate = false),
-                    ),
-                    const SizedBox(height: 16),
-                  ],
                   if (list.isEmpty)
                     Padding(
                       padding: const EdgeInsets.symmetric(vertical: 48),
@@ -343,117 +322,6 @@ class _OsQuotationsPageState extends State<OsQuotationsPage> {
   }
 }
 
-class _TemplatePanel extends StatefulWidget {
-  const _TemplatePanel({required this.onClose});
-
-  final VoidCallback onClose;
-
-  @override
-  State<_TemplatePanel> createState() => _TemplatePanelState();
-}
-
-class _TemplatePanelState extends State<_TemplatePanel> {
-  late final TextEditingController _headerCtrl;
-  late final TextEditingController _footerCtrl;
-
-  @override
-  void initState() {
-    super.initState();
-    final template = Get.find<OsQuoteTemplateController>();
-    _headerCtrl = TextEditingController(text: template.headerText.value);
-    _footerCtrl = TextEditingController(text: template.footerText.value);
-  }
-
-  @override
-  void dispose() {
-    _headerCtrl.dispose();
-    _footerCtrl.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = context.appTheme;
-    final template = Get.find<OsQuoteTemplateController>();
-
-    Widget headerField() => osTypedTextField(
-          controller: _headerCtrl,
-          decoration: osFinanceFieldDecoration(
-            AppLocaleKeys.osQuotationsTemplateHeader.tr,
-          ),
-          onChanged: template.setHeaderText,
-        );
-
-    Widget footerField() => osTypedTextField(
-          controller: _footerCtrl,
-          decoration: osFinanceFieldDecoration(
-            AppLocaleKeys.osQuotationsTemplateFooter.tr,
-          ),
-          onChanged: template.setFooterText,
-        );
-
-    return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: AppColors.primary.withValues(alpha: 0.06),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: AppColors.primary.withValues(alpha: 0.2),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
-            children: [
-              Icon(Icons.tune, color: theme.accentText, size: 18),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  AppLocaleKeys.osQuotationsTemplateSettings.tr,
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w800,
-                    color: theme.primaryText,
-                  ),
-                ),
-              ),
-              IconButton(
-                tooltip: AppLocaleKeys.osCommonClose.tr,
-                onPressed: widget.onClose,
-                icon: Icon(Icons.close, color: theme.secondaryText, size: 20),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          LayoutBuilder(
-            builder: (context, constraints) {
-              final wide = constraints.maxWidth >= 640;
-              if (wide) {
-                return Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(child: headerField()),
-                    const SizedBox(width: 12),
-                    Expanded(child: footerField()),
-                  ],
-                );
-              }
-              return Column(
-                children: [
-                  headerField(),
-                  const SizedBox(height: 12),
-                  footerField(),
-                ],
-              );
-            },
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 class _QuoteCard extends StatelessWidget {
   const _QuoteCard({
     required this.quote,
@@ -494,6 +362,30 @@ class _QuoteCard extends StatelessWidget {
         '${AppLocaleKeys.osQuotationsNumber.tr}: $ref • '
         '${AppLocaleKeys.osQuotationsIssueDate.tr}: ${quote.date} • '
         '${AppLocaleKeys.osQuotationsExpires.tr}: ${quote.expiryDate}';
+    final compactMeta =
+        '${osInvoiceItemsCountLabel(itemCount)} · ${quote.date} — ${quote.expiryDate}';
+
+    if (narrow) {
+      return _QuoteCardMobile(
+        quote: quote,
+        theme: theme,
+        color: color,
+        ref: ref,
+        compactMeta: compactMeta,
+        copied: copied,
+        isPending: isPending,
+        isApproved: isApproved,
+        isRejected: isRejected,
+        onApprove: onApprove,
+        onReject: onReject,
+        onReopen: onReopen,
+        onCopyLink: onCopyLink,
+        onPreview: onPreview,
+        onEdit: onEdit,
+        onDelete: onDelete,
+        onConvertToInvoice: onConvertToInvoice,
+      );
+    }
 
     final info = Row(
       children: [
@@ -717,20 +609,233 @@ class _QuoteCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          if (narrow) ...[
-            info,
-            const SizedBox(height: 14),
-            amount,
-          ] else
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Expanded(child: info),
-                amount,
-              ],
-            ),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Expanded(child: info),
+              amount,
+            ],
+          ),
           const SizedBox(height: 16),
           actions,
+        ],
+      ),
+    );
+  }
+}
+
+class _QuoteCardMobile extends StatelessWidget {
+  const _QuoteCardMobile({
+    required this.quote,
+    required this.theme,
+    required this.color,
+    required this.ref,
+    required this.compactMeta,
+    required this.copied,
+    required this.isPending,
+    required this.isApproved,
+    required this.isRejected,
+    required this.onApprove,
+    required this.onReject,
+    required this.onReopen,
+    required this.onCopyLink,
+    required this.onPreview,
+    required this.onEdit,
+    required this.onDelete,
+    this.onConvertToInvoice,
+  });
+
+  final OsQuotationModel quote;
+  final AppThemeExtension theme;
+  final Color color;
+  final String ref;
+  final String compactMeta;
+  final bool copied;
+  final bool isPending;
+  final bool isApproved;
+  final bool isRejected;
+  final VoidCallback onApprove;
+  final VoidCallback onReject;
+  final VoidCallback onReopen;
+  final VoidCallback onCopyLink;
+  final VoidCallback onPreview;
+  final VoidCallback onEdit;
+  final VoidCallback onDelete;
+  final VoidCallback? onConvertToInvoice;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: theme.cardSurface,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: theme.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Text(
+                  ref,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w800,
+                    color: theme.accentText,
+                  ),
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.14),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  OsFinanceFormat.quotationStatusLabel(quote.status),
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w800,
+                    color: color,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            quote.clientName,
+            style: TextStyle(
+              fontSize: 17,
+              fontWeight: FontWeight.w700,
+              color: theme.primaryText,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            OsFinanceFormat.money(quote.total),
+            style: TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.w800,
+              color: theme.accentText,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            compactMeta,
+            style: TextStyle(fontSize: 12, color: theme.mutedText),
+          ),
+          const SizedBox(height: 12),
+          Divider(height: 1, color: theme.border),
+          const SizedBox(height: 10),
+          if (isPending)
+            Row(
+              children: [
+                Expanded(
+                  child: FilledButton.icon(
+                    onPressed: onApprove,
+                    style: OsButtonStyles.primaryCompact(),
+                    icon: const Icon(Icons.check_circle_outline, size: 18),
+                    label: Text(
+                      AppLocaleKeys.osQuotationsApprove.tr,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: onReject,
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppColors.caution,
+                      side: const BorderSide(color: AppColors.caution),
+                    ),
+                    icon: const Icon(Icons.cancel_outlined, size: 18),
+                    label: Text(
+                      AppLocaleKeys.osQuotationsReject.tr,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          if (isApproved && onConvertToInvoice != null)
+            FilledButton.icon(
+              onPressed: onConvertToInvoice,
+              style: OsButtonStyles.primaryCompact(),
+              icon: const Icon(Icons.receipt_long_outlined, size: 18),
+              label: Text(AppLocaleKeys.osQuotationsConvertToInvoice.tr),
+            ),
+          if (isRejected)
+            FilledButton.icon(
+              onPressed: onApprove,
+              style: OsButtonStyles.primaryCompact(),
+              icon: const Icon(Icons.check_circle_outline, size: 18),
+              label: Text(AppLocaleKeys.osQuotationsApprove.tr),
+            ),
+          if (isPending || isApproved || isRejected) const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: onPreview,
+                  child: Text(
+                    AppLocaleKeys.osQuotationsPreview.tr,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: FilledButton(
+                  onPressed: onEdit,
+                  style: OsButtonStyles.primaryCompact(),
+                  child: Text(
+                    AppLocaleKeys.osQuotationsEdit.tr,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          OutlinedButton.icon(
+            onPressed: onCopyLink,
+            icon: Icon(copied ? Icons.check : Icons.link, size: 18),
+            label: Text(
+              copied
+                  ? AppLocaleKeys.osQuotationsCopied.tr
+                  : AppLocaleKeys.osQuotationsCopyLink.tr,
+            ),
+          ),
+          if (isApproved || isRejected) ...[
+            const SizedBox(height: 8),
+            OutlinedButton(
+              onPressed: onReopen,
+              child: Text(AppLocaleKeys.osQuotationsReopen.tr),
+            ),
+          ],
+          if (OsPermissions.canDeleteCurrentOsRecords) ...[
+            const SizedBox(height: 4),
+            Align(
+              alignment: AlignmentDirectional.centerEnd,
+              child: IconButton(
+                tooltip: AppLocaleKeys.osCommonDelete.tr,
+                onPressed: onDelete,
+                icon: const Icon(
+                  Icons.delete_outline,
+                  color: AppColors.destructive,
+                ),
+              ),
+            ),
+          ],
         ],
       ),
     );

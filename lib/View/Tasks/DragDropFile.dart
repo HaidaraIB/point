@@ -49,7 +49,7 @@ class _DragFilePickerState extends State<DragFilePicker> {
                   final files = await widget.controller.pickMultiFiles();
                   for (var file in files) {
                     await widget.controller.uploadFiles(
-                      filePathOrBytes: file.bytes!,
+                      filePathOrBytes: file.bytes,
                       fileName: file.name,
                     );
                   }
@@ -77,7 +77,7 @@ class _DragFilePickerState extends State<DragFilePicker> {
                         final files = await widget.controller.pickMultiFiles();
                         for (var file in files) {
                           await widget.controller.uploadFiles(
-                            filePathOrBytes: file.bytes!,
+                            filePathOrBytes: file.bytes,
                             fileName: file.name,
                           );
                         }

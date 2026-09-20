@@ -673,6 +673,35 @@ class _OsLegalContractDrafterDialogState
       AppLocaleKeys.osLegalContractStepFinancials.tr,
       AppLocaleKeys.osLegalContractStepClauses.tr,
     ];
+    final narrow = MediaQuery.sizeOf(context).width < 600;
+
+    final stepOfLabel = Text(
+      AppLocaleKeys.osLegalContractStepOf.trParams({
+        'step': '$_step',
+        'total': '$_totalSteps',
+      }),
+      style: TextStyle(
+        fontSize: 11,
+        fontFamily: 'monospace',
+        color: theme.mutedText,
+      ),
+    );
+
+    final pills = SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: [
+          for (var i = 0; i < steps.length; i++) ...[
+            if (i > 0)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 6),
+                child: Text('/', style: TextStyle(color: theme.border)),
+              ),
+            _stepPill(theme, i + 1, steps[i], compact: narrow),
+          ],
+        ],
+      ),
+    );
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
@@ -680,44 +709,36 @@ class _OsLegalContractDrafterDialogState
         border: Border(bottom: BorderSide(color: theme.border)),
         color: theme.elevatedSurface.withValues(alpha: 0.35),
       ),
-      child: Row(
-        children: [
-          Expanded(
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                children: [
-                  for (var i = 0; i < steps.length; i++) ...[
-                    if (i > 0)
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 4),
-                        child: Text('/', style: TextStyle(color: theme.border)),
-                      ),
-                    _stepPill(theme, i + 1, steps[i]),
-                  ],
-                ],
-              ),
+      child: narrow
+          ? Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Align(
+                  alignment: AlignmentDirectional.centerEnd,
+                  child: stepOfLabel,
+                ),
+                const SizedBox(height: 8),
+                pills,
+              ],
+            )
+          : Row(
+              children: [
+                Expanded(child: pills),
+                const SizedBox(width: 12),
+                stepOfLabel,
+              ],
             ),
-          ),
-          const SizedBox(width: 8),
-          Text(
-            AppLocaleKeys.osLegalContractStepOf.trParams({
-              'step': '$_step',
-              'total': '$_totalSteps',
-            }),
-            style: TextStyle(
-              fontSize: 11,
-              fontFamily: 'monospace',
-              color: theme.mutedText,
-            ),
-          ),
-        ],
-      ),
     );
   }
 
-  Widget _stepPill(AppThemeExtension theme, int stepNum, String label) {
+  Widget _stepPill(
+    AppThemeExtension theme,
+    int stepNum,
+    String label, {
+    bool compact = false,
+  }) {
     final active = _step == stepNum;
+    final showLabel = !compact || active;
     return Material(
       color: active ? AppColors.primary : Colors.transparent,
       borderRadius: BorderRadius.circular(10),
@@ -725,7 +746,10 @@ class _OsLegalContractDrafterDialogState
         onTap: _saving ? null : () => setState(() => _step = stepNum),
         borderRadius: BorderRadius.circular(10),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          padding: EdgeInsets.symmetric(
+            horizontal: showLabel ? 10 : 8,
+            vertical: 6,
+          ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -748,15 +772,17 @@ class _OsLegalContractDrafterDialogState
                   ),
                 ),
               ),
-              const SizedBox(width: 6),
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w800,
-                  color: active ? Colors.white : theme.secondaryText,
+              if (showLabel) ...[
+                const SizedBox(width: 6),
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w800,
+                    color: active ? Colors.white : theme.secondaryText,
+                  ),
                 ),
-              ),
+              ],
             ],
           ),
         ),
@@ -1257,6 +1283,7 @@ class _OsLegalContractDrafterDialogState
 
   Widget _buildStep3(AppThemeExtension theme) {
     final isEmployee = _targetType == OsLegalContractTargetType.employee;
+    final narrow = MediaQuery.sizeOf(context).width < 600;
     final percentSum =
         _paymentTerms.fold<double>(0, (s, p) => s + p.percentage);
 
@@ -1266,9 +1293,8 @@ class _OsLegalContractDrafterDialogState
         LayoutBuilder(
           builder: (context, c) {
             final wide = c.maxWidth >= 640;
-            final fields = <Widget>[
-              Expanded(
-                child: Column(
+
+            Widget totalValueBlock() => Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     _label(AppLocaleKeys.osLegalContractTotalValue.tr),
@@ -1279,10 +1305,9 @@ class _OsLegalContractDrafterDialogState
                       decoration: osDialogFieldDecoration(context),
                     ),
                   ],
-                ),
-              ),
-              Expanded(
-                child: Column(
+                );
+
+            Widget currencyBlock() => Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     _label(AppLocaleKeys.osLegalContractCurrency.tr),
@@ -1305,55 +1330,51 @@ class _OsLegalContractDrafterDialogState
                       },
                     ),
                   ],
-                ),
-              ),
-              if (isEmployee)
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      _label(AppLocaleKeys.osLegalContractSalaryMonthly.tr),
-                      osTypedTextField(
-                        controller: _salaryCtrl,
-                        keyboardType: TextInputType.number,
-                        decoration: osDialogFieldDecoration(context),
-                      ),
-                    ],
-                  ),
-                )
-              else
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      _label(AppLocaleKeys.osLegalContractPenaltyDaily.tr),
-                      osTypedTextField(
-                        controller: _penaltyCtrl,
-                        keyboardType: TextInputType.number,
-                        decoration: osDialogFieldDecoration(context),
-                      ),
-                    ],
-                  ),
-                ),
+                );
+
+            Widget salaryOrPenaltyBlock() => Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    _label(
+                      isEmployee
+                          ? AppLocaleKeys.osLegalContractSalaryMonthly.tr
+                          : AppLocaleKeys.osLegalContractPenaltyDaily.tr,
+                    ),
+                    osTypedTextField(
+                      controller:
+                          isEmployee ? _salaryCtrl : _penaltyCtrl,
+                      keyboardType: TextInputType.number,
+                      decoration: osDialogFieldDecoration(context),
+                    ),
+                  ],
+                );
+
+            final blocks = [
+              totalValueBlock(),
+              currencyBlock(),
+              salaryOrPenaltyBlock(),
             ];
-            return wide
-                ? Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      for (var i = 0; i < fields.length; i++) ...[
-                        if (i > 0) const SizedBox(width: 12),
-                        fields[i],
-                      ],
-                    ],
-                  )
-                : Column(
-                    children: [
-                      for (var i = 0; i < fields.length; i++) ...[
-                        if (i > 0) const SizedBox(height: 12),
-                        fields[i],
-                      ],
-                    ],
-                  );
+
+            if (wide) {
+              return Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  for (var i = 0; i < blocks.length; i++) ...[
+                    if (i > 0) const SizedBox(width: 12),
+                    Expanded(child: blocks[i]),
+                  ],
+                ],
+              );
+            }
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                for (var i = 0; i < blocks.length; i++) ...[
+                  if (i > 0) const SizedBox(height: 12),
+                  blocks[i],
+                ],
+              ],
+            );
           },
         ),
         const SizedBox(height: 12),
@@ -1421,51 +1442,76 @@ class _OsLegalContractDrafterDialogState
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      AppLocaleKeys.osLegalContractPaymentSchedule.tr,
-                      style: TextStyle(
-                        fontWeight: FontWeight.w800,
-                        fontSize: 13,
-                        color: theme.primaryText,
-                      ),
-                    ),
-                  ),
-                  Text(
-                    AppLocaleKeys.osLegalContractPaymentTotalPercent.trParams({
-                      'percent': percentSum.toStringAsFixed(0),
-                    }),
-                    style: TextStyle(fontSize: 11, color: theme.mutedText),
-                  ),
-                  const SizedBox(width: 8),
-                  OutlinedButton.icon(
-                    onPressed: () {
-                      setState(() {
-                        _paymentTerms = [
-                          ..._paymentTerms,
-                          OsContractPaymentTerm(
-                            milestone:
-                                '${AppLocaleKeys.osLegalContractAddPayment.tr} ${_paymentTerms.length + 1}',
-                            percentage: 10,
-                            amount: (_totalValue * 0.1).roundToDouble(),
-                            dueDateDescription: '',
-                          ),
-                        ];
-                      });
-                    },
-                    icon: const Icon(Icons.add, size: 16),
-                    label: Text(AppLocaleKeys.osLegalContractAddPayment.tr),
-                  ),
-                ],
-              ),
+              _paymentScheduleHeader(theme, narrow, percentSum),
               const SizedBox(height: 12),
               for (var i = 0; i < _paymentTerms.length; i++)
-                _paymentRow(theme, i),
+                _paymentRow(theme, i, compact: narrow),
             ],
           ),
         ),
+      ],
+    );
+  }
+
+  Widget _paymentScheduleHeader(
+    AppThemeExtension theme,
+    bool narrow,
+    double percentSum,
+  ) {
+    final percentLabel = Text(
+      AppLocaleKeys.osLegalContractPaymentTotalPercent.trParams({
+        'percent': percentSum.toStringAsFixed(0),
+      }),
+      style: TextStyle(fontSize: 11, color: theme.mutedText),
+    );
+
+    final addButton = OutlinedButton.icon(
+      onPressed: () {
+        setState(() {
+          _paymentTerms = [
+            ..._paymentTerms,
+            OsContractPaymentTerm(
+              milestone:
+                  '${AppLocaleKeys.osLegalContractAddPayment.tr} ${_paymentTerms.length + 1}',
+              percentage: 10,
+              amount: (_totalValue * 0.1).roundToDouble(),
+              dueDateDescription: '',
+            ),
+          ];
+        });
+      },
+      icon: const Icon(Icons.add, size: 16),
+      label: Text(AppLocaleKeys.osLegalContractAddPayment.tr),
+    );
+
+    final title = Text(
+      AppLocaleKeys.osLegalContractPaymentSchedule.tr,
+      style: TextStyle(
+        fontWeight: FontWeight.w800,
+        fontSize: 13,
+        color: theme.primaryText,
+      ),
+    );
+
+    if (narrow) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          title,
+          const SizedBox(height: 10),
+          percentLabel,
+          const SizedBox(height: 10),
+          SizedBox(width: double.infinity, child: addButton),
+        ],
+      );
+    }
+
+    return Row(
+      children: [
+        Expanded(child: title),
+        percentLabel,
+        const SizedBox(width: 8),
+        addButton,
       ],
     );
   }
@@ -1494,104 +1540,178 @@ class _OsLegalContractDrafterDialogState
     );
   }
 
-  Widget _paymentRow(AppThemeExtension theme, int index) {
+  Widget _paymentRow(
+    AppThemeExtension theme,
+    int index, {
+    bool compact = false,
+  }) {
     final term = _paymentTerms[index];
+
+    final milestoneField = TextFormField(
+      key: ValueKey('milestone-$index-${term.milestone.hashCode}'),
+      initialValue: term.milestone,
+      textDirection: typedInputTextDirection(term.milestone),
+      decoration: osDialogFieldDecoration(
+        context,
+        hint: AppLocaleKeys.osLegalContractPaymentMilestone.tr,
+      ).copyWith(
+        hintTextDirection: typedInputHintTextDirection(
+          AppLocaleKeys.osLegalContractPaymentMilestone.tr,
+        ),
+      ),
+      onChanged: (v) {
+        setState(() {
+          _paymentTerms[index] = term.copyWith(milestone: v);
+        });
+      },
+    );
+
+    final percentField = TextFormField(
+      key: ValueKey('pct-$index-${term.percentage}'),
+      initialValue: term.percentage.toStringAsFixed(0),
+      keyboardType: TextInputType.number,
+      textDirection: typedInputTextDirection(
+        term.percentage.toStringAsFixed(0),
+      ),
+      decoration: osDialogFieldDecoration(
+        context,
+        suffixText: '%',
+      ),
+      onChanged: (v) {
+        final pct = double.tryParse(v) ?? 0;
+        setState(() {
+          _paymentTerms[index] = term.copyWith(
+            percentage: pct,
+            amount: ((_totalValue * pct) / 100).roundToDouble(),
+          );
+        });
+      },
+    );
+
+    final amountLabel = Text(
+      osLegalContractMoneyLabel(term.amount, _currency),
+      maxLines: 2,
+      overflow: TextOverflow.ellipsis,
+      style: const TextStyle(
+        fontWeight: FontWeight.w800,
+        color: AppColors.success,
+        fontSize: 12,
+      ),
+    );
+
+    final dueField = TextFormField(
+      key: ValueKey('due-$index-${term.dueDateDescription.hashCode}'),
+      initialValue: term.dueDateDescription,
+      textDirection: typedInputTextDirection(term.dueDateDescription),
+      decoration: osDialogFieldDecoration(
+        context,
+        hint: AppLocaleKeys.osLegalContractPaymentDue.tr,
+      ).copyWith(
+        hintTextDirection: typedInputHintTextDirection(
+          AppLocaleKeys.osLegalContractPaymentDue.tr,
+        ),
+      ),
+      onChanged: (v) {
+        setState(() {
+          _paymentTerms[index] = term.copyWith(dueDateDescription: v);
+        });
+      },
+    );
+
+    final deleteBtn = IconButton(
+      padding: EdgeInsets.zero,
+      constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+      onPressed: _paymentTerms.length <= 1
+          ? null
+          : () => setState(() {
+                _paymentTerms = List.of(_paymentTerms)..removeAt(index);
+              }),
+      icon: Icon(Icons.delete_outline, color: theme.mutedText, size: 20),
+    );
+
+    if (compact) {
+      return Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.fromLTRB(12, 10, 8, 12),
+        decoration: BoxDecoration(
+          color: theme.elevatedSurface.withValues(alpha: 0.45),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: theme.border),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      _label(AppLocaleKeys.osLegalContractPaymentMilestone.tr),
+                      milestoneField,
+                    ],
+                  ),
+                ),
+                deleteBtn,
+              ],
+            ),
+            const SizedBox(height: 10),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SizedBox(
+                  width: 96,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      _label(AppLocaleKeys.osLegalContractPaymentPercent.tr),
+                      percentField,
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      _label(AppLocaleKeys.osLegalContractPaymentAmount.tr),
+                      Padding(
+                        padding: const EdgeInsets.only(top: 10),
+                        child: amountLabel,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            _label(AppLocaleKeys.osLegalContractPaymentDue.tr),
+            dueField,
+          ],
+        ),
+      );
+    }
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          IconButton(
-            onPressed: _paymentTerms.length <= 1
-                ? null
-                : () => setState(() {
-                      _paymentTerms = List.of(_paymentTerms)..removeAt(index);
-                    }),
-            icon: Icon(Icons.delete_outline, color: theme.mutedText, size: 20),
-          ),
-          Expanded(
-            flex: 3,
-            child: TextFormField(
-              key: ValueKey('milestone-$index-${term.milestone.hashCode}'),
-              initialValue: term.milestone,
-              textDirection: typedInputTextDirection(term.milestone),
-              decoration: osDialogFieldDecoration(
-                context,
-                hint: AppLocaleKeys.osLegalContractPaymentMilestone.tr,
-              ).copyWith(
-                hintTextDirection: typedInputHintTextDirection(
-                  AppLocaleKeys.osLegalContractPaymentMilestone.tr,
-                ),
-              ),
-              onChanged: (v) {
-                setState(() {
-                  _paymentTerms[index] = term.copyWith(milestone: v);
-                });
-              },
-            ),
-          ),
+          deleteBtn,
+          Expanded(flex: 3, child: milestoneField),
           const SizedBox(width: 8),
-          SizedBox(
-            width: 72,
-            child: TextFormField(
-              key: ValueKey('pct-$index-${term.percentage}'),
-              initialValue: term.percentage.toStringAsFixed(0),
-              keyboardType: TextInputType.number,
-              textDirection: typedInputTextDirection(
-                term.percentage.toStringAsFixed(0),
-              ),
-              decoration: osDialogFieldDecoration(
-                context,
-                suffixText: '%',
-              ),
-              onChanged: (v) {
-                final pct = double.tryParse(v) ?? 0;
-                setState(() {
-                  _paymentTerms[index] = term.copyWith(
-                    percentage: pct,
-                    amount: ((_totalValue * pct) / 100).roundToDouble(),
-                  );
-                });
-              },
-            ),
-          ),
+          SizedBox(width: 72, child: percentField),
           const SizedBox(width: 8),
           Expanded(
             flex: 2,
             child: Align(
               alignment: AlignmentDirectional.centerStart,
-              child: Text(
-                osLegalContractMoneyLabel(term.amount, _currency),
-                style: const TextStyle(
-                  fontWeight: FontWeight.w800,
-                  color: AppColors.success,
-                  fontSize: 12,
-                ),
-              ),
+              child: amountLabel,
             ),
           ),
           const SizedBox(width: 8),
-          Expanded(
-            flex: 3,
-            child: TextFormField(
-              key: ValueKey('due-$index-${term.dueDateDescription.hashCode}'),
-              initialValue: term.dueDateDescription,
-              textDirection: typedInputTextDirection(term.dueDateDescription),
-              decoration: osDialogFieldDecoration(
-                context,
-                hint: AppLocaleKeys.osLegalContractPaymentDue.tr,
-              ).copyWith(
-                hintTextDirection: typedInputHintTextDirection(
-                  AppLocaleKeys.osLegalContractPaymentDue.tr,
-                ),
-              ),
-              onChanged: (v) {
-                setState(() {
-                  _paymentTerms[index] = term.copyWith(dueDateDescription: v);
-                });
-              },
-            ),
-          ),
+          Expanded(flex: 3, child: dueField),
         ],
       ),
     );

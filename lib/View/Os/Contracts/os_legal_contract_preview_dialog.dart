@@ -15,6 +15,7 @@ import 'package:point/View/Os/Contracts/os_legal_contract_print.dart';
 import 'package:point/View/Os/Contracts/os_legal_contract_print_text.dart';
 import 'package:point/View/Os/Contracts/os_legal_contract_share.dart';
 import 'package:point/View/Os/EmailHub/html_email_preview.dart';
+import 'package:point/View/Os/EmailHub/os_email_hub_helpers.dart';
 import 'package:point/View/Os/os_button_styles.dart';
 import 'package:point/View/Os/os_finance_status_widgets.dart';
 import 'package:point/View/Os/os_form_dialog.dart';
@@ -99,11 +100,20 @@ class _OsLegalContractPreviewDialogState
 
   Future<void> _sendEmail(OsLegalContractModel contract) async {
     if (_emailSending) return;
+    final email = contract.partyTwoEmail.trim();
+    if (email.isEmpty) {
+      await sendOsLegalContractEmail(contract);
+      return;
+    }
+    if (!await confirmSendEmail(recipientEmail: email)) return;
     setState(() {
       _emailSending = true;
       _emailSuccess = false;
     });
-    final ok = await sendOsLegalContractEmail(contract);
+    final ok = await sendOsLegalContractEmail(
+      contract,
+      skipSendConfirm: true,
+    );
     if (!mounted) return;
     setState(() {
       _emailSending = false;
@@ -244,134 +254,223 @@ class _OsLegalContractPreviewDialogState
     bool narrow,
     OsLegalContractModel contract,
   ) {
+    final titleIcon = Container(
+      width: 40,
+      height: 40,
+      decoration: BoxDecoration(
+        color: AppColors.primary.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Icon(
+        Icons.balance,
+        color: theme.accentText,
+        size: 22,
+      ),
+    );
+
+    final titleBlock = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Wrap(
+          spacing: 8,
+          runSpacing: 4,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [
+            Text(
+              AppLocaleKeys.osLegalContractPreviewViewerTitle.tr,
+              style: TextStyle(
+                fontWeight: FontWeight.w900,
+                fontSize: narrow ? 14 : 16,
+                color: theme.primaryText,
+              ),
+            ),
+            OsLegalContractStatusBadge(status: contract.status),
+          ],
+        ),
+        const SizedBox(height: 2),
+        Text(
+          '${contract.contractNumber} • ${contract.governingLaw}',
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            fontSize: 11,
+            fontFamily: 'monospace',
+            color: theme.secondaryText,
+          ),
+        ),
+      ],
+    );
+
+    final toolbarActions = _previewToolbarActions(
+      context,
+      theme,
+      narrow,
+      contract,
+      showClose: !narrow,
+    );
+
     return Container(
-      padding: const EdgeInsets.fromLTRB(16, 12, 8, 12),
+      padding: EdgeInsets.fromLTRB(16, 12, narrow ? 12 : 8, 12),
       decoration: BoxDecoration(
         color: theme.elevatedSurface.withValues(alpha: 0.5),
         border: Border(bottom: BorderSide(color: theme.border)),
         borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      child: Row(
-        children: [
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: AppColors.primary.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(
-              Icons.balance,
-              color: theme.accentText,
-              size: 22,
-            ),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+      child: narrow
+          ? Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 4,
-                  crossAxisAlignment: WrapCrossAlignment.center,
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      AppLocaleKeys.osLegalContractPreviewViewerTitle.tr,
-                      style: TextStyle(
-                        fontWeight: FontWeight.w900,
-                        fontSize: narrow ? 14 : 16,
-                        color: theme.primaryText,
+                    titleIcon,
+                    const SizedBox(width: 10),
+                    Expanded(child: titleBlock),
+                    IconButton(
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(
+                        minWidth: 40,
+                        minHeight: 40,
                       ),
+                      onPressed: () => Navigator.pop(context),
+                      icon: Icon(Icons.close, color: theme.primaryText),
                     ),
-                    OsLegalContractStatusBadge(status: contract.status),
                   ],
                 ),
-                const SizedBox(height: 2),
-                Text(
-                  '${contract.contractNumber} • ${contract.governingLaw}',
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontFamily: 'monospace',
-                    color: theme.secondaryText,
-                  ),
-                ),
+                const SizedBox(height: 10),
+                toolbarActions,
+              ],
+            )
+          : Row(
+              children: [
+                titleIcon,
+                const SizedBox(width: 10),
+                Expanded(child: titleBlock),
+                toolbarActions,
               ],
             ),
-          ),
-          IconButton(
-            tooltip: AppLocaleKeys.osLegalContractPreviewCopyText.tr,
-            onPressed: _copyText,
-            icon: Icon(
-              _copied ? Icons.check : Icons.copy_outlined,
-              color: _copied ? AppColors.success : theme.secondaryText,
-            ),
-          ),
-          IconButton(
-            tooltip: AppLocaleKeys.osEmailHubPreviewTitle.tr,
-            onPressed: () => _previewEmail(contract),
-            icon: Icon(Icons.visibility_outlined, color: theme.secondaryText),
-          ),
-          const SizedBox(width: 4),
-          FilledButton.icon(
-            onPressed: _emailSending ? null : () => _sendEmail(contract),
-            style: OsButtonStyles.secondaryCompact(theme),
-            icon: _emailSending
-                ? SizedBox(
-                    width: 16,
-                    height: 16,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: theme.accentText,
-                    ),
-                  )
-                : Icon(
-                    _emailSuccess ? Icons.check : Icons.send_outlined,
-                    size: 18,
-                    color: _emailSuccess ? AppColors.success : theme.accentText,
-                  ),
-            label: Text(
-              _emailSending
-                  ? AppLocaleKeys.osLegalContractEmailSending.tr
-                  : _emailSuccess
-                      ? AppLocaleKeys.osLegalContractEmailSentShort.tr
-                      : AppLocaleKeys.osLegalContractEmailSend.tr,
-            ),
-          ),
-          if (!narrow) ...[
-            const SizedBox(width: 6),
-            SizedBox(
-              width: 168,
-              child: DropdownButtonFormField<String>(
-                isExpanded: true,
-                initialValue: contract.status,
-                dropdownColor: theme.elevatedSurface,
-                icon: Icon(Icons.expand_more, color: theme.secondaryText),
-                decoration: osToolbarCompactFieldDecoration(context),
-                selectedItemBuilder: (_) => osLegalContractStatusSelectedItems(),
-                items: osLegalContractStatusDropdownItems(),
-                onChanged: (v) {
-                  if (v != null) _changeStatus(v);
-                },
-              ),
-            ),
-            const SizedBox(width: 6),
-          ],
-          FilledButton.icon(
-            onPressed: () => printOsLegalContract(contract),
-            style: OsButtonStyles.printCompact(theme),
-            icon: const Icon(Icons.print_outlined, size: 18),
-            label: Text(AppLocaleKeys.osLegalContractPrint.tr),
-          ),
-          IconButton(
-            onPressed: () => Navigator.pop(context),
-            icon: Icon(Icons.close, color: theme.primaryText),
-          ),
-        ],
-      ),
     );
+  }
+
+  Widget _previewToolbarActions(
+    BuildContext context,
+    AppThemeExtension theme,
+    bool narrow,
+    OsLegalContractModel contract, {
+    required bool showClose,
+  }) {
+    final children = <Widget>[
+      IconButton(
+        tooltip: AppLocaleKeys.osLegalContractPreviewCopyText.tr,
+        onPressed: _copyText,
+        icon: Icon(
+          _copied ? Icons.check : Icons.copy_outlined,
+          color: _copied ? AppColors.success : theme.secondaryText,
+        ),
+      ),
+      IconButton(
+        tooltip: AppLocaleKeys.osEmailHubPreviewTitle.tr,
+        onPressed: () => _previewEmail(contract),
+        icon: Icon(Icons.visibility_outlined, color: theme.secondaryText),
+      ),
+      if (narrow)
+        IconButton(
+          tooltip: AppLocaleKeys.osLegalContractEmailSend.tr,
+          onPressed: _emailSending ? null : () => _sendEmail(contract),
+          icon: _emailSending
+              ? SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: theme.accentText,
+                  ),
+                )
+              : Icon(
+                  _emailSuccess ? Icons.check : Icons.send_outlined,
+                  color: _emailSuccess ? AppColors.success : theme.secondaryText,
+                ),
+        )
+      else
+        FilledButton.icon(
+          onPressed: _emailSending ? null : () => _sendEmail(contract),
+          style: OsButtonStyles.secondaryCompact(theme),
+          icon: _emailSending
+              ? SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: theme.accentText,
+                  ),
+                )
+              : Icon(
+                  _emailSuccess ? Icons.check : Icons.send_outlined,
+                  size: 18,
+                  color: _emailSuccess ? AppColors.success : theme.accentText,
+                ),
+          label: Text(
+            _emailSending
+                ? AppLocaleKeys.osLegalContractEmailSending.tr
+                : _emailSuccess
+                    ? AppLocaleKeys.osLegalContractEmailSentShort.tr
+                    : AppLocaleKeys.osLegalContractEmailSend.tr,
+          ),
+        ),
+      if (!narrow) ...[
+        const SizedBox(width: 6),
+        SizedBox(
+          width: 168,
+          child: DropdownButtonFormField<String>(
+            isExpanded: true,
+            initialValue: contract.status,
+            dropdownColor: theme.elevatedSurface,
+            icon: Icon(Icons.expand_more, color: theme.secondaryText),
+            decoration: osToolbarCompactFieldDecoration(context),
+            selectedItemBuilder: (_) => osLegalContractStatusSelectedItems(),
+            items: osLegalContractStatusDropdownItems(),
+            onChanged: (v) {
+              if (v != null) _changeStatus(v);
+            },
+          ),
+        ),
+        const SizedBox(width: 6),
+      ],
+      if (narrow)
+        IconButton(
+          tooltip: AppLocaleKeys.osLegalContractPrint.tr,
+          onPressed: () => printOsLegalContract(contract),
+          icon: Icon(Icons.print_outlined, color: theme.secondaryText),
+        )
+      else
+        FilledButton.icon(
+          onPressed: () => printOsLegalContract(contract),
+          style: OsButtonStyles.printCompact(theme),
+          icon: const Icon(Icons.print_outlined, size: 18),
+          label: Text(AppLocaleKeys.osLegalContractPrint.tr),
+        ),
+      if (showClose)
+        IconButton(
+          onPressed: () => Navigator.pop(context),
+          icon: Icon(Icons.close, color: theme.primaryText),
+        ),
+    ];
+
+    if (narrow) {
+      return SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          children: [
+            for (var i = 0; i < children.length; i++) ...[
+              if (i > 0) const SizedBox(width: 4),
+              children[i],
+            ],
+          ],
+        ),
+      );
+    }
+
+    return Row(mainAxisSize: MainAxisSize.min, children: children);
   }
 
   Widget _documentHeader(

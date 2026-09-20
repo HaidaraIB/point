@@ -4,6 +4,7 @@ import 'package:point/Localization/AppLocaleKeys.dart';
 import 'package:point/Utils/AppColors.dart';
 import 'package:point/Utils/app_theme_extension.dart';
 import 'package:point/Utils/text_input_bidi.dart';
+import 'package:point/View/Shared/responsive.dart';
 
 /// Compact search field used by OS list filter bars.
 class OsSearchField extends StatefulWidget {
@@ -177,6 +178,8 @@ class OsListFilterBar extends StatelessWidget {
     this.search,
     this.actions = const [],
     this.matchCount,
+    this.dense = false,
+    this.stacked,
   });
 
   final Widget? leading;
@@ -184,6 +187,13 @@ class OsListFilterBar extends StatelessWidget {
   final Widget? search;
   final List<Widget> actions;
   final int? matchCount;
+
+  /// Tighter horizontal padding for mobile OS pages.
+  final bool dense;
+
+  /// Vertical layout: actions, chips, then search (avoids overlap on narrow widths).
+  /// Defaults to true when [dense] is true and width is below the mobile breakpoint.
+  final bool? stacked;
 
   Widget _divider(AppThemeExtension theme) {
     return Container(
@@ -197,56 +207,102 @@ class OsListFilterBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = context.appTheme;
+    final useStacked =
+        stacked ?? (dense && Responsive.isMobile(context));
     final hasTopRow = leading != null || chips != null || actions.isNotEmpty;
     final hasSearchRow = search != null || matchCount != null;
 
-    final topRow = !hasTopRow
-        ? null
-        : Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              if (leading != null) leading!,
-              if (leading != null && chips != null) _divider(theme),
-              if (chips != null)
-                Expanded(
-                  child: Align(
-                    alignment: AlignmentDirectional.centerStart,
-                    child: SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      clipBehavior: Clip.none,
-                      padding: const EdgeInsets.symmetric(vertical: 4),
-                      child: chips!,
-                    ),
-                  ),
+    Widget? topRow;
+    if (hasTopRow && useStacked) {
+      topRow = Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (actions.isNotEmpty) ...[
+            if (actions.length == 2)
+              Row(
+                children: [
+                  Expanded(child: actions[0]),
+                  const SizedBox(width: 8),
+                  Expanded(child: actions[1]),
+                ],
+              )
+            else
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  for (var i = 0; i < actions.length; i++) ...[
+                    if (i > 0) const SizedBox(height: 8),
+                    actions[i],
+                  ],
+                ],
+              ),
+            if (leading != null || chips != null) const SizedBox(height: 10),
+          ],
+          if (leading != null) leading!,
+          if (leading != null && chips != null) ...[
+            const SizedBox(height: 10),
+          ],
+          if (chips != null)
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              clipBehavior: Clip.hardEdge,
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              child: chips!,
+            ),
+        ],
+      );
+    } else if (hasTopRow) {
+      topRow = Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          if (leading != null) leading!,
+          if (leading != null && chips != null) _divider(theme),
+          if (chips != null)
+            Expanded(
+              child: Align(
+                alignment: AlignmentDirectional.centerStart,
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  clipBehavior: Clip.none,
+                  padding: const EdgeInsets.symmetric(vertical: 4),
+                  child: chips!,
                 ),
-              if (actions.isNotEmpty) ...[
-                if (leading != null || chips != null) const SizedBox(width: 12),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  alignment: WrapAlignment.end,
-                  crossAxisAlignment: WrapCrossAlignment.center,
-                  children: actions,
-                ),
-              ],
-            ],
-          );
+              ),
+            ),
+          if (actions.isNotEmpty) ...[
+            if (leading != null || chips != null) const SizedBox(width: 12),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              alignment: WrapAlignment.end,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: actions,
+            ),
+          ],
+        ],
+      );
+    }
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 8, 20, 8),
+      padding: EdgeInsets.fromLTRB(
+        dense ? 12 : 20,
+        8,
+        dense ? 12 : 20,
+        8,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           if (topRow != null) topRow,
           if (hasSearchRow) ...[
             if (topRow != null) const SizedBox(height: 10),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                if (search != null) Expanded(child: search!),
-                if (matchCount != null) ...[
-                  if (search != null) const SizedBox(width: 12),
-                  Text(
+            if (useStacked) ...[
+              if (search != null) search!,
+              if (matchCount != null) ...[
+                if (search != null) const SizedBox(height: 6),
+                Align(
+                  alignment: AlignmentDirectional.centerStart,
+                  child: Text(
                     AppLocaleKeys.osCommonMatchCount.trParams({
                       'count': '$matchCount',
                     }),
@@ -256,9 +312,28 @@ class OsListFilterBar extends StatelessWidget {
                       color: theme.mutedText,
                     ),
                   ),
-                ],
+                ),
               ],
-            ),
+            ] else
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  if (search != null) Expanded(child: search!),
+                  if (matchCount != null) ...[
+                    if (search != null) const SizedBox(width: 12),
+                    Text(
+                      AppLocaleKeys.osCommonMatchCount.trParams({
+                        'count': '$matchCount',
+                      }),
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: theme.mutedText,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
           ],
         ],
       ),

@@ -65,9 +65,8 @@ Future<void> _pickAndUploadSinglePublishMedia({
     );
   }
   final f = files.first;
-  if (f.bytes == null) return;
   final url = await controller.uploadFiles(
-    filePathOrBytes: f.bytes!,
+    filePathOrBytes: f.bytes,
     fileName: f.name,
   );
   if (url != null && url.isNotEmpty) {

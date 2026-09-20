@@ -1,12 +1,11 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:point/Services/StorageKeys.dart';
 import 'package:point/Utils/text_input_bidi.dart';
 import 'package:get/get.dart';
 import 'package:point/Controller/HomeController.dart';
 import 'package:point/Localization/AppLocaleKeys.dart';
 import 'package:point/Models/TaskModel.dart';
-import 'package:point/Services/FunHelper.dart';
-import 'package:point/Services/StorageKeys.dart';
 import 'package:point/Utils/final_deliverable_upload_names.dart';
 import 'package:point/Utils/app_theme_extension.dart';
 
@@ -31,17 +30,6 @@ Future<void> showRejectTaskDialog({
             if (files.isEmpty) return;
             for (final f in files) {
               final bytes = f.bytes;
-              if (bytes == null) {
-                FunHelper.showSnackbar(
-                  'error'.tr,
-                  'tasks.final_deliverable_file_read_error'
-                      .trParams({'name': f.name}),
-                  snackPosition: SnackPosition.TOP,
-                  backgroundColor: Colors.orange.shade800,
-                  colorText: Colors.white,
-                );
-                continue;
-              }
               final downloadName = finalDeliverableDownloadDisplayName(
                 taskTitle: task.title,
                 slotIndex: urls.length,

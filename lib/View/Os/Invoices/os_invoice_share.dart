@@ -12,6 +12,7 @@ import 'package:point/Services/os_paytabs_service.dart';
 import 'package:point/Models/Os/os_email_enums.dart';
 import 'package:point/Utils/AppColors.dart';
 import 'package:point/Utils/app_theme_extension.dart';
+import 'package:point/View/Os/EmailHub/os_email_hub_helpers.dart';
 import 'package:point/View/Os/os_finance_format.dart';
 import 'package:point/View/Os/os_snackbar.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -339,6 +340,8 @@ Future<void> sendOsInvoiceEmail(OsInvoiceModel invoice) async {
     );
     return;
   }
+
+  if (!await confirmSendEmail(recipientEmail: email)) return;
 
   final ref = OsFinanceFormat.invoiceRef(invoice);
   final subject = AppLocaleKeys.osInvoicesEmailSubject.trParams({'ref': ref});

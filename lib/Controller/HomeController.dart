@@ -51,6 +51,7 @@ import 'package:point/View/Chats/chat_ui_helpers.dart';
 import 'package:point/Utils/AppColors.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:point/Utils/picked_platform_file.dart';
 import 'package:mime/mime.dart' show lookupMimeType;
 // import 'package:http/http.dart' as http;
 
@@ -3448,49 +3449,23 @@ class HomeController extends GetxController {
   }
 
   RxList<dynamic> uploadedFilesPaths = [].obs;
-  Future<List<PlatformFile>> pickMultiFiles() async {
-    final result = await FilePicker.pickFiles(
-      allowMultiple: true,
-      withData: true,
-    );
-    appLog('Picked files: ${result?.files.map((e) => e.name).toList()}');
-
-    if (result != null && result.files.isNotEmpty) {
-      return result.files;
-    } else {
-      return [];
-    }
+  Future<List<PickedPlatformFile>> pickMultiFiles() async {
+    final files = await FilePicker.pickFiles();
+    appLog('Picked files: ${files.map((e) => e.name).toList()}');
+    return PickedPlatformFile.fromPlatformFiles(files);
   }
 
-  Future<List<PlatformFile>> pickoneImage() async {
-    final result = await FilePicker.pickFiles(
-      allowMultiple: false,
-      withData: true,
-      type: FileType.image,
-    );
-    appLog('Picked files: ${result?.files.map((e) => e.name).toList()}');
-
-    if (result != null && result.files.isNotEmpty) {
-      return result.files;
-    } else {
-      return [];
-    }
+  Future<List<PickedPlatformFile>> pickoneImage() async {
+    final file = await FilePicker.pickFile(type: FileType.image);
+    appLog('Picked files: ${file == null ? [] : [file.name]}');
+    return PickedPlatformFile.fromOptionalPlatformFile(file);
   }
 
   /// صورة أو فيديو من المعرض (زر المعرض في الدردشة).
-  Future<List<PlatformFile>> pickOneChatGalleryMedia() async {
-    final result = await FilePicker.pickFiles(
-      allowMultiple: false,
-      withData: true,
-      type: FileType.media,
-    );
-    appLog(
-      'Picked gallery media: ${result?.files.map((e) => e.name).toList()}',
-    );
-    if (result != null && result.files.isNotEmpty) {
-      return result.files;
-    }
-    return [];
+  Future<List<PickedPlatformFile>> pickOneChatGalleryMedia() async {
+    final file = await FilePicker.pickFile(type: FileType.media);
+    appLog('Picked gallery media: ${file == null ? [] : [file.name]}');
+    return PickedPlatformFile.fromOptionalPlatformFile(file);
   }
 
   /// Camera photo for chat (Android/iOS only).
@@ -3520,15 +3495,9 @@ class HomeController extends GetxController {
   }
 
   /// ملف واحد لأي نوع (مرفقات الدردشة).
-  Future<List<PlatformFile>> pickOneChatFile() async {
-    final result = await FilePicker.pickFiles(
-      allowMultiple: false,
-      withData: true,
-    );
-    if (result != null && result.files.isNotEmpty) {
-      return result.files;
-    }
-    return [];
+  Future<List<PickedPlatformFile>> pickOneChatFile() async {
+    final file = await FilePicker.pickFile();
+    return PickedPlatformFile.fromOptionalPlatformFile(file);
   }
 
   RxDouble uploadProgress = 0.0.obs;

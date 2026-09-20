@@ -1,4 +1,4 @@
-part of 'package:point/Controller/HomeController.dart';
+part of point.home_controller;
 
 void homeBindLibraryFilesStream(HomeController c, bool canAccessLibrary) {
   if (canAccessLibrary) {

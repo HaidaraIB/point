@@ -21,6 +21,7 @@ import 'package:point/View/Os/os_button_styles.dart';
 import 'package:point/View/Os/os_finance_format.dart';
 import 'package:point/View/Os/os_form_dialog.dart';
 import 'package:point/View/Os/os_snackbar.dart';
+import 'package:point/View/Shared/responsive.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class OsCrmProfilePanel extends StatefulWidget {
@@ -107,6 +108,174 @@ class _OsCrmProfilePanelState extends State<OsCrmProfilePanel> {
     }
   }
 
+  Widget _profileActions(
+    BuildContext context,
+    ClientModel client,
+    AppThemeExtension theme,
+  ) {
+    final emp = Get.find<HomeController>().effectiveEmployee;
+    final phone = (client.phone ?? '').trim();
+    final email = (client.email ?? '').trim();
+    final canQuote =
+        OsPermissions.canAccessModule(emp, OsModuleIds.quotations);
+    final canInvoice =
+        OsPermissions.canAccessModule(emp, OsModuleIds.invoices);
+    final canContract =
+        OsPermissions.canAccessModule(emp, OsModuleIds.contracts);
+
+    Widget fullWidth(Widget child) =>
+        SizedBox(width: double.infinity, child: child);
+
+    Widget pair(Widget start, Widget end) => Row(
+          children: [
+            Expanded(child: fullWidth(start)),
+            const SizedBox(width: 8),
+            Expanded(child: fullWidth(end)),
+          ],
+        );
+
+    final callBtn = phone.isEmpty
+        ? null
+        : FilledButton.icon(
+            onPressed: () => _launch(Uri(scheme: 'tel', path: phone)),
+            style: OsButtonStyles.secondaryCompact(theme),
+            icon: const Icon(Icons.phone_outlined, size: 16),
+            label: Text(AppLocaleKeys.osCrmCall.tr),
+          );
+    final whatsappBtn = phone.isEmpty
+        ? null
+        : FilledButton.icon(
+            onPressed: () => _launchWhatsapp(phone),
+            style: OsButtonStyles.secondaryCompact(theme),
+            icon: const Icon(Icons.chat_outlined, size: 16),
+            label: Text(AppLocaleKeys.osCrmWhatsapp.tr),
+          );
+    final logCallBtn = phone.isEmpty
+        ? null
+        : OutlinedButton.icon(
+            onPressed: () => _logTouchpoint(OsCrmActivityType.call),
+            icon: const Icon(Icons.history_rounded, size: 16),
+            label: Text(
+              AppLocaleKeys.osCrmActivityLogCall.tr,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          );
+    final logWhatsappBtn = phone.isEmpty
+        ? null
+        : OutlinedButton.icon(
+            onPressed: () => _logTouchpoint(OsCrmActivityType.whatsapp),
+            icon: const Icon(Icons.history_rounded, size: 16),
+            label: Text(
+              AppLocaleKeys.osCrmActivityLogWhatsapp.tr,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          );
+    final emailBtn = email.isEmpty
+        ? null
+        : FilledButton.icon(
+            onPressed: () => _launch(Uri(scheme: 'mailto', path: email)),
+            style: OsButtonStyles.secondaryCompact(theme),
+            icon: const Icon(Icons.email_outlined, size: 16),
+            label: Text(AppLocaleKeys.osCrmEmailAction.tr),
+          );
+    final editBtn = FilledButton.icon(
+      onPressed: () => showOsCrmClientFormDialog(context, existing: client),
+      style: OsButtonStyles.secondaryCompact(theme),
+      icon: const Icon(Icons.edit_outlined, size: 16),
+      label: Text(AppLocaleKeys.osCrmEdit.tr),
+    );
+    final quoteBtn = !canQuote
+        ? null
+        : FilledButton.icon(
+            onPressed: () => showOsQuotationFormDialog(
+              context,
+              initialClientId: client.id,
+            ),
+            style: OsButtonStyles.secondaryCompact(theme),
+            icon: const Icon(Icons.add_rounded, size: 16),
+            label: Text(AppLocaleKeys.osCrmCreateQuotation.tr),
+          );
+    final invoiceBtn = !canInvoice
+        ? null
+        : FilledButton.icon(
+            onPressed: () => showOsInvoiceFormDialog(
+              context,
+              initialClientId: client.id,
+            ),
+            style: OsButtonStyles.primaryCompact(),
+            icon: const Icon(Icons.add_rounded, size: 16),
+            label: Text(AppLocaleKeys.osCrmCreateInvoice.tr),
+          );
+    final contractBtn = !canContract
+        ? null
+        : FilledButton.icon(
+            onPressed: () => showOsLegalContractFormDialog(
+              context,
+              initialClientId: client.id,
+            ),
+            style: OsButtonStyles.secondaryCompact(theme),
+            icon: const Icon(Icons.description_outlined, size: 16),
+            label: Text(AppLocaleKeys.osCrmCreateContract.tr),
+          );
+
+    if (!Responsive.isMobile(context)) {
+      return Wrap(
+        spacing: 8,
+        runSpacing: 8,
+        alignment: WrapAlignment.end,
+        children: [
+          if (callBtn != null) callBtn,
+          if (whatsappBtn != null) whatsappBtn,
+          if (logCallBtn != null) logCallBtn,
+          if (logWhatsappBtn != null) logWhatsappBtn,
+          if (emailBtn != null) emailBtn,
+          editBtn,
+          if (quoteBtn != null) quoteBtn,
+          if (invoiceBtn != null) invoiceBtn,
+          if (contractBtn != null) contractBtn,
+        ],
+      );
+    }
+
+    final rows = <Widget>[];
+    if (callBtn != null && whatsappBtn != null) {
+      rows.add(pair(callBtn, whatsappBtn));
+    } else if (callBtn != null) {
+      rows.add(fullWidth(callBtn));
+    } else if (whatsappBtn != null) {
+      rows.add(fullWidth(whatsappBtn));
+    }
+    if (logCallBtn != null && logWhatsappBtn != null) {
+      rows.add(const SizedBox(height: 8));
+      rows.add(pair(logCallBtn, logWhatsappBtn));
+    }
+    if (emailBtn != null) {
+      rows.add(const SizedBox(height: 8));
+      rows.add(fullWidth(emailBtn));
+    }
+    rows.add(const SizedBox(height: 8));
+    rows.add(fullWidth(editBtn));
+    if (invoiceBtn != null) {
+      rows.add(const SizedBox(height: 8));
+      rows.add(fullWidth(invoiceBtn));
+    }
+    if (quoteBtn != null) {
+      rows.add(const SizedBox(height: 8));
+      rows.add(fullWidth(quoteBtn));
+    }
+    if (contractBtn != null) {
+      rows.add(const SizedBox(height: 8));
+      rows.add(fullWidth(contractBtn));
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: rows,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Obx(() {
@@ -121,6 +290,26 @@ class _OsCrmProfilePanelState extends State<OsCrmProfilePanel> {
     final activities = _crm.activityTimeline(client);
     final leadSource = osCrmLeadSourceDisplay(client.leadSource);
     final initial = _company.isNotEmpty ? _company[0].toUpperCase() : '?';
+    final mobile = Responsive.isMobile(context);
+
+    final stageDropdown = DropdownButtonFormField<String>(
+      key: ValueKey(stage),
+      initialValue: stage,
+      isExpanded: true,
+      decoration: osFinanceFieldDecoration(
+        AppLocaleKeys.osCrmStage.tr,
+      ),
+      items: [
+        for (final s in OsCrmStage.ordered)
+          DropdownMenuItem(
+            value: s,
+            child: osCrmStageMenuItemLabel(s),
+          ),
+      ],
+      onChanged: (v) {
+        if (v != null) _changeStage(v);
+      },
+    );
 
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
@@ -136,78 +325,115 @@ class _OsCrmProfilePanelState extends State<OsCrmProfilePanel> {
             ),
           ),
           const SizedBox(height: 8),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              CircleAvatar(
-                radius: 28,
-                backgroundColor: osCrmStageColor(stage).withValues(alpha: 0.15),
-                child: Text(
-                  initial,
-                  style: TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.w800,
-                    color: osCrmStageColor(stage),
+          if (mobile) ...[
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                CircleAvatar(
+                  radius: 28,
+                  backgroundColor:
+                      osCrmStageColor(stage).withValues(alpha: 0.15),
+                  child: Text(
+                    initial,
+                    style: TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.w800,
+                      color: osCrmStageColor(stage),
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      _company,
-                      style: TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.w800,
-                        color: theme.primaryText,
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        _company,
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w800,
+                          color: theme.primaryText,
+                        ),
                       ),
-                    ),
-                    if ((client.name ?? '').trim().isNotEmpty) ...[
+                      if ((client.name ?? '').trim().isNotEmpty) ...[
+                        const SizedBox(height: 4),
+                        Text(
+                          client.name!,
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: theme.secondaryText,
+                          ),
+                        ),
+                      ],
                       const SizedBox(height: 4),
                       Text(
-                        client.name!,
+                        DateFormat.yMMMd().format(client.createdAt),
                         style: TextStyle(
-                          fontSize: 14,
-                          color: theme.secondaryText,
+                          fontSize: 12,
+                          color: theme.mutedText,
                         ),
                       ),
                     ],
-                    const SizedBox(height: 4),
-                    Text(
-                      DateFormat.yMMMd().format(client.createdAt),
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: theme.mutedText,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              SizedBox(
-                width: 220,
-                child: DropdownButtonFormField<String>(
-                  key: ValueKey(stage),
-                  initialValue: stage,
-                  isExpanded: true,
-                  decoration: osFinanceFieldDecoration(
-                    AppLocaleKeys.osCrmStage.tr,
                   ),
-                  items: [
-                    for (final s in OsCrmStage.ordered)
-                      DropdownMenuItem(
-                        value: s,
-                        child: osCrmStageMenuItemLabel(s),
-                      ),
-                  ],
-                  onChanged: (v) {
-                    if (v != null) _changeStage(v);
-                  },
                 ),
-              ),
-            ],
-          ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            stageDropdown,
+          ] else
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                CircleAvatar(
+                  radius: 28,
+                  backgroundColor:
+                      osCrmStageColor(stage).withValues(alpha: 0.15),
+                  child: Text(
+                    initial,
+                    style: TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.w800,
+                      color: osCrmStageColor(stage),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        _company,
+                        style: TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w800,
+                          color: theme.primaryText,
+                        ),
+                      ),
+                      if ((client.name ?? '').trim().isNotEmpty) ...[
+                        const SizedBox(height: 4),
+                        Text(
+                          client.name!,
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: theme.secondaryText,
+                          ),
+                        ),
+                      ],
+                      const SizedBox(height: 4),
+                      Text(
+                        DateFormat.yMMMd().format(client.createdAt),
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: theme.mutedText,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                SizedBox(width: 220, child: stageDropdown),
+              ],
+            ),
           if (stage == OsCrmStage.won) ...[
             const SizedBox(height: 16),
             Container(
@@ -219,32 +445,65 @@ class _OsCrmProfilePanelState extends State<OsCrmProfilePanel> {
                   color: const Color(0xFF059669).withValues(alpha: 0.25),
                 ),
               ),
-              child: Row(
-                children: [
-                  const Icon(
-                    Icons.check_circle_outline,
-                    color: Color(0xFF059669),
-                    size: 22,
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      AppLocaleKeys.osCrmWonBanner.tr,
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: theme.primaryText,
-                        height: 1.4,
-                      ),
+              child: mobile
+                  ? Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Icon(
+                              Icons.check_circle_outline,
+                              color: Color(0xFF059669),
+                              size: 22,
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                AppLocaleKeys.osCrmWonBanner.tr,
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: theme.primaryText,
+                                  height: 1.4,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        FilledButton(
+                          onPressed: () => Get.toNamed('/clients'),
+                          style: OsButtonStyles.secondaryCompact(theme),
+                          child: Text(AppLocaleKeys.osCrmOpenInClients.tr),
+                        ),
+                      ],
+                    )
+                  : Row(
+                      children: [
+                        const Icon(
+                          Icons.check_circle_outline,
+                          color: Color(0xFF059669),
+                          size: 22,
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            AppLocaleKeys.osCrmWonBanner.tr,
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: theme.primaryText,
+                              height: 1.4,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        FilledButton(
+                          onPressed: () => Get.toNamed('/clients'),
+                          style: OsButtonStyles.secondaryCompact(theme),
+                          child: Text(AppLocaleKeys.osCrmOpenInClients.tr),
+                        ),
+                      ],
                     ),
-                  ),
-                  const SizedBox(width: 12),
-                  FilledButton(
-                    onPressed: () => Get.toNamed('/clients'),
-                    style: OsButtonStyles.secondaryCompact(theme),
-                    child: Text(AppLocaleKeys.osCrmOpenInClients.tr),
-                  ),
-                ],
-              ),
             ),
           ],
           const SizedBox(height: 20),
@@ -284,96 +543,7 @@ class _OsCrmProfilePanelState extends State<OsCrmProfilePanel> {
             },
           ),
           const SizedBox(height: 16),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            alignment: WrapAlignment.end,
-            children: [
-              if ((client.phone ?? '').trim().isNotEmpty) ...[
-                FilledButton.icon(
-                  onPressed: () => _launch(
-                    Uri(scheme: 'tel', path: client.phone!.trim()),
-                  ),
-                  style: OsButtonStyles.secondaryCompact(theme),
-                  icon: const Icon(Icons.phone_outlined, size: 16),
-                  label: Text(AppLocaleKeys.osCrmCall.tr),
-                ),
-                FilledButton.icon(
-                  onPressed: () => _launchWhatsapp(client.phone!.trim()),
-                  style: OsButtonStyles.secondaryCompact(theme),
-                  icon: const Icon(Icons.chat_outlined, size: 16),
-                  label: Text(AppLocaleKeys.osCrmWhatsapp.tr),
-                ),
-                OutlinedButton.icon(
-                  onPressed: () => _logTouchpoint(OsCrmActivityType.call),
-                  icon: const Icon(Icons.history_rounded, size: 16),
-                  label: Text(AppLocaleKeys.osCrmActivityLogCall.tr),
-                ),
-                OutlinedButton.icon(
-                  onPressed: () => _logTouchpoint(OsCrmActivityType.whatsapp),
-                  icon: const Icon(Icons.history_rounded, size: 16),
-                  label: Text(AppLocaleKeys.osCrmActivityLogWhatsapp.tr),
-                ),
-              ],
-              if ((client.email ?? '').trim().isNotEmpty)
-                FilledButton.icon(
-                  onPressed: () => _launch(
-                    Uri(scheme: 'mailto', path: client.email!.trim()),
-                  ),
-                  style: OsButtonStyles.secondaryCompact(theme),
-                  icon: const Icon(Icons.email_outlined, size: 16),
-                  label: Text(AppLocaleKeys.osCrmEmailAction.tr),
-                ),
-              FilledButton.icon(
-                onPressed: () => showOsCrmClientFormDialog(
-                  context,
-                  existing: client,
-                ),
-                style: OsButtonStyles.secondaryCompact(theme),
-                icon: const Icon(Icons.edit_outlined, size: 16),
-                label: Text(AppLocaleKeys.osCrmEdit.tr),
-              ),
-              if (OsPermissions.canAccessModule(
-                Get.find<HomeController>().effectiveEmployee,
-                OsModuleIds.quotations,
-              ))
-                FilledButton.icon(
-                  onPressed: () => showOsQuotationFormDialog(
-                    context,
-                    initialClientId: client.id,
-                  ),
-                  style: OsButtonStyles.secondaryCompact(theme),
-                  icon: const Icon(Icons.add_rounded, size: 16),
-                  label: Text(AppLocaleKeys.osCrmCreateQuotation.tr),
-                ),
-              if (OsPermissions.canAccessModule(
-                Get.find<HomeController>().effectiveEmployee,
-                OsModuleIds.invoices,
-              ))
-                FilledButton.icon(
-                  onPressed: () => showOsInvoiceFormDialog(
-                    context,
-                    initialClientId: client.id,
-                  ),
-                  style: OsButtonStyles.primaryCompact(),
-                  icon: const Icon(Icons.add_rounded, size: 16),
-                  label: Text(AppLocaleKeys.osCrmCreateInvoice.tr),
-                ),
-              if (OsPermissions.canAccessModule(
-                Get.find<HomeController>().effectiveEmployee,
-                OsModuleIds.contracts,
-              ))
-                FilledButton.icon(
-                  onPressed: () => showOsLegalContractFormDialog(
-                    context,
-                    initialClientId: client.id,
-                  ),
-                  style: OsButtonStyles.secondaryCompact(theme),
-                  icon: const Icon(Icons.description_outlined, size: 16),
-                  label: Text(AppLocaleKeys.osCrmCreateContract.tr),
-                ),
-            ],
-          ),
+          _profileActions(context, client, theme),
           const SizedBox(height: 20),
           Text(
             AppLocaleKeys.osCrmActivityTitle.tr,

@@ -70,9 +70,8 @@ class _ProgrammingSuggestionsCardState
   Future<void> _attachImages(HomeController controller) async {
     final files = await controller.pickMultiFiles();
     for (final file in files) {
-      if (file.bytes == null) continue;
       final url = await controller.uploadFiles(
-        filePathOrBytes: file.bytes!,
+        filePathOrBytes: file.bytes,
         fileName: file.name,
         addToUploadedFilesPathsList: false,
       );

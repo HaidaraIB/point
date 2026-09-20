@@ -665,7 +665,7 @@ void showAddEmployeeDialog(BuildContext context, {EmployeeModel? model}) {
                                       await controller.pickoneImage().then((v) {
                                         if (v.isNotEmpty) {
                                           controller.uploadFiles(
-                                            filePathOrBytes: v.first.bytes!,
+                                            filePathOrBytes: v.first.bytes,
                                             fileName: v.first.name,
                                           );
                                         }

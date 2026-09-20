@@ -12,7 +12,7 @@ import cloud_firestore
 import connectivity_plus
 import device_info_plus
 import emoji_picker_flutter
-import file_picker
+import file_picker_darwin
 import file_selector_macos
 import firebase_auth
 import firebase_core
@@ -31,6 +31,7 @@ import sqflite_darwin
 import syncfusion_pdfviewer_macos
 import url_launcher_macos
 import video_player_avfoundation
+import webview_flutter_wkwebview
 
 func RegisterGeneratedPlugins(registry: FlutterPluginRegistry) {
   AppLinksMacosPlugin.register(with: registry.registrar(forPlugin: "AppLinksMacosPlugin"))
@@ -59,4 +60,5 @@ func RegisterGeneratedPlugins(registry: FlutterPluginRegistry) {
   SyncfusionFlutterPdfViewerPlugin.register(with: registry.registrar(forPlugin: "SyncfusionFlutterPdfViewerPlugin"))
   UrlLauncherPlugin.register(with: registry.registrar(forPlugin: "UrlLauncherPlugin"))
   VideoPlayerPlugin.register(with: registry.registrar(forPlugin: "VideoPlayerPlugin"))
+  WebViewFlutterPlugin.register(with: registry.registrar(forPlugin: "WebViewFlutterPlugin"))
 }

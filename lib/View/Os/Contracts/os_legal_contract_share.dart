@@ -7,6 +7,7 @@ import 'package:point/Services/firestore/firestore_os_email_api.dart';
 import 'package:point/Services/firestore/firestore_os_finance_api.dart';
 import 'package:point/Services/os_email_hub_service.dart';
 import 'package:point/View/Os/Contracts/os_legal_contract_labels.dart';
+import 'package:point/View/Os/EmailHub/os_email_hub_helpers.dart';
 import 'package:point/View/Os/os_snackbar.dart';
 
 Future<String> buildOsLegalContractEmailHtml(
@@ -25,7 +26,10 @@ Future<String> buildOsLegalContractEmailHtml(
 }
 
 /// Sends the official contract copy to party two and logs it in the email hub.
-Future<bool> sendOsLegalContractEmail(OsLegalContractModel contract) async {
+Future<bool> sendOsLegalContractEmail(
+  OsLegalContractModel contract, {
+  bool skipSendConfirm = false,
+}) async {
   final email = contract.partyTwoEmail.trim();
   if (email.isEmpty) {
     OsSnackbar.error(
@@ -35,6 +39,17 @@ Future<bool> sendOsLegalContractEmail(OsLegalContractModel contract) async {
     return false;
   }
 
+  if (!skipSendConfirm && !await confirmSendEmail(recipientEmail: email)) {
+    return false;
+  }
+
+  return _deliverOsLegalContractEmail(contract, email);
+}
+
+Future<bool> _deliverOsLegalContractEmail(
+  OsLegalContractModel contract,
+  String email,
+) async {
   final start = FirestoreOsFinanceApi.formatDate(contract.startDate);
   final amount =
       osLegalContractMoneyLabel(contract.totalValue, contract.currency);

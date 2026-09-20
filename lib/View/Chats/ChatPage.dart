@@ -2614,15 +2614,13 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                                                     : () async {
                                                         final v = await controller
                                                             .pickOneChatGalleryMedia();
-                                                        if (v.isEmpty ||
-                                                            v.first.bytes ==
-                                                                null) {
+                                                        if (v.isEmpty) {
                                                           return;
                                                         }
                                                         final picked = v.first;
                                                         final pending =
                                                             await stageChatMediaUpload(
-                                                          bytes: picked.bytes!,
+                                                          bytes: picked.bytes,
                                                           fileName: picked.name,
                                                           chatId: _selectedChat![
                                                                   'id']
@@ -2656,14 +2654,12 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                                                     : () async {
                                                         final v = await controller
                                                             .pickOneChatFile();
-                                                        if (v.isEmpty ||
-                                                            v.first.bytes ==
-                                                                null) {
+                                                        if (v.isEmpty) {
                                                           return;
                                                         }
                                                         final pending =
                                                             await stageChatFileUpload(
-                                                          bytes: v.first.bytes!,
+                                                          bytes: v.first.bytes,
                                                           fileName: v.first.name,
                                                           chatId: _selectedChat![
                                                                   'id']

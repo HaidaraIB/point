@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:get/get.dart';
 import 'package:point/Controller/HomeController.dart';
 import 'package:point/Utils/AppColors.dart';
 import 'package:point/Utils/OsPermissions.dart';
 import 'package:point/Utils/app_theme_extension.dart';
 import 'package:point/View/Os/os_modules.dart';
+import 'package:point/View/Shared/responsive.dart';
 
 /// Compact jump links for OS *subpages* only (not the hub).
 /// Shows Hub + live modules so you can switch without going back to the grid.
@@ -46,7 +48,10 @@ class _OsModuleNavState extends State<OsModuleNav> {
   @override
   void didUpdateWidget(covariant OsModuleNav oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.currentRoute != widget.currentRoute) {
+    final oldRaw = oldWidget.currentRoute ?? '';
+    final oldQ = oldRaw.indexOf('?');
+    final oldActive = oldQ >= 0 ? oldRaw.substring(0, oldQ) : oldRaw;
+    if (oldActive != _active) {
       _scheduleScrollToSelected();
     }
   }
@@ -61,14 +66,48 @@ class _OsModuleNavState extends State<OsModuleNav> {
     WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToSelected());
   }
 
-  void _scrollToSelected() {
+  void _scrollToSelected({int attempt = 0}) {
+    if (!mounted || attempt > 12) return;
+
+    if (!_scrollController.hasClients) {
+      WidgetsBinding.instance.addPostFrameCallback(
+        (_) => _scrollToSelected(attempt: attempt + 1),
+      );
+      return;
+    }
+
     final ctx = _selectedKey.currentContext;
-    if (ctx == null || !ctx.mounted) return;
-    Scrollable.ensureVisible(
-      ctx,
+    if (ctx == null || !ctx.mounted) {
+      WidgetsBinding.instance.addPostFrameCallback(
+        (_) => _scrollToSelected(attempt: attempt + 1),
+      );
+      return;
+    }
+
+    final box = ctx.findRenderObject();
+    if (box is! RenderBox || !box.hasSize) {
+      WidgetsBinding.instance.addPostFrameCallback(
+        (_) => _scrollToSelected(attempt: attempt + 1),
+      );
+      return;
+    }
+
+    final viewport = RenderAbstractViewport.maybeOf(box);
+    if (viewport == null) return;
+
+    final position = _scrollController.position;
+    final target = viewport.getOffsetToReveal(box, 0.5).offset;
+    final clamped = target.clamp(
+      position.minScrollExtent,
+      position.maxScrollExtent,
+    );
+
+    if ((position.pixels - clamped).abs() < 0.5) return;
+
+    position.animateTo(
+      clamped,
       duration: const Duration(milliseconds: 220),
       curve: Curves.easeOutCubic,
-      alignmentPolicy: ScrollPositionAlignmentPolicy.keepVisibleAtEnd,
     );
   }
 
@@ -82,45 +121,108 @@ class _OsModuleNavState extends State<OsModuleNav> {
       ...OsPermissions.visibleModules(emp),
     ];
 
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
-      child: Scrollbar(
-        controller: _scrollController,
-        thumbVisibility: true,
-        interactive: true,
-        scrollbarOrientation: ScrollbarOrientation.bottom,
-        radius: const Radius.circular(999),
-        thickness: 4,
-        child: SizedBox(
-          height: 44,
-          child: ListView.separated(
-            controller: _scrollController,
-            scrollDirection: Axis.horizontal,
-            physics: const BouncingScrollPhysics(
-              parent: AlwaysScrollableScrollPhysics(),
-            ),
-            clipBehavior: Clip.none,
-            padding: const EdgeInsetsDirectional.only(
-              start: 8,
-              end: 8,
-              bottom: 6,
-            ),
-            itemCount: modules.length,
-            separatorBuilder: (_, __) => const SizedBox(width: 8),
-            itemBuilder: (context, index) {
-              final m = modules[index];
-              final selected = m.route == active;
-              return _NavPill(
-                key: selected ? _selectedKey : null,
-                label: m.titleKey.tr,
-                icon: m.icon,
-                selected: selected,
-                onTap: () => _open(m),
-                theme: theme,
-              );
-            },
-          ),
+    final mobile = Responsive.isMobile(context);
+    const pillRowHeight = 44.0;
+    // Desktop/web: extra room so the horizontal thumb sits under the pills, not on them.
+    final stripHeight = mobile ? pillRowHeight : pillRowHeight + 10;
+
+    // Row (not ListView) so every pill is laid out; lazy lists skip off-screen
+    // children and break scroll-to-selected via GlobalKey.
+    final pillChildren = <Widget>[];
+    for (var i = 0; i < modules.length; i++) {
+      if (i > 0) pillChildren.add(const SizedBox(width: 8));
+      final m = modules[i];
+      final selected = m.route == active;
+      pillChildren.add(
+        _NavPill(
+          key: selected ? _selectedKey : null,
+          label: m.titleKey.tr,
+          icon: m.icon,
+          selected: selected,
+          onTap: () => _open(m),
+          theme: theme,
         ),
+      );
+    }
+
+    final pillRow = SizedBox(
+      height: stripHeight,
+      child: SingleChildScrollView(
+        controller: _scrollController,
+        scrollDirection: Axis.horizontal,
+        physics: const BouncingScrollPhysics(
+          parent: AlwaysScrollableScrollPhysics(),
+        ),
+        clipBehavior: Clip.none,
+        padding: EdgeInsetsDirectional.only(
+          start: 4,
+          end: 4,
+          bottom: mobile ? 0 : 8,
+        ),
+        child: Row(children: pillChildren),
+      ),
+    );
+
+    final scrollable = mobile
+        ? pillRow
+        : Scrollbar(
+            controller: _scrollController,
+            thumbVisibility: false,
+            interactive: true,
+            scrollbarOrientation: ScrollbarOrientation.bottom,
+            radius: const Radius.circular(999),
+            thickness: 4,
+            child: pillRow,
+          );
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 0, 12, 10),
+      child: Stack(
+        children: [
+          scrollable,
+          if (mobile) ...[
+            PositionedDirectional(
+              start: 0,
+              top: 0,
+              bottom: 0,
+              width: 12,
+              child: IgnorePointer(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: AlignmentDirectional.centerStart,
+                      end: AlignmentDirectional.centerEnd,
+                      colors: [
+                        theme.pageBackground,
+                        theme.pageBackground.withValues(alpha: 0),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            PositionedDirectional(
+              end: 0,
+              top: 0,
+              bottom: 0,
+              width: 12,
+              child: IgnorePointer(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: AlignmentDirectional.centerEnd,
+                      end: AlignmentDirectional.centerStart,
+                      colors: [
+                        theme.pageBackground,
+                        theme.pageBackground.withValues(alpha: 0),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ],
       ),
     );
   }

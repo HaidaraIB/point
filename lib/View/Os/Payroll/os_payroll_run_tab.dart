@@ -17,11 +17,14 @@ import 'package:point/View/Os/os_finance_format.dart';
 import 'package:point/View/Os/os_form_dialog.dart';
 import 'package:point/View/Os/os_list_filters.dart';
 import 'package:point/View/Os/os_snackbar.dart';
+import 'package:point/View/Os/Payroll/Mobile/os_payroll_run_mobile_card.dart';
 import 'package:point/View/Shared/app_data_table.dart';
 import 'package:point/View/Shared/safe_network_image.dart';
 
 class OsPayrollRunTab extends StatefulWidget {
-  const OsPayrollRunTab({super.key});
+  const OsPayrollRunTab({super.key, this.compact = false});
+
+  final bool compact;
 
   @override
   State<OsPayrollRunTab> createState() => _OsPayrollRunTabState();
@@ -305,6 +308,17 @@ class _OsPayrollRunTabState extends State<OsPayrollRunTab> {
           .toList();
       final filtered = _filtered(payroll, period, emps);
 
+      if (widget.compact) {
+        return _buildCompact(
+          context,
+          theme,
+          payroll,
+          period,
+          emps,
+          filtered,
+        );
+      }
+
       return Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -422,6 +436,148 @@ class _OsPayrollRunTabState extends State<OsPayrollRunTab> {
         ],
       );
     });
+  }
+
+  Widget _buildCompact(
+    BuildContext context,
+    AppThemeExtension theme,
+    OsPayrollController payroll,
+    String period,
+    List<EmployeeModel> emps,
+    List<EmployeeModel> filtered,
+  ) {
+    final periodBtn = SizedBox(
+      width: double.infinity,
+      child: FilledButton.icon(
+        style: OsButtonStyles.secondaryCompact(theme),
+        onPressed: () => _pickPeriod(context, payroll, period),
+        icon: const Icon(Icons.calendar_month_outlined, size: 18),
+        label: Text(
+          '${AppLocaleKeys.osPayrollPeriod.tr}: ${_periodLabel(period)}',
+          style: const TextStyle(fontWeight: FontWeight.w800),
+        ),
+      ),
+    );
+
+    final deleteRun = payroll.runForPeriod(period)?.id != null &&
+            OsPermissions.canDeleteCurrentOsRecords
+        ? SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: () => _deleteCurrentRun(context, payroll, period),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: const Color(0xFFF43F5E),
+                side: BorderSide(
+                  color: const Color(0xFFF43F5E).withValues(alpha: 0.55),
+                ),
+              ),
+              icon: const Icon(Icons.delete_outline, size: 18),
+              label: Text(AppLocaleKeys.osPayrollRunDelete.tr),
+            ),
+          )
+        : null;
+
+    return CustomScrollView(
+      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+      slivers: [
+        SliverPadding(
+          padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+          sliver: SliverToBoxAdapter(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                periodBtn,
+                if (deleteRun != null) ...[
+                  const SizedBox(height: 8),
+                  deleteRun,
+                ],
+              ],
+            ),
+          ),
+        ),
+        SliverToBoxAdapter(
+          child: OsListFilterBar(
+            dense: true,
+            stacked: true,
+            chips: OsFilterChips(
+              value: _status,
+              onChanged: (v) => setState(() => _status = v),
+              options: [
+                OsFilterChipOption(
+                  value: 'ALL',
+                  label: AppLocaleKeys.osCommonFilterAll.tr,
+                ),
+                OsFilterChipOption(
+                  value: 'PENDING',
+                  label: AppLocaleKeys.osPayrollFilterPending.tr,
+                ),
+                OsFilterChipOption(
+                  value: 'PAID',
+                  label: AppLocaleKeys.osPayrollFilterPaid.tr,
+                ),
+                OsFilterChipOption(
+                  value: 'NO_SALARY',
+                  label: AppLocaleKeys.osPayrollFilterNoSalary.tr,
+                ),
+              ],
+            ),
+            search: OsSearchField(
+              controller: _search,
+              hint: AppLocaleKeys.osPayrollSearch.tr,
+              width: double.infinity,
+              onChanged: (_) => setState(() {}),
+            ),
+            matchCount: emps.isEmpty ? null : filtered.length,
+          ),
+        ),
+        if (emps.isEmpty)
+          SliverFillRemaining(
+            hasScrollBody: false,
+            child: OsEmptyState(
+              message: AppLocaleKeys.osPayrollEmptyEmployees.tr,
+            ),
+          )
+        else if (filtered.isEmpty)
+          SliverFillRemaining(
+            hasScrollBody: false,
+            child: OsEmptyState(
+              message: AppLocaleKeys.osPayrollEmptyFilter.tr,
+            ),
+          )
+        else
+          SliverPadding(
+            padding: EdgeInsets.fromLTRB(
+              12,
+              4,
+              12,
+              24 + MediaQuery.paddingOf(context).bottom,
+            ),
+            sliver: SliverList.separated(
+              itemCount: filtered.length,
+              separatorBuilder: (_, __) => const SizedBox(height: 10),
+              itemBuilder: (context, index) {
+                final emp = filtered[index];
+                final snap = OsPayrollRunLineSnapshot.from(
+                  emp: emp,
+                  payroll: payroll,
+                  period: period,
+                  branchLabel: _branchLabel,
+                );
+                return OsPayrollRunMobileCard(
+                  snapshot: snap,
+                  loading: payroll.isLoading.value,
+                  onAdjust: snap.canEdit
+                      ? () => showOsPayrollAdjustDialog(context, emp)
+                      : null,
+                  onDisburse: snap.noSalary || snap.isPaid
+                      ? null
+                      : () => _pay(context, payroll, emp),
+                );
+              },
+            ),
+          ),
+      ],
+    );
   }
 
   DataRow _row(

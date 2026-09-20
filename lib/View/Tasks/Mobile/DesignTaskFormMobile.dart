@@ -463,7 +463,7 @@ class _DesignTaskFormMobilePageState extends State<DesignTaskFormMobilePage> {
                     onTap: () async {
                       final files = await controller.pickMultiFiles();
                       for (var file in files) {
-                        controller.uploadFiles(filePathOrBytes: file.bytes!, fileName: file.name);
+                        controller.uploadFiles(filePathOrBytes: file.bytes, fileName: file.name);
                       }
                     },
                     child: Container(

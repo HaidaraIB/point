@@ -540,10 +540,10 @@ class _ChatPopupState extends State<ChatPopup> with WidgetsBindingObserver {
         return;
       case ChatAttachmentMenuAction.photo:
         final v = await controller.pickOneChatGalleryMedia();
-        if (!mounted || v.isEmpty || v.first.bytes == null) return;
+        if (!mounted || v.isEmpty) return;
         final picked = v.first;
         final pending = await stageChatMediaUpload(
-          bytes: picked.bytes!,
+          bytes: picked.bytes,
           fileName: picked.name,
           chatId: _chatId,
           home: controller,
@@ -555,9 +555,9 @@ class _ChatPopupState extends State<ChatPopup> with WidgetsBindingObserver {
         return;
       case ChatAttachmentMenuAction.file:
         final v = await controller.pickOneChatFile();
-        if (!mounted || v.isEmpty || v.first.bytes == null) return;
+        if (!mounted || v.isEmpty) return;
         final pending = await stageChatFileUpload(
-          bytes: v.first.bytes!,
+          bytes: v.first.bytes,
           fileName: v.first.name,
           chatId: _chatId,
           home: controller,

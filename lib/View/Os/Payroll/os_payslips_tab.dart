@@ -20,7 +20,9 @@ import 'package:point/View/Os/os_form_dialog.dart';
 import 'package:point/View/Os/os_snackbar.dart';
 
 class OsPayslipsTab extends StatefulWidget {
-  const OsPayslipsTab({super.key});
+  const OsPayslipsTab({super.key, this.compact = false});
+
+  final bool compact;
 
   @override
   State<OsPayslipsTab> createState() => _OsPayslipsTabState();
@@ -175,6 +177,18 @@ class _OsPayslipsTabState extends State<OsPayslipsTab> {
       }
       emp ??= emps.isEmpty ? null : emps.first;
       final slip = emp == null ? null : payroll.previewPayslip(emp);
+
+      if (widget.compact) {
+        return _buildCompact(
+          context,
+          theme,
+          payroll,
+          period,
+          emps,
+          emp,
+          slip,
+        );
+      }
 
       return Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -352,16 +366,214 @@ class _OsPayslipsTabState extends State<OsPayslipsTab> {
       );
     });
   }
+
+  Widget _buildCompact(
+    BuildContext context,
+    AppThemeExtension theme,
+    OsPayrollController payroll,
+    String period,
+    List<EmployeeModel> emps,
+    EmployeeModel? emp,
+    OsPayslipModel? slip,
+  ) {
+    return CustomScrollView(
+      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+      slivers: [
+        SliverPadding(
+          padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+          sliver: SliverToBoxAdapter(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton.icon(
+                    style: OsButtonStyles.secondaryCompact(theme),
+                    onPressed: () => _pickPeriod(context, payroll, period),
+                    icon: const Icon(Icons.calendar_month_outlined, size: 18),
+                    label: Text(
+                      '${AppLocaleKeys.osPayrollPeriod.tr}: ${_periodLabel(period)}',
+                      style: const TextStyle(fontWeight: FontWeight.w800),
+                    ),
+                  ),
+                ),
+                if (emps.isNotEmpty) ...[
+                  const SizedBox(height: 10),
+                  DropdownButtonFormField<String>(
+                    initialValue: emps.any((e) => e.id == _employeeId)
+                        ? _employeeId
+                        : emp?.id,
+                    decoration: InputDecoration(
+                      isDense: true,
+                      filled: true,
+                      fillColor: theme.cardSurface,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 10,
+                      ),
+                    ),
+                    items: emps
+                        .map(
+                          (e) => DropdownMenuItem(
+                            value: e.id,
+                            child: Text(
+                              e.name ?? e.id ?? '',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                        )
+                        .toList(),
+                    onChanged: (v) => setState(() {
+                      _employeeId = v;
+                      _copied = false;
+                    }),
+                  ),
+                ],
+                if (slip != null) ...[
+                  const SizedBox(height: 10),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      FilledButton.icon(
+                        style: OsButtonStyles.primaryCompact(),
+                        onPressed: () => printOsPayslip(slip),
+                        icon: const Icon(Icons.print_outlined, size: 18),
+                        label: Text(AppLocaleKeys.osPayslipsPrint.tr),
+                      ),
+                      FilledButton.icon(
+                        style: OsButtonStyles.secondaryCompact(
+                          theme,
+                          active: _copied,
+                        ).copyWith(
+                          foregroundColor: WidgetStatePropertyAll(
+                            _copied ? AppColors.success : theme.primaryText,
+                          ),
+                          backgroundColor: WidgetStatePropertyAll(
+                            _copied
+                                ? AppColors.success.withValues(alpha: 0.12)
+                                : theme.elevatedSurface,
+                          ),
+                          side: WidgetStatePropertyAll(
+                            BorderSide(
+                              color: _copied ? AppColors.success : theme.border,
+                            ),
+                          ),
+                        ),
+                        onPressed: () => _copy(slip),
+                        icon: Icon(
+                          _copied ? Icons.check : Icons.copy_outlined,
+                          size: 18,
+                        ),
+                        label: Text(
+                          _copied
+                              ? AppLocaleKeys.osPayslipsCopiedBtn.tr
+                              : AppLocaleKeys.osPayslipsCopy.tr,
+                        ),
+                      ),
+                      if ((slip.id ?? '').trim().isNotEmpty &&
+                          OsPermissions.canDeleteCurrentOsRecords)
+                        OutlinedButton.icon(
+                          onPressed: () => _deletePayslip(slip),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: const Color(0xFFF43F5E),
+                            side: const BorderSide(color: Color(0xFFF43F5E)),
+                          ),
+                          icon: const Icon(Icons.delete_outline, size: 18),
+                          label: Text(AppLocaleKeys.osCommonDelete.tr),
+                        ),
+                    ],
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ),
+        SliverPadding(
+          padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
+          sliver: SliverToBoxAdapter(
+            child: Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: theme.panelTint,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: theme.accentBorder),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(Icons.info_outline, color: theme.accentText, size: 18),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          AppLocaleKeys.osPayslipsPrintWarningTitle.tr,
+                          style: TextStyle(
+                            fontWeight: FontWeight.w800,
+                            fontSize: 12,
+                            color: theme.accentText,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          AppLocaleKeys.osPayslipsPrintWarningBody.tr,
+                          style: TextStyle(
+                            fontSize: 11,
+                            height: 1.45,
+                            color: theme.secondaryText,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+        if (slip == null)
+          SliverFillRemaining(
+            hasScrollBody: false,
+            child: OsEmptyState(message: AppLocaleKeys.osPayslipsEmpty.tr),
+          )
+        else
+          SliverPadding(
+            padding: EdgeInsets.fromLTRB(
+              12,
+              0,
+              12,
+              24 + MediaQuery.paddingOf(context).bottom,
+            ),
+            sliver: SliverToBoxAdapter(
+              child: _PayslipPreview(
+                slip: slip,
+                branchLabel: _branchLabel(slip.branchId),
+                compact: true,
+              ),
+            ),
+          ),
+      ],
+    );
+  }
 }
 
 class _PayslipPreview extends StatelessWidget {
   const _PayslipPreview({
     required this.slip,
     required this.branchLabel,
+    this.compact = false,
   });
 
   final OsPayslipModel slip;
   final String branchLabel;
+  final bool compact;
 
   String _nationalIdFor(OsPayslipModel slip) {
     if (!Get.isRegistered<OsPayrollController>()) return '';
@@ -386,13 +598,13 @@ class _PayslipPreview extends StatelessWidget {
         : AppLocaleKeys.osPayslipsStatusPending.tr;
 
     return Container(
-      constraints: const BoxConstraints(maxWidth: 720),
+      constraints: BoxConstraints(maxWidth: compact ? double.infinity : 720),
       decoration: BoxDecoration(
         color: theme.cardSurface,
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(compact ? 16 : 24),
         border: Border.all(color: theme.border),
       ),
-      padding: const EdgeInsets.all(28),
+      padding: EdgeInsets.all(compact ? 16 : 28),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [

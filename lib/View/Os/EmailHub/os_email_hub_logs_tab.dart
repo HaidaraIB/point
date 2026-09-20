@@ -11,6 +11,7 @@ import 'package:point/View/Os/EmailHub/os_email_hub_form_widgets.dart';
 import 'package:point/View/Os/EmailHub/os_email_hub_helpers.dart';
 import 'package:point/View/Os/EmailHub/os_email_hub_previews.dart';
 import 'package:point/View/Shared/app_data_table.dart';
+import 'package:point/View/Shared/responsive.dart';
 
 class OsEmailHubLogsTab extends StatelessWidget {
   const OsEmailHubLogsTab({super.key, required this.hub});
@@ -20,11 +21,14 @@ class OsEmailHubLogsTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = context.appTheme;
+    final compact = Responsive.isMobile(context);
+    final pad = compact ? 12.0 : 16.0;
     return Obx(() {
       final items = hub.filteredLogs;
       final activeFilter = hub.logsCategoryFilter.value;
       return ListView(
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+        padding: EdgeInsets.fromLTRB(pad, pad, pad, 24),
+        keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
         children: [
           Container(
             padding: const EdgeInsets.all(12),
@@ -36,56 +40,134 @@ class OsEmailHubLogsTab extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: osEmailHubTextField(
-                        context,
-                        label: AppLocaleKeys.osEmailHubLogsSearch.tr,
-                        showLabel: false,
-                        hintText: AppLocaleKeys.osEmailHubLogsSearch.tr,
-                        prefixIcon: const Icon(Icons.search, size: 20),
-                        value: hub.logsSearch.value,
-                        onChanged: (v) => hub.logsSearch.value = v,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    PopupMenuButton<String>(
-                      tooltip: AppLocaleKeys.osEmailHubLogsFilter.tr,
-                      onSelected: (v) => hub.logsCategoryFilter.value = v,
-                      itemBuilder: (ctx) => [
-                        _filterItem(OsEmailCategory.invoice),
-                        _filterItem(OsEmailCategory.quotation),
-                        _filterItem(OsEmailCategory.payslip),
-                        _filterItem(OsEmailCategory.appreciation),
-                        _filterItem(OsEmailCategory.penalty),
-                        _filterItem(OsEmailCategory.contract),
-                        PopupMenuItem(
-                          value: 'ALL',
-                          child: Text(AppLocaleKeys.osEmailHubLogsFilterAll.tr),
+                if (compact) ...[
+                  osEmailHubTextField(
+                    context,
+                    label: AppLocaleKeys.osEmailHubLogsSearch.tr,
+                    showLabel: false,
+                    hintText: AppLocaleKeys.osEmailHubLogsSearch.tr,
+                    prefixIcon: const Icon(Icons.search, size: 20),
+                    value: hub.logsSearch.value,
+                    onChanged: (v) => hub.logsSearch.value = v,
+                  ),
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      PopupMenuButton<String>(
+                        tooltip: AppLocaleKeys.osEmailHubLogsFilter.tr,
+                        onSelected: (v) => hub.logsCategoryFilter.value = v,
+                        itemBuilder: (ctx) => [
+                          _filterItem(OsEmailCategory.invoice),
+                          _filterItem(OsEmailCategory.quotation),
+                          _filterItem(OsEmailCategory.payslip),
+                          _filterItem(OsEmailCategory.appreciation),
+                          _filterItem(OsEmailCategory.penalty),
+                          _filterItem(OsEmailCategory.contract),
+                          PopupMenuItem(
+                            value: 'ALL',
+                            child: Text(
+                              AppLocaleKeys.osEmailHubLogsFilterAll.tr,
+                            ),
+                          ),
+                        ],
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 10,
+                          ),
+                          decoration: BoxDecoration(
+                            color: theme.panelTint,
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: theme.border),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.filter_list,
+                                color: theme.accentText,
+                                size: 20,
+                              ),
+                              const SizedBox(width: 6),
+                              Text(
+                                AppLocaleKeys.osEmailHubLogsFilter.tr,
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                  color: theme.primaryText,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
-                      ],
-                      child: Container(
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          color: theme.panelTint,
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: theme.border),
+                      ),
+                      const Spacer(),
+                      IconButton(
+                        tooltip: AppLocaleKeys.osEmailHubLogsClearTitle.tr,
+                        onPressed: () => confirmClearEmailLogs(hub),
+                        icon: Icon(
+                          Icons.delete_sweep_outlined,
+                          color: theme.accentText,
                         ),
-                        child: Icon(Icons.filter_list, color: theme.accentText),
                       ),
-                    ),
-                    const SizedBox(width: 8),
-                    IconButton(
-                      tooltip: AppLocaleKeys.osEmailHubLogsClearTitle.tr,
-                      onPressed: () => confirmClearEmailLogs(hub),
-                      icon: Icon(
-                        Icons.delete_sweep_outlined,
-                        color: theme.accentText,
+                    ],
+                  ),
+                ] else
+                  Row(
+                    children: [
+                      Expanded(
+                        child: osEmailHubTextField(
+                          context,
+                          label: AppLocaleKeys.osEmailHubLogsSearch.tr,
+                          showLabel: false,
+                          hintText: AppLocaleKeys.osEmailHubLogsSearch.tr,
+                          prefixIcon: const Icon(Icons.search, size: 20),
+                          value: hub.logsSearch.value,
+                          onChanged: (v) => hub.logsSearch.value = v,
+                        ),
                       ),
-                    ),
-                  ],
-                ),
+                      const SizedBox(width: 8),
+                      PopupMenuButton<String>(
+                        tooltip: AppLocaleKeys.osEmailHubLogsFilter.tr,
+                        onSelected: (v) => hub.logsCategoryFilter.value = v,
+                        itemBuilder: (ctx) => [
+                          _filterItem(OsEmailCategory.invoice),
+                          _filterItem(OsEmailCategory.quotation),
+                          _filterItem(OsEmailCategory.payslip),
+                          _filterItem(OsEmailCategory.appreciation),
+                          _filterItem(OsEmailCategory.penalty),
+                          _filterItem(OsEmailCategory.contract),
+                          PopupMenuItem(
+                            value: 'ALL',
+                            child: Text(
+                              AppLocaleKeys.osEmailHubLogsFilterAll.tr,
+                            ),
+                          ),
+                        ],
+                        child: Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: theme.panelTint,
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: theme.border),
+                          ),
+                          child: Icon(
+                            Icons.filter_list,
+                            color: theme.accentText,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      IconButton(
+                        tooltip: AppLocaleKeys.osEmailHubLogsClearTitle.tr,
+                        onPressed: () => confirmClearEmailLogs(hub),
+                        icon: Icon(
+                          Icons.delete_sweep_outlined,
+                          color: theme.accentText,
+                        ),
+                      ),
+                    ],
+                  ),
                 if (activeFilter != 'ALL') ...[
                   const SizedBox(height: 10),
                   Align(

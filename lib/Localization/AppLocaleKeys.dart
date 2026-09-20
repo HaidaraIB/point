@@ -861,6 +861,10 @@ class AppLocaleKeys {
   static const osSettingsPrintContactSaved = 'os.settings.print_contact.saved';
   static const osSettingsPrintContactPreview =
       'os.settings.print_contact.preview';
+  static const osSettingsQuotationTemplateSection =
+      'os.settings.quotation_template.section';
+  static const osSettingsQuotationTemplateDescription =
+      'os.settings.quotation_template.description';
   static const osBackToHub = 'os.back_to_hub';
   static const osNavHub = 'os.nav.hub';
 

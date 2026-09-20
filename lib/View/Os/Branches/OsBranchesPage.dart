@@ -16,6 +16,7 @@ import 'package:point/View/Os/os_list_filters.dart';
 import 'package:point/View/Os/os_page_header.dart';
 import 'package:point/View/Os/os_snackbar.dart';
 import 'package:point/View/Shared/ResponsiveScaffold.dart';
+import 'package:point/View/Shared/responsive.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class OsBranchesPage extends StatefulWidget {
@@ -154,6 +155,7 @@ class _OsBranchesPageState extends State<OsBranchesPage> {
 
     final finance = Get.find<OsFinanceController>();
     final theme = context.appTheme;
+    final mobile = Responsive.isMobile(context);
 
     return ResponsiveScaffold(
       selectedTab: 14,
@@ -163,7 +165,7 @@ class _OsBranchesPageState extends State<OsBranchesPage> {
         children: [
           OsPageHeader(
             title: AppLocaleKeys.osBranchesTitle.tr,
-            subtitle: AppLocaleKeys.osBranchesSubtitle.tr,
+            subtitle: mobile ? null : AppLocaleKeys.osBranchesSubtitle.tr,
             currentRoute: '/os/branches',
             actions: [
               FilledButton.icon(
@@ -182,6 +184,19 @@ class _OsBranchesPageState extends State<OsBranchesPage> {
                   Get.find<HomeController>().employees.length;
               final activeCount = all.where((b) => b.isActive).length;
               final provinces = _uniqueProvinces(all);
+
+              if (mobile) {
+                return _buildMobileScroll(
+                  context,
+                  theme,
+                  finance,
+                  all: all,
+                  list: list,
+                  activeCount: activeCount,
+                  totalStaff: totalStaff,
+                  provinces: provinces,
+                );
+              }
 
               return LayoutBuilder(
                 builder: (context, constraints) {
@@ -353,6 +368,180 @@ class _OsBranchesPageState extends State<OsBranchesPage> {
       ),
     );
   }
+
+  Widget _buildMobileScroll(
+    BuildContext context,
+    AppThemeExtension theme,
+    OsFinanceController finance, {
+    required List<OsBranchModel> all,
+    required List<OsBranchModel> list,
+    required int activeCount,
+    required int totalStaff,
+    required int provinces,
+  }) {
+    return CustomScrollView(
+      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+      slivers: [
+        SliverToBoxAdapter(
+          child: SizedBox(
+            height: 96,
+            child: ListView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.fromLTRB(12, 10, 12, 0),
+              children: [
+                SizedBox(
+                  width: 148,
+                  child: _KpiCard(
+                    title: AppLocaleKeys.osBranchesKpiTotal.tr,
+                    value: '${all.length}',
+                    color: theme.primaryText,
+                    dense: true,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                SizedBox(
+                  width: 148,
+                  child: _KpiCard(
+                    title: AppLocaleKeys.osBranchesKpiActive.tr,
+                    value: '$activeCount',
+                    color: AppColors.primary,
+                    dense: true,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                SizedBox(
+                  width: 148,
+                  child: _KpiCard(
+                    title: AppLocaleKeys.osBranchesKpiStaff.tr,
+                    value: '$totalStaff',
+                    color: const Color(0xFF059669),
+                    dense: true,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                SizedBox(
+                  width: 160,
+                  child: _KpiCard(
+                    title: AppLocaleKeys.osBranchesKpiProvinces.trParams({
+                      'count': '$provinces',
+                    }),
+                    value: '$provinces',
+                    color: const Color(0xFFD97706),
+                    dense: true,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        SliverToBoxAdapter(
+          child: OsListFilterBar(
+            dense: true,
+            stacked: true,
+            chips: OsFilterChips(
+              value: _status,
+              onChanged: (v) => setState(() => _status = v),
+              options: [
+                OsFilterChipOption(
+                  value: 'ALL',
+                  label: AppLocaleKeys.osCommonFilterAll.tr,
+                ),
+                OsFilterChipOption(
+                  value: OsBranchStatus.active,
+                  label: AppLocaleKeys.osBranchesFilterActive.tr,
+                ),
+                OsFilterChipOption(
+                  value: OsBranchStatus.inactive,
+                  label: AppLocaleKeys.osBranchesFilterInactive.tr,
+                ),
+              ],
+            ),
+            search: OsSearchField(
+              controller: _search,
+              hint: AppLocaleKeys.osBranchesSearch.tr,
+              width: double.infinity,
+              onChanged: (_) => setState(() {}),
+            ),
+            matchCount: all.isEmpty ? null : list.length,
+          ),
+        ),
+        if (list.isEmpty)
+          SliverFillRemaining(
+            hasScrollBody: false,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    all.isEmpty
+                        ? AppLocaleKeys.osBranchesEmpty.tr
+                        : AppLocaleKeys.osBranchesEmptyFilter.tr,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 13, color: theme.mutedText),
+                  ),
+                  if (!_filtersActive) ...[
+                    const SizedBox(height: 16),
+                    FilledButton.icon(
+                      onPressed: () => showOsBranchFormDialog(context),
+                      style: OsButtonStyles.primaryCompact(),
+                      icon: const Icon(Icons.add, size: 18),
+                      label: Text(AppLocaleKeys.osBranchesAdd.tr),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          )
+        else
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(12, 4, 12, 24),
+            sliver: SliverList(
+              delegate: SliverChildBuilderDelegate(
+                (context, index) {
+                  final total = list.length + (_filtersActive ? 0 : 1);
+                  if (index >= total) return null;
+                  if (!_filtersActive && index == list.length) {
+                    return Padding(
+                      padding: const EdgeInsets.only(top: 12),
+                      child: SizedBox(
+                        height: 140,
+                        child: _AddBranchCard(
+                          onTap: () => showOsBranchFormDialog(context),
+                        ),
+                      ),
+                    );
+                  }
+                  final branch = list[index];
+                  return Padding(
+                    padding: EdgeInsets.only(
+                      top: index == 0 ? 0 : 12,
+                    ),
+                    child: _BranchCard(
+                      branch: branch,
+                      staffCount: _staffCount(branch.id),
+                      listLayout: true,
+                      onEdit: () => showOsBranchFormDialog(
+                        context,
+                        existing: branch,
+                      ),
+                      onDelete: () => _confirmDelete(
+                        context,
+                        finance,
+                        branch,
+                      ),
+                      onMap: () => _openMap(branch),
+                      onCall: () => _call(branch),
+                    ),
+                  );
+                },
+                childCount: list.length + (_filtersActive ? 0 : 1),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
 }
 
 class _KpiCard extends StatelessWidget {
@@ -360,20 +549,23 @@ class _KpiCard extends StatelessWidget {
     required this.title,
     required this.value,
     required this.color,
+    this.dense = false,
   });
 
   final String title;
   final String value;
   final Color color;
+  final bool dense;
 
   @override
   Widget build(BuildContext context) {
     final theme = context.appTheme;
+    final pad = dense ? 10.0 : 14.0;
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: EdgeInsets.all(pad),
       decoration: BoxDecoration(
         color: theme.cardSurface,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(dense ? 14 : 16),
         border: Border.all(color: theme.border),
       ),
       child: Column(
@@ -382,19 +574,20 @@ class _KpiCard extends StatelessWidget {
         children: [
           Text(
             title,
-            maxLines: 1,
+            maxLines: dense ? 2 : 1,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
-              fontSize: 11,
+              fontSize: dense ? 10 : 11,
+              height: dense ? 1.2 : null,
               fontWeight: FontWeight.w700,
               color: theme.mutedText,
             ),
           ),
-          const SizedBox(height: 4),
+          SizedBox(height: dense ? 3 : 4),
           Text(
             value,
             style: TextStyle(
-              fontSize: 20,
+              fontSize: dense ? 17 : 20,
               fontWeight: FontWeight.w900,
               color: color,
             ),
@@ -413,6 +606,7 @@ class _BranchCard extends StatelessWidget {
     required this.onDelete,
     required this.onMap,
     required this.onCall,
+    this.listLayout = false,
   });
 
   final OsBranchModel branch;
@@ -421,6 +615,7 @@ class _BranchCard extends StatelessWidget {
   final VoidCallback onDelete;
   final VoidCallback onMap;
   final VoidCallback onCall;
+  final bool listLayout;
 
   @override
   Widget build(BuildContext context) {
@@ -436,13 +631,14 @@ class _BranchCard extends StatelessWidget {
       clipBehavior: Clip.antiAlias,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: listLayout ? MainAxisSize.min : MainAxisSize.max,
         children: [
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -556,7 +752,8 @@ class _BranchCard extends StatelessWidget {
                       ),
                     ],
                   ),
-                  const Spacer(),
+                  SizedBox(height: listLayout ? 12 : 0),
+                  if (!listLayout) const Spacer(),
                   Divider(height: 20, color: theme.border),
                   Row(
                     children: [
@@ -634,7 +831,6 @@ class _BranchCard extends StatelessWidget {
                 ],
               ),
             ),
-          ),
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(

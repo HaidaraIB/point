@@ -107,7 +107,7 @@ class EditRequestSheet extends StatelessWidget {
                           final files = await home.pickMultiFiles();
                           for (final file in files) {
                             home.uploadFiles(
-                              filePathOrBytes: file.bytes!,
+                              filePathOrBytes: file.bytes,
                               fileName: file.name,
                             );
                           }

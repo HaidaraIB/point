@@ -397,7 +397,7 @@ class _EmployeeFormMobilePageState extends State<EmployeeFormMobilePage> {
                         await controller.pickoneImage().then((v) {
                           if (v.isNotEmpty) {
                             controller.uploadFiles(
-                              filePathOrBytes: v.first.bytes!,
+                              filePathOrBytes: v.first.bytes,
                               fileName: v.first.name,
                             );
                           }

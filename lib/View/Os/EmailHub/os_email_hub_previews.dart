@@ -20,7 +20,7 @@ class OsEmailHubInvoicePreview extends StatelessWidget {
           if (html.isEmpty) {
             return const Center(child: CircularProgressIndicator());
           }
-          return HtmlEmailPreview(html: html);
+          return osEmailHubHtmlPreviewWidget(context, html);
         },
       );
     });
@@ -37,7 +37,7 @@ class OsEmailHubQuotationPreview extends StatelessWidget {
     return Obx(() {
       if (hub.selectedQuote == null) return const SizedBox.shrink();
       final html = hub.quotationEmailHtml();
-      return HtmlEmailPreview(html: html);
+      return osEmailHubHtmlPreviewWidget(context, html);
     });
   }
 }
@@ -53,7 +53,7 @@ class OsEmailHubPayslipPreview extends StatelessWidget {
       final emp = hub.selectedPayslipEmployee;
       if (emp == null) return const SizedBox.shrink();
       final html = hub.payslipEmailHtml(emp);
-      return HtmlEmailPreview(html: html);
+      return osEmailHubHtmlPreviewWidget(context, html);
     });
   }
 }
@@ -70,7 +70,7 @@ class OsEmailHubAppreciationPreview extends StatelessWidget {
         return const SizedBox.shrink();
       }
       final html = hub.appreciationEmailHtml();
-      return HtmlEmailPreview(html: html);
+      return osEmailHubHtmlPreviewWidget(context, html);
     });
   }
 }
@@ -91,7 +91,7 @@ class OsEmailHubContractPreview extends StatelessWidget {
           if (html.isEmpty) {
             return const Center(child: CircularProgressIndicator());
           }
-          return HtmlEmailPreview(html: html);
+          return osEmailHubHtmlPreviewWidget(context, html);
         },
       );
     });
@@ -108,7 +108,7 @@ class OsEmailHubPenaltyPreview extends StatelessWidget {
     return Obx(() {
       if (hub.selectedPenaltyEmployee == null) return const SizedBox.shrink();
       final html = hub.penaltyEmailHtml();
-      return HtmlEmailPreview(html: html);
+      return osEmailHubHtmlPreviewWidget(context, html);
     });
   }
 }

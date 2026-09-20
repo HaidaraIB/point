@@ -91,11 +91,12 @@ Future<ChatAttachmentSaveResult> writeChatAttachmentBytes({
     }
 
     if (defaultTargetPlatform == TargetPlatform.iOS) {
-      final savedPath = await FilePicker.saveFile(
+      final savedUri = await FilePicker.saveFile(
         fileName: fileName.split('/').last,
         bytes: bytes,
         type: FileType.any,
       );
+      final savedPath = savedUri?.toFilePath();
       final ok = savedPath != null && savedPath.isNotEmpty;
       return ChatAttachmentSaveResult(
         ok: ok,

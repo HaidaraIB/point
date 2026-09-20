@@ -17,6 +17,7 @@ import 'package:point/View/Os/os_form_dialog.dart';
 import 'package:point/View/Os/os_list_filters.dart';
 import 'package:point/View/Os/os_page_header.dart';
 import 'package:point/View/Shared/ResponsiveScaffold.dart';
+import 'package:point/View/Shared/responsive.dart';
 
 enum _CrmViewMode { kanban, list, profile }
 
@@ -115,6 +116,8 @@ class _OsCrmPageState extends State<OsCrmPage> {
     final boardMode = _viewMode == _CrmViewMode.profile
         ? _previousViewMode
         : _viewMode;
+    final mobile = Responsive.isMobile(context);
+    final inProfile = _viewMode == _CrmViewMode.profile;
 
     return ResponsiveScaffold(
       selectedTab: 14,
@@ -126,29 +129,30 @@ class _OsCrmPageState extends State<OsCrmPage> {
             title: AppLocaleKeys.osCrmTitle.tr,
             subtitle: AppLocaleKeys.osCrmSubtitle.tr,
             currentRoute: '/os/crm',
-            actions: [
-              if (_viewMode != _CrmViewMode.profile)
-                OsCrmViewToggle(
-                  isKanban: boardMode == _CrmViewMode.kanban,
-                  onKanban: () => _setViewMode(_CrmViewMode.kanban),
-                  onList: () => _setViewMode(_CrmViewMode.list),
-                ),
-              const SizedBox(width: 8),
-              FilledButton.icon(
-                onPressed: () => showOsCrmClientFormDialog(context),
-                style: OsButtonStyles.primaryCompact(),
-                icon: const Icon(Icons.add, size: 18),
-                label: Text(AppLocaleKeys.osCrmAdd.tr),
-              ),
-            ],
+            actions: inProfile
+                ? null
+                : [
+                    OsCrmViewToggle(
+                      isKanban: boardMode == _CrmViewMode.kanban,
+                      onKanban: () => _setViewMode(_CrmViewMode.kanban),
+                      onList: () => _setViewMode(_CrmViewMode.list),
+                    ),
+                    FilledButton.icon(
+                      onPressed: () => showOsCrmClientFormDialog(context),
+                      style: OsButtonStyles.primaryCompact(),
+                      icon: const Icon(Icons.add, size: 18),
+                      label: Text(AppLocaleKeys.osCrmAdd.tr),
+                    ),
+                  ],
           ),
-          if (_viewMode != _CrmViewMode.profile)
+          if (!inProfile)
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+              padding: EdgeInsets.fromLTRB(mobile ? 12 : 16, 0, mobile ? 12 : 16, 8),
               child: Obx(() {
                 final total = crm.clients.length;
                 final filtered = crm.filteredClients(_search.text).length;
                 return OsListFilterBar(
+                  dense: mobile,
                   search: OsSearchField(
                     controller: _search,
                     hint: AppLocaleKeys.osCrmSearch.tr,

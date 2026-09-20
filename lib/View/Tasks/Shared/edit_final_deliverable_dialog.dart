@@ -102,16 +102,6 @@ class _EditFinalDeliverableDialogState extends State<_EditFinalDeliverableDialog
     if (files.isEmpty) return;
     for (final f in files) {
       final bytes = f.bytes;
-      if (bytes == null) {
-        FunHelper.showSnackbar(
-          'error'.tr,
-          'tasks.final_deliverable_file_read_error'.trParams({'name': f.name}),
-          snackPosition: SnackPosition.TOP,
-          backgroundColor: Colors.orange.shade800,
-          colorText: Colors.white,
-        );
-        continue;
-      }
       final slot = _urls.length;
       final downloadName = finalDeliverableDownloadDisplayName(
         taskTitle: _latestTask().title,

@@ -581,7 +581,7 @@ Future<void> showAddEmployeeDialog(BuildContext context, {ClientModel? model}) a
                                           ) {
                                             if (v.isNotEmpty) {
                                               controller.uploadFiles(
-                                                filePathOrBytes: v.first.bytes!,
+                                                filePathOrBytes: v.first.bytes,
                                                 fileName: v.first.name,
                                               );
                                             }

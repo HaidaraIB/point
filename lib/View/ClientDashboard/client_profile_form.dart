@@ -133,7 +133,7 @@ class _ClientProfileFormState extends State<ClientProfileForm> {
                           final files = await uploadController.pickoneImage();
                           if (files.isNotEmpty) {
                             await uploadController.uploadFiles(
-                              filePathOrBytes: files.first.bytes!,
+                              filePathOrBytes: files.first.bytes,
                               fileName: files.first.name,
                             );
                             if (mounted) setState(() {});

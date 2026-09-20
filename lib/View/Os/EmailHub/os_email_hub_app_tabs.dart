@@ -7,6 +7,7 @@ import 'package:point/Services/email/app_notification_email_samples.dart';
 import 'package:point/Services/email/email_html_builders.dart';
 import 'package:point/Utils/app_theme_extension.dart';
 import 'package:point/View/Os/EmailHub/html_email_preview.dart';
+import 'package:point/View/Shared/responsive.dart';
 import 'package:point/View/Os/os_button_styles.dart';
 
 /// Preview-only tab for app notification emails in a category.
@@ -132,9 +133,10 @@ class _OsEmailHubNotificationCategoryTabState
           onChanged: (locale) => setState(() => _locale = locale),
         ),
       ],
-      preview: HtmlEmailPreview(
+      preview: osEmailHubHtmlPreviewWidget(
+        context,
+        html,
         key: ValueKey('${widget.categoryKey}-$selectedType-$_locale'),
-        html: html,
       ),
     );
   }
@@ -189,9 +191,10 @@ class _OsEmailHubChatDigestTabState extends State<OsEmailHubChatDigestTab> {
           onChanged: (locale) => setState(() => _locale = locale),
         ),
       ],
-      preview: HtmlEmailPreview(
+      preview: osEmailHubHtmlPreviewWidget(
+        context,
+        html,
         key: ValueKey('chat-digest-$_locale'),
-        html: html,
       ),
     );
   }
@@ -229,9 +232,10 @@ class _OsEmailHubBroadcastTabState extends State<OsEmailHubBroadcastTab> {
           onChanged: (locale) => setState(() => _locale = locale),
         ),
       ],
-      preview: HtmlEmailPreview(
+      preview: osEmailHubHtmlPreviewWidget(
+        context,
+        html,
         key: ValueKey('broadcast-$_locale'),
-        html: html,
       ),
     );
   }
@@ -256,8 +260,11 @@ class OsEmailHubPreviewPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = context.appTheme;
+    final compact = Responsive.isMobile(context);
+    final pagePad = compact ? 12.0 : 16.0;
+    final cardPad = compact ? 14.0 : 18.0;
     final formCard = Container(
-      padding: const EdgeInsets.all(18),
+      padding: EdgeInsets.all(cardPad),
       decoration: BoxDecoration(
         color: theme.cardSurface,
         borderRadius: BorderRadius.circular(14),
@@ -314,9 +321,10 @@ class OsEmailHubPreviewPanel extends StatelessWidget {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final wide = constraints.maxWidth >= 960;
+        final wide = !compact && constraints.maxWidth >= 960;
         return ListView(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+          padding: EdgeInsets.fromLTRB(pagePad, pagePad, pagePad, 24),
+          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
           children: [
             if (wide)
               Row(
@@ -329,7 +337,7 @@ class OsEmailHubPreviewPanel extends StatelessWidget {
               )
             else ...[
               formCard,
-              const SizedBox(height: 16),
+              SizedBox(height: compact ? 12 : 16),
               preview,
             ],
           ],

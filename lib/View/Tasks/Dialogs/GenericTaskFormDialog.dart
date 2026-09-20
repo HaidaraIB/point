@@ -414,7 +414,7 @@ class _GenericTaskFormDialogState extends State<GenericTaskFormDialog> {
                       final files = await controller.pickMultiFiles();
                       for (var file in files) {
                         controller.uploadFiles(
-                          filePathOrBytes: file.bytes!,
+                          filePathOrBytes: file.bytes,
                           fileName: file.name,
                         );
                       }

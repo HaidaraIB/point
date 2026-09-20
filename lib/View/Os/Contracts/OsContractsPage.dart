@@ -14,8 +14,10 @@ import 'package:point/View/Os/Contracts/os_legal_contracts_templates_tab.dart';
 import 'package:point/View/Os/os_button_styles.dart';
 import 'package:point/View/Os/os_finance_format.dart';
 import 'package:point/View/Os/os_kpi_card.dart';
+import 'package:point/View/Os/Contracts/Mobile/OsContractsMobileScreen.dart';
 import 'package:point/View/Os/os_page_header.dart';
 import 'package:point/View/Shared/ResponsiveScaffold.dart';
+import 'package:point/View/Shared/responsive.dart';
 
 class OsContractsPage extends StatefulWidget {
   const OsContractsPage({super.key});
@@ -46,6 +48,10 @@ class _OsContractsPageState extends State<OsContractsPage>
     final emp = Get.find<HomeController>().effectiveEmployee;
     if (!OsPermissions.canAccessModule(emp, OsModuleIds.contracts)) {
       return Scaffold(body: Center(child: Text('errors.forbidden'.tr)));
+    }
+
+    if (Responsive.isMobile(context)) {
+      return OsContractsMobileScreen(tabs: _tabs);
     }
 
     final theme = context.appTheme;

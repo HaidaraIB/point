@@ -19,7 +19,9 @@ import 'package:point/View/Os/os_button_styles.dart';
 import 'package:point/View/Os/os_finance_format.dart';
 import 'package:point/View/Os/os_page_header.dart';
 import 'package:point/View/Os/os_snackbar.dart';
+import 'package:point/View/Os/Expenses/Mobile/OsExpensesMobileScreen.dart';
 import 'package:point/View/Shared/ResponsiveScaffold.dart';
+import 'package:point/View/Shared/responsive.dart';
 import 'package:point/View/Shared/app_data_table.dart';
 import 'package:point/View/Shared/safe_network_image.dart';
 
@@ -195,6 +197,46 @@ class _OsExpensesPageState extends State<OsExpensesPage> {
             ? 0
             : ((withReceipt / all.length) * 100).round();
 
+        if (Responsive.isMobile(context)) {
+          return OsExpensesMobileScreen(
+            all: all,
+            list: list,
+            today: today,
+            todayTotal: todayTotal,
+            weekTotal: weekTotal,
+            monthTotal: monthTotal,
+            withReceipt: withReceipt,
+            receiptPct: pct,
+            currency: currency,
+            money: _money,
+            search: _search,
+            category: _category,
+            datePreset: _datePreset,
+            branch: _branch,
+            withReceiptOnly: _withReceiptOnly,
+            finance: finance,
+            categoryLabel: _categoryLabel,
+            paidByLabel: _paidByLabel,
+            onFiltersChanged: () => setState(() {}),
+            onCategoryChanged: (v) => setState(() => _category = v),
+            onDatePresetChanged: (v) => setState(() => _datePreset = v),
+            onBranchChanged: (v) => setState(() => _branch = v),
+            onReceiptOnlyChanged: (v) =>
+                setState(() => _withReceiptOnly = v),
+            onAdd: () => showOsExpenseFormDialog(context),
+            onPrint: list.isEmpty
+                ? () {}
+                : () => printOsExpensesSheet(
+                      expenses: list,
+                      categoryLabel: _categoryLabel,
+                      amountLabel: (e) => OsFinanceFormat.money(e.amount),
+                    ),
+            onEdit: (e) => showOsExpenseFormDialog(context, existing: e),
+            onDelete: (e) => _confirmDelete(finance, e),
+            onReceipt: _viewReceipt,
+          );
+        }
+
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -331,7 +373,7 @@ class _OsExpensesPageState extends State<OsExpensesPage> {
                               ? 2
                               : 1;
                       final cards = [
-                        _KpiCard(
+                        OsExpensesKpiCard(
                           label: AppLocaleKeys.osExpensesKpiToday.tr,
                           value: _money.format(todayTotal),
                           unit: currency,
@@ -341,7 +383,7 @@ class _OsExpensesPageState extends State<OsExpensesPage> {
                           iconBg: const Color(0x33F43F5E),
                           iconColor: const Color(0xFFF43F5E),
                         ),
-                        _KpiCard(
+                        OsExpensesKpiCard(
                           label: AppLocaleKeys.osExpensesKpiWeek.tr,
                           value: _money.format(weekTotal),
                           unit: currency,
@@ -351,7 +393,7 @@ class _OsExpensesPageState extends State<OsExpensesPage> {
                           iconBg: const Color(0x33F59E0B),
                           iconColor: const Color(0xFFF59E0B),
                         ),
-                        _KpiCard(
+                        OsExpensesKpiCard(
                           label: AppLocaleKeys.osExpensesKpiMonth.tr,
                           value: _money.format(monthTotal),
                           unit: currency,
@@ -362,7 +404,7 @@ class _OsExpensesPageState extends State<OsExpensesPage> {
                           iconColor: theme.accentText,
                           valueColor: theme.accentText,
                         ),
-                        _KpiCard(
+                        OsExpensesKpiCard(
                           label: AppLocaleKeys.osExpensesKpiReceiptCoverage.tr,
                           value: AppLocaleKeys.osExpensesKpiReceiptsOf.trParams({
                             'count': '$withReceipt',
@@ -431,7 +473,7 @@ class _OsExpensesPageState extends State<OsExpensesPage> {
                                       AppLocaleKeys.osExpensesFilterMonth
                                     ),
                                   ]) ...[
-                                    _DatePill(
+                                    OsExpensesDatePill(
                                       label: entry.$2.tr,
                                       selected: _datePreset == entry.$1,
                                       onTap: () => setState(
@@ -458,7 +500,7 @@ class _OsExpensesPageState extends State<OsExpensesPage> {
                                         ),
                                       ),
                                       const SizedBox(width: 6),
-                                      _CompactFilterMenu<String>(
+                                      OsExpensesCompactFilterMenu<String>(
                                         value: _category,
                                         labelBuilder: (v) => v == 'ALL'
                                             ? AppLocaleKeys
@@ -490,7 +532,7 @@ class _OsExpensesPageState extends State<OsExpensesPage> {
                                         ),
                                       ),
                                       const SizedBox(width: 6),
-                                      _CompactFilterMenu<String>(
+                                      OsExpensesCompactFilterMenu<String>(
                                         value: _branch,
                                         labelBuilder: (v) {
                                           if (v == 'ALL') {
@@ -775,8 +817,8 @@ class _OsExpensesPageState extends State<OsExpensesPage> {
   }
 }
 
-class _CompactFilterMenu<T> extends StatelessWidget {
-  const _CompactFilterMenu({
+class OsExpensesCompactFilterMenu<T> extends StatelessWidget {
+  const OsExpensesCompactFilterMenu({
     required this.value,
     required this.entries,
     required this.labelBuilder,
@@ -821,8 +863,8 @@ class _CompactFilterMenu<T> extends StatelessWidget {
   }
 }
 
-class _DatePill extends StatelessWidget {
-  const _DatePill({
+class OsExpensesDatePill extends StatelessWidget {
+  const OsExpensesDatePill({
     required this.label,
     required this.selected,
     required this.onTap,
@@ -896,8 +938,8 @@ class _ViewToggleBtn extends StatelessWidget {
   }
 }
 
-class _KpiCard extends StatelessWidget {
-  const _KpiCard({
+class OsExpensesKpiCard extends StatelessWidget {
+  const OsExpensesKpiCard({
     required this.label,
     required this.value,
     required this.unit,
@@ -908,6 +950,7 @@ class _KpiCard extends StatelessWidget {
     required this.iconColor,
     this.valueColor,
     this.hintColor,
+    this.dense = false,
   });
 
   final String label;
@@ -921,47 +964,62 @@ class _KpiCard extends StatelessWidget {
   final Color? valueColor;
   final Color? hintColor;
 
+  /// Tighter layout for the mobile horizontal KPI strip.
+  final bool dense;
+
   @override
   Widget build(BuildContext context) {
     final theme = context.appTheme;
+    final pad = dense ? 10.0 : 16.0;
+    final valueSize = dense ? 17.0 : 22.0;
+    final labelSize = dense ? 11.0 : 12.0;
+    final hintSize = dense ? 10.0 : 11.0;
+    final iconPad = dense ? 6.0 : 8.0;
+    final iconSize = dense ? 16.0 : 18.0;
+
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.all(pad),
       decoration: BoxDecoration(
         color: theme.cardSurface,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(dense ? 14 : 16),
         border: Border.all(color: theme.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: dense ? MainAxisSize.max : MainAxisSize.max,
         children: [
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(
                 child: Text(
                   label,
+                  maxLines: dense ? 2 : 3,
+                  overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                    fontSize: 12,
+                    fontSize: labelSize,
+                    height: dense ? 1.25 : null,
                     fontWeight: FontWeight.w600,
                     color: theme.secondaryText,
                   ),
                 ),
               ),
               Container(
-                padding: const EdgeInsets.all(8),
+                padding: EdgeInsets.all(iconPad),
                 decoration: BoxDecoration(
                   color: iconBg,
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(dense ? 10 : 12),
                 ),
-                child: Icon(icon, size: 18, color: iconColor),
+                child: Icon(icon, size: iconSize, color: iconColor),
               ),
             ],
           ),
-          const Spacer(),
+          if (dense) const SizedBox(height: 6) else const Spacer(),
           Text.rich(
             TextSpan(
               text: value,
               style: TextStyle(
-                fontSize: 22,
+                fontSize: valueSize,
                 fontWeight: FontWeight.w900,
                 color: valueColor ?? theme.primaryText,
               ),
@@ -971,24 +1029,32 @@ class _KpiCard extends StatelessWidget {
                       TextSpan(
                         text: ' $unit',
                         style: TextStyle(
-                          fontSize: 11,
+                          fontSize: dense ? 10 : 11,
                           fontWeight: FontWeight.w400,
                           color: theme.mutedText,
                         ),
                       ),
                     ],
             ),
+            maxLines: dense ? 1 : null,
+            overflow: dense ? TextOverflow.ellipsis : null,
           ),
-          const SizedBox(height: 4),
+          SizedBox(height: dense ? 2 : 4),
           Row(
             children: [
-              Icon(hintIcon, size: 12, color: hintColor ?? theme.mutedText),
+              Icon(
+                hintIcon,
+                size: dense ? 11 : 12,
+                color: hintColor ?? theme.mutedText,
+              ),
               const SizedBox(width: 4),
               Expanded(
                 child: Text(
                   hint,
+                  maxLines: dense ? 1 : 2,
+                  overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                    fontSize: 11,
+                    fontSize: hintSize,
                     fontWeight: hintColor != null ? FontWeight.w600 : null,
                     color: hintColor ?? theme.mutedText,
                   ),

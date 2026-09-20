@@ -57,10 +57,10 @@ class OsPayrollMobileScreen extends StatelessWidget {
             child: TabBarView(
               controller: tabs,
               children: const [
-                OsPayrollRunTab(),
-                OsPayslipsTab(),
-                OsContractsTab(),
-                OsAdvancesTab(),
+                OsPayrollRunTab(compact: true),
+                OsPayslipsTab(compact: true),
+                OsContractsTab(compact: true),
+                OsAdvancesTab(compact: true),
               ],
             ),
           ),

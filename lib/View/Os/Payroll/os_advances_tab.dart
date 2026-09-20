@@ -18,7 +18,9 @@ import 'package:point/View/Os/os_list_filters.dart';
 import 'package:point/View/Os/os_snackbar.dart';
 
 class OsAdvancesTab extends StatefulWidget {
-  const OsAdvancesTab({super.key});
+  const OsAdvancesTab({super.key, this.compact = false});
+
+  final bool compact;
 
   @override
   State<OsAdvancesTab> createState() => _OsAdvancesTabState();
@@ -139,6 +141,85 @@ class _OsAdvancesTabState extends State<OsAdvancesTab> {
     return Obx(() {
       final all = payroll.advances.toList();
       final items = _filtered(all);
+
+      if (widget.compact) {
+        return CustomScrollView(
+          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+          slivers: [
+            SliverToBoxAdapter(
+              child: OsListFilterBar(
+                dense: true,
+                stacked: true,
+                chips: OsFilterChips(
+                  value: _status,
+                  onChanged: (v) => setState(() => _status = v),
+                  options: [
+                    OsFilterChipOption(
+                      value: 'ALL',
+                      label: AppLocaleKeys.osCommonFilterAll.tr,
+                    ),
+                    OsFilterChipOption(
+                      value: OsEmployeeAdvanceStatus.active,
+                      label: AppLocaleKeys.osAdvancesStatusActive.tr,
+                    ),
+                    OsFilterChipOption(
+                      value: OsEmployeeAdvanceStatus.settled,
+                      label: AppLocaleKeys.osAdvancesStatusSettled.tr,
+                    ),
+                  ],
+                ),
+                search: OsSearchField(
+                  controller: _search,
+                  hint: AppLocaleKeys.osAdvancesSearch.tr,
+                  width: double.infinity,
+                  onChanged: (_) => setState(() {}),
+                ),
+                actions: [
+                  FilledButton.icon(
+                    style: OsButtonStyles.primaryCompact(),
+                    onPressed: () => showOsAdvanceFormDialog(context),
+                    icon: const Icon(Icons.add, size: 18),
+                    label: Text(AppLocaleKeys.osAdvancesAdd.tr),
+                  ),
+                ],
+                matchCount: all.isEmpty ? null : items.length,
+              ),
+            ),
+            if (items.isEmpty)
+              SliverFillRemaining(
+                hasScrollBody: false,
+                child: OsEmptyState(
+                  message: all.isEmpty
+                      ? AppLocaleKeys.osAdvancesEmpty.tr
+                      : AppLocaleKeys.osAdvancesEmptyFilter.tr,
+                ),
+              )
+            else
+              SliverPadding(
+                padding: EdgeInsets.fromLTRB(
+                  12,
+                  4,
+                  12,
+                  24 + MediaQuery.paddingOf(context).bottom,
+                ),
+                sliver: SliverList.separated(
+                  itemCount: items.length,
+                  separatorBuilder: (_, __) => const SizedBox(height: 10),
+                  itemBuilder: (context, index) {
+                    final a = items[index];
+                    return _AdvanceCard(
+                      advance: a,
+                      onRepay: () => _repay(context, a),
+                      onWriteOff: () => _writeOff(context, payroll, a),
+                      onDelete: () => _delete(context, payroll, a),
+                    );
+                  },
+                ),
+              ),
+          ],
+        );
+      }
+
       return Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [

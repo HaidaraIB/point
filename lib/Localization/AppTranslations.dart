@@ -1401,6 +1401,10 @@ class AppTranslations extends Translations {
         'os.settings.print_contact.saved': 'Print contact saved',
         'os.settings.print_contact.preview':
             'Invoice, quotation, contract, and voucher header',
+        'os.settings.quotation_template.section':
+            'Quote header & template',
+        'os.settings.quotation_template.description':
+            'Customize the title and footer note shown on digital quotation previews and shared links. Changes apply automatically.',
         'os.services.add': 'Add service',
         'os.services.add_title': 'Add a new creative service',
         'os.services.edit_title': 'Edit selected service',
@@ -4234,6 +4238,10 @@ class AppTranslations extends Translations {
         "os.settings.print_contact.saved": "تم حفظ بيانات الطباعة",
         "os.settings.print_contact.preview":
             "ترويسة الفاتورة والعرض والعقد والسند",
+        "os.settings.quotation_template.section":
+            "ترويسة وقالب العروض الرقمية",
+        "os.settings.quotation_template.description":
+            "خصّص عنوان الترويسة وملاحظة التذييل في معاينة العروض والروابط المشاركة. يُحفظ التعديل تلقائياً.",
         "os.back_to_hub": "العودة إلى نظام نقطة",
         "os.nav.hub": "لوحة النظام",
         "os.crm.title": "إدارة العملاء والمبيعات",

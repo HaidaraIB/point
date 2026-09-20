@@ -9,6 +9,7 @@ class OsKpiCard extends StatelessWidget {
     required this.value,
     required this.color,
     this.subtitle,
+    this.dense = false,
   });
 
   final String title;
@@ -16,14 +17,22 @@ class OsKpiCard extends StatelessWidget {
   final Color color;
   final String? subtitle;
 
+  /// Tighter layout for mobile horizontal KPI strips.
+  final bool dense;
+
   @override
   Widget build(BuildContext context) {
     final theme = context.appTheme;
+    final pad = dense ? 10.0 : 14.0;
+    final titleSize = dense ? 10.0 : 11.0;
+    final valueSize = dense ? 17.0 : 20.0;
+    final subtitleSize = dense ? 9.0 : 10.0;
+
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: EdgeInsets.all(pad),
       decoration: BoxDecoration(
         color: theme.cardSurface,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(dense ? 14 : 16),
         border: Border.all(color: theme.border),
       ),
       child: Column(
@@ -32,32 +41,33 @@ class OsKpiCard extends StatelessWidget {
         children: [
           Text(
             title,
-            maxLines: 2,
+            maxLines: dense ? 2 : 2,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
-              fontSize: 11,
+              fontSize: titleSize,
+              height: dense ? 1.2 : null,
               fontWeight: FontWeight.w700,
               color: theme.mutedText,
             ),
           ),
-          const SizedBox(height: 4),
+          SizedBox(height: dense ? 3 : 4),
           Text(
             value,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
-              fontSize: 20,
+              fontSize: valueSize,
               fontWeight: FontWeight.w900,
               color: color,
             ),
           ),
           if (subtitle != null && subtitle!.isNotEmpty) ...[
-            const SizedBox(height: 2),
+            SizedBox(height: dense ? 1 : 2),
             Text(
               subtitle!,
-              maxLines: 2,
+              maxLines: dense ? 1 : 2,
               overflow: TextOverflow.ellipsis,
-              style: TextStyle(fontSize: 10, color: theme.mutedText),
+              style: TextStyle(fontSize: subtitleSize, color: theme.mutedText),
             ),
           ],
         ],

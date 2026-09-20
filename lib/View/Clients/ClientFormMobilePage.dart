@@ -261,7 +261,7 @@ class _ClientFormMobilePageState extends State<ClientFormMobilePage> {
                         final v = await controller.pickoneImage();
                         if (v.isNotEmpty) {
                           controller.uploadFiles(
-                            filePathOrBytes: v.first.bytes!,
+                            filePathOrBytes: v.first.bytes,
                             fileName: v.first.name,
                           );
                         }

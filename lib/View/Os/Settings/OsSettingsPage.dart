@@ -17,6 +17,7 @@ import 'package:point/View/Os/os_form_dialog.dart';
 import 'package:point/View/Os/os_page_header.dart';
 import 'package:point/View/Os/os_email_settings_panel.dart';
 import 'package:point/View/Os/os_print_contact_settings_panel.dart';
+import 'package:point/View/Os/os_quote_template_settings_panel.dart';
 import 'package:point/View/Os/os_snackbar.dart';
 import 'package:point/View/Os/os_paytabs_settings_panel.dart';
 import 'package:point/View/Os/os_stamp_settings_panel.dart';
@@ -293,6 +294,12 @@ class _OsSettingsPageState extends State<OsSettingsPage> {
                         icon: Icons.contact_phone_outlined,
                         title: AppLocaleKeys.osSettingsPrintContactSection.tr,
                         child: const OsPrintContactSettingsPanel(),
+                      ),
+                      const SizedBox(height: 16),
+                      _SettingsCard(
+                        icon: Icons.tune,
+                        title: AppLocaleKeys.osSettingsQuotationTemplateSection.tr,
+                        child: const OsQuoteTemplateSettingsPanel(),
                       ),
                       const SizedBox(height: 16),
                       _SettingsCard(
