@@ -151,7 +151,6 @@ String buildOsQuotationPrintHtml(OsQuotationModel quote) {
 <style>
 $osPrintA4Css
 ${OsBrandPrint.brandCss()}
-@page { size: A4 portrait; margin: 10mm 12mm; }
 .quote-print.sheet { min-height: 277mm; }
 .quote-print .brand-header {
   margin-bottom: 12px;

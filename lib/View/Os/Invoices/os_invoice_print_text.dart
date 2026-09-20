@@ -302,7 +302,6 @@ ${OsLineItemPrintFormat.itemMarketingCss()}
 .invoice-footer-top {
   margin-bottom: 8px;
 }
-@page { size: A4 portrait; margin: 10mm 12mm; }
 </style>
 </head>
 <body>

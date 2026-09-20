@@ -131,10 +131,7 @@ $osPrintA4Css
 }
 body { padding: 0; background: #fff; }
 .sheet {
-  width: 186mm;
-  min-height: 273mm;
-  margin: 0 auto;
-  padding: 12mm 10mm;
+  min-height: 277mm;
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
@@ -230,18 +227,11 @@ body { padding: 0; background: #fff; }
 .stamp-cert { font-size: 9px; font-weight: 700; }
 .stamp-text { font-size: 12px; font-weight: 900; }
 .stamp-ref { font-size: 9px; }
-@media print {
-  body { padding: 0 !important; }
-  .sheet {
-    width: 100%;
-    min-height: auto;
-    padding: 0;
-  }
-}
 </style>
 </head>
 <body>
-<div class="a4 sheet no-split">
+<div class="a4">
+<div class="sheet">
   <div class="header">
     <div>
       <p class="agency">${escapeHtml(AppLocaleKeys.osPayslipsAgency.tr)}</p>
@@ -304,6 +294,7 @@ body { padding: 0; background: #fff; }
     <span class="badge">${escapeHtml(statusLabel)}</span>
   </div>
   <div class="stamp-wrap">$stampBlock</div>
+</div>
 </div>
 </body>
 </html>

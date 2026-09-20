@@ -7,7 +7,7 @@ import 'package:point/Localization/AppLocaleKeys.dart';
 /// Core CSS injected into every Os print HTML document.
 const osPrintA4Css = '''
 @import url('https://fonts.googleapis.com/css2?family=Almarai:wght@300;400;700;800&display=swap');
-@page { size: A4 portrait; margin: 12mm; }
+@page { size: A4 portrait; margin: 10mm 12mm; }
 html, body {
   margin: 0;
   padding: 0;

@@ -49,10 +49,6 @@ String buildOsLegalContractPlainText(
     ..writeln(AppLocaleKeys.osPrintContractTitle.tr)
     ..writeln('${AppLocaleKeys.osLegalContractNumber.tr}: ${contract.contractNumber}')
     ..writeln('${AppLocaleKeys.osLegalContractFieldTitle.tr}: ${contract.title}')
-    ..writeln(
-      '${AppLocaleKeys.osLegalContractStatus.tr}: '
-      '${osLegalContractStatusLabel(contract.status)}',
-    )
     ..writeln('---')
     ..writeln('${AppLocaleKeys.osLegalContractPreviewPartyOne.tr}:')
     ..writeln(_partyOneName(contract, settings))
@@ -147,7 +143,6 @@ String buildOsLegalContractPrintHtml(
   final value = escapeHtml(
     osLegalContractMoneyLabel(contract.totalValue, contract.currency),
   );
-  final status = escapeHtml(osLegalContractStatusLabel(contract.status));
   final enabled = contract.enabledClauses;
 
   final paymentRows = contract.paymentTerms
@@ -244,7 +239,6 @@ ${OsBrandPrint.watermarkHtml()}
   <h1>${escapeHtml(AppLocaleKeys.osPrintContractTitle.tr)}</h1>
   <p class="contract-title">${escapeHtml(contract.title)}</p>
   <p class="contract-ref">${escapeHtml(AppLocaleKeys.osLegalContractNumber.tr)}: <strong>${escapeHtml(contract.contractNumber)}</strong></p>
-  <span class="status-pill">$status</span>
 </div>
 <div class="parties no-split">
   <div class="party">
@@ -301,14 +295,6 @@ ${OsBrandPrint.brandCss()}
 .contract-head h1 { font-size: 18px; margin: 0 0 6px; color: var(--navy); }
 .contract-title { font-size: 14px; font-weight: 800; margin: 0 0 4px; }
 .contract-ref { font-size: 11px; color: var(--muted); margin: 0 0 8px; }
-.status-pill {
-  display: inline-block;
-  padding: 4px 12px;
-  border-radius: 999px;
-  background: var(--lavender);
-  font-size: 10px;
-  font-weight: 800;
-}
 .parties {
   display: grid;
   grid-template-columns: 1fr 1fr;

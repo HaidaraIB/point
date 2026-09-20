@@ -86,16 +86,16 @@ body { padding: 0; }
 .logo { font-size: 18px; font-weight: 800; color: #4338ca; margin: 0; }
 .sub { margin: 4px 0 0; font-size: 11px; color: #64748b; }
 .meta { text-align: left; font-size: 11px; color: #64748b; line-height: 1.6; }
-table { margin-top: 8px; font-size: 11px; }
+table { margin-top: 8px; font-size: 10px; }
 th {
   background: #f1f5f9;
-  padding: 8px 6px;
+  padding: 6px 4px;
   border: 1px solid #cbd5e1;
   text-align: right;
   font-weight: 700;
 }
 td {
-  padding: 6px;
+  padding: 4px 3px;
   border: 1px solid #cbd5e1;
   text-align: right;
   vertical-align: top;
