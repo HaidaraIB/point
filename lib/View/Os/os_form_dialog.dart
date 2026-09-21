@@ -351,6 +351,7 @@ Widget osTypedTextField({
   FocusNode? focusNode,
   TextAlign textAlign = TextAlign.start,
   bool autofocus = false,
+  bool forceLtrInput = false,
 }) =>
     typedDirectionTextField(
       controller: controller,
@@ -372,6 +373,49 @@ Widget osTypedTextField({
       focusNode: focusNode,
       textAlign: textAlign,
       autofocus: autofocus,
+      forceLtrInput: forceLtrInput,
+    );
+
+/// Phone [TextField] — always LTR paragraph direction.
+Widget osPhoneTextField({
+  required TextEditingController controller,
+  required InputDecoration decoration,
+  ValueChanged<String>? onChanged,
+  int? maxLines = 1,
+  int? minLines,
+  bool readOnly = false,
+  VoidCallback? onTap,
+  TextInputAction? textInputAction,
+  ValueChanged<String>? onSubmitted,
+  List<TextInputFormatter>? inputFormatters,
+  TextStyle? style,
+  TextAlignVertical? textAlignVertical,
+  String? hintText,
+  bool enabled = true,
+  FocusNode? focusNode,
+  TextAlign textAlign = TextAlign.start,
+  bool autofocus = false,
+}) =>
+    osTypedTextField(
+      controller: controller,
+      decoration: decoration,
+      onChanged: onChanged,
+      keyboardType: TextInputType.phone,
+      maxLines: maxLines,
+      minLines: minLines,
+      readOnly: readOnly,
+      onTap: onTap,
+      textInputAction: textInputAction,
+      onSubmitted: onSubmitted,
+      inputFormatters: inputFormatters,
+      style: style,
+      textAlignVertical: textAlignVertical,
+      hintText: hintText,
+      enabled: enabled,
+      focusNode: focusNode,
+      textAlign: textAlign,
+      autofocus: autofocus,
+      forceLtrInput: true,
     );
 
 /// [TextFormField] with paragraph direction from typed content, not UI locale.
@@ -396,6 +440,7 @@ Widget osTypedTextFormField({
   FocusNode? focusNode,
   TextAlign textAlign = TextAlign.start,
   int? maxLength,
+  bool forceLtrInput = false,
 }) =>
     typedDirectionTextFormField(
       controller: controller,
@@ -418,6 +463,51 @@ Widget osTypedTextFormField({
       focusNode: focusNode,
       textAlign: textAlign,
       maxLength: maxLength,
+      forceLtrInput: forceLtrInput,
+    );
+
+/// Phone [TextFormField] — always LTR paragraph direction.
+Widget osPhoneTextFormField({
+  required TextEditingController controller,
+  required InputDecoration decoration,
+  ValueChanged<String>? onChanged,
+  String? Function(String?)? validator,
+  int? maxLines = 1,
+  int? minLines,
+  bool readOnly = false,
+  VoidCallback? onTap,
+  TextInputAction? textInputAction,
+  ValueChanged<String>? onFieldSubmitted,
+  List<TextInputFormatter>? inputFormatters,
+  TextStyle? style,
+  TextAlignVertical? textAlignVertical,
+  String? hintText,
+  bool enabled = true,
+  FocusNode? focusNode,
+  TextAlign textAlign = TextAlign.start,
+  int? maxLength,
+}) =>
+    osTypedTextFormField(
+      controller: controller,
+      decoration: decoration,
+      onChanged: onChanged,
+      validator: validator,
+      keyboardType: TextInputType.phone,
+      maxLines: maxLines,
+      minLines: minLines,
+      readOnly: readOnly,
+      onTap: onTap,
+      textInputAction: textInputAction,
+      onFieldSubmitted: onFieldSubmitted,
+      inputFormatters: inputFormatters,
+      style: style,
+      textAlignVertical: textAlignVertical,
+      hintText: hintText,
+      enabled: enabled,
+      focusNode: focusNode,
+      textAlign: textAlign,
+      maxLength: maxLength,
+      forceLtrInput: true,
     );
 
 class OsDialogFrame extends StatelessWidget {

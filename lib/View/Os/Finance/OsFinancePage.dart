@@ -17,6 +17,7 @@ import 'package:point/View/Os/Finance/os_voucher_detail_panel.dart';
 import 'package:point/View/Os/os_button_styles.dart';
 import 'package:point/View/Os/os_finance_format.dart';
 import 'package:point/View/Os/os_form_dialog.dart';
+import 'package:point/View/Os/os_horizontal_scroll_view.dart';
 import 'package:point/View/Os/os_list_filters.dart';
 import 'package:point/View/Os/os_page_header.dart';
 import 'package:point/View/Os/os_snackbar.dart';
@@ -95,23 +96,26 @@ class _OsFinancePageState extends State<OsFinancePage>
           ),
           Material(
             color: theme.cardSurface,
-            child: TabBar(
-              controller: _tabs,
-              isScrollable: true,
-              tabAlignment: TabAlignment.start,
-              labelColor: theme.accentText,
-              unselectedLabelColor: theme.mutedText,
-              indicatorColor: AppColors.primary,
-              labelPadding: const EdgeInsets.symmetric(horizontal: 18),
-              labelStyle: const TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.w700,
+            child: OsTabBarScrollContainer(
+              tabBarBuilder: (scrollController) => TabBar(
+                controller: _tabs,
+                scrollController: scrollController,
+                isScrollable: true,
+                tabAlignment: TabAlignment.start,
+                labelColor: theme.accentText,
+                unselectedLabelColor: theme.mutedText,
+                indicatorColor: AppColors.primary,
+                labelPadding: const EdgeInsets.symmetric(horizontal: 18),
+                labelStyle: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                ),
+                tabs: [
+                  Tab(text: AppLocaleKeys.osFinanceOverview.tr),
+                  Tab(text: AppLocaleKeys.osFinanceAccounts.tr),
+                  Tab(text: AppLocaleKeys.osFinanceVouchers.tr),
+                ],
               ),
-              tabs: [
-                Tab(text: AppLocaleKeys.osFinanceOverview.tr),
-                Tab(text: AppLocaleKeys.osFinanceAccounts.tr),
-                Tab(text: AppLocaleKeys.osFinanceVouchers.tr),
-              ],
             ),
           ),
           Expanded(
@@ -1624,9 +1628,8 @@ class _OsFinanceVouchersTabState extends State<OsFinanceVouchersTab> {
             child: Row(
               children: [
                 Expanded(
-                  child: SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: Row(
+                  child: OsHorizontalScrollContainer(
+                    builder: (_) => Row(
                       children: [
                         for (final f in const [
                           'ALL',

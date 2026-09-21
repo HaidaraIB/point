@@ -20,6 +20,7 @@ import 'package:point/View/Os/os_print_contact_settings_panel.dart';
 import 'package:point/View/Os/os_quote_template_settings_panel.dart';
 import 'package:point/View/Os/os_snackbar.dart';
 import 'package:point/View/Os/os_paytabs_settings_panel.dart';
+import 'package:point/View/Os/os_whatsapp_settings_panel.dart';
 import 'package:point/View/Os/os_stamp_settings_panel.dart';
 import 'package:point/View/Shared/ResponsiveScaffold.dart';
 
@@ -288,6 +289,12 @@ class _OsSettingsPageState extends State<OsSettingsPage> {
                         icon: Icons.credit_card_outlined,
                         title: AppLocaleKeys.osSettingsPaytabsSection.tr,
                         child: const OsPaytabsSettingsPanel(embedded: true),
+                      ),
+                      const SizedBox(height: 16),
+                      _SettingsCard(
+                        icon: Icons.chat_outlined,
+                        title: AppLocaleKeys.osSettingsWhatsappSection.tr,
+                        child: const OsWhatsappSettingsPanel(),
                       ),
                       const SizedBox(height: 16),
                       _SettingsCard(

@@ -11,8 +11,10 @@ import 'package:point/Utils/os_module_ids.dart';
 import 'package:point/Utils/app_theme_extension.dart';
 import 'package:point/View/Os/Invoices/Mobile/OsInvoicesMobileScreen.dart';
 import 'package:point/View/Os/Invoices/os_invoice_form_dialog.dart';
+import 'package:point/View/Os/Invoices/os_invoice_pdf_download_action.dart';
 import 'package:point/View/Os/Invoices/os_invoice_preview_dialog.dart';
 import 'package:point/View/Os/Invoices/os_invoice_share.dart';
+import 'package:point/View/Os/Messaging/os_messaging_hub_navigation.dart';
 import 'package:point/View/Os/os_button_styles.dart';
 import 'package:point/View/Os/os_finance_format.dart';
 import 'package:point/View/Os/os_finance_status_widgets.dart';
@@ -57,7 +59,7 @@ class OsInvoicesPage extends StatelessWidget {
             onPreview: (inv) => showOsInvoicePreviewDialog(context, inv),
             onPaymentLink: (inv) =>
                 showOsInvoicePaymentLinkDialog(context, inv),
-            onWhatsApp: shareOsInvoiceWhatsApp,
+            onWhatsApp: openOsMessagingHubForInvoice,
             onEmail: sendOsInvoiceEmail,
             onLinkAccount: (inv) {
               if (inv.isPaid) return;
@@ -78,7 +80,7 @@ class OsInvoicesPage extends StatelessWidget {
             onPreview: (inv) => showOsInvoicePreviewDialog(context, inv),
             onPaymentLink: (inv) =>
                 showOsInvoicePaymentLinkDialog(context, inv),
-            onWhatsApp: shareOsInvoiceWhatsApp,
+            onWhatsApp: openOsMessagingHubForInvoice,
             onEmail: sendOsInvoiceEmail,
             onLinkAccount: (inv) {
               if (inv.isPaid) return;
@@ -426,7 +428,7 @@ class _InvoicesTable extends StatelessWidget {
         appDataColumn(
           context,
           AppLocaleKeys.osInvoicesActions.tr,
-          width: 320,
+          width: 360,
         ),
       ],
       rows: [
@@ -545,6 +547,7 @@ class _InvoicesTable extends StatelessWidget {
                         icon: Icons.send_outlined,
                         onPressed: () => onWhatsApp(inv),
                       ),
+                    OsInvoicePdfDownloadIconButton(invoice: inv),
                     _ActionIcon(
                       tooltip: AppLocaleKeys.osInvoicesEmail.tr,
                       icon: Icons.mail_outline,

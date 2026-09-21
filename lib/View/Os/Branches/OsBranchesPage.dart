@@ -13,6 +13,7 @@ import 'package:point/Utils/app_theme_extension.dart';
 import 'package:point/View/Os/Branches/os_branch_form_dialog.dart';
 import 'package:point/View/Os/os_button_styles.dart';
 import 'package:point/View/Os/os_list_filters.dart';
+import 'package:point/View/Os/os_horizontal_scroll_view.dart';
 import 'package:point/View/Os/os_page_header.dart';
 import 'package:point/View/Os/os_snackbar.dart';
 import 'package:point/View/Shared/ResponsiveScaffold.dart';
@@ -383,11 +384,10 @@ class _OsBranchesPageState extends State<OsBranchesPage> {
       keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
       slivers: [
         SliverToBoxAdapter(
-          child: SizedBox(
+          child: OsHorizontalScrollContainer(
             height: 96,
-            child: ListView(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.fromLTRB(12, 10, 12, 0),
+            padding: const EdgeInsets.fromLTRB(12, 10, 12, 0),
+            builder: (_) => Row(
               children: [
                 SizedBox(
                   width: 148,

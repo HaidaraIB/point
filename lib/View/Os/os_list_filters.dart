@@ -4,6 +4,7 @@ import 'package:point/Localization/AppLocaleKeys.dart';
 import 'package:point/Utils/AppColors.dart';
 import 'package:point/Utils/app_theme_extension.dart';
 import 'package:point/Utils/text_input_bidi.dart';
+import 'package:point/View/Os/os_horizontal_scroll_view.dart';
 import 'package:point/View/Shared/responsive.dart';
 
 /// Compact search field used by OS list filter bars.
@@ -243,11 +244,10 @@ class OsListFilterBar extends StatelessWidget {
             const SizedBox(height: 10),
           ],
           if (chips != null)
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
+            OsHorizontalScrollContainer(
               clipBehavior: Clip.hardEdge,
               padding: const EdgeInsets.symmetric(vertical: 4),
-              child: chips!,
+              builder: (_) => chips!,
             ),
         ],
       );
@@ -261,11 +261,10 @@ class OsListFilterBar extends StatelessWidget {
             Expanded(
               child: Align(
                 alignment: AlignmentDirectional.centerStart,
-                child: SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
+                child: OsHorizontalScrollContainer(
                   clipBehavior: Clip.none,
                   padding: const EdgeInsets.symmetric(vertical: 4),
-                  child: chips!,
+                  builder: (_) => chips!,
                 ),
               ),
             ),

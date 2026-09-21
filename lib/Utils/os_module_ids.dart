@@ -10,6 +10,7 @@ class OsModuleIds {
   static const payroll = 'payroll';
   static const contracts = 'contracts';
   static const emailHub = 'emailHub';
+  static const messaging = 'messaging';
   static const services = 'services';
   static const branches = 'branches';
 
@@ -22,6 +23,7 @@ class OsModuleIds {
     payroll,
     contracts,
     emailHub,
+    messaging,
     services,
     branches,
   ];

@@ -81,6 +81,12 @@ const osModules = <OsModule>[
     route: '/os/email-hub',
   ),
   OsModule(
+    id: OsModuleIds.messaging,
+    titleKey: AppLocaleKeys.osModuleMessaging,
+    icon: Icons.chat_outlined,
+    route: '/os/messaging',
+  ),
+  OsModule(
     id: OsModuleIds.services,
     titleKey: AppLocaleKeys.osModuleServices,
     icon: Icons.design_services_outlined,

@@ -18,6 +18,7 @@ import 'package:point/View/Os/Expenses/os_expense_print.dart';
 import 'package:point/View/Os/os_button_styles.dart';
 import 'package:point/View/Os/os_finance_format.dart';
 import 'package:point/View/Os/os_page_header.dart';
+import 'package:point/View/Os/os_horizontal_scroll_view.dart';
 import 'package:point/View/Os/os_snackbar.dart';
 import 'package:point/View/Os/Expenses/Mobile/OsExpensesMobileScreen.dart';
 import 'package:point/View/Shared/ResponsiveScaffold.dart';
@@ -243,7 +244,6 @@ class _OsExpensesPageState extends State<OsExpensesPage> {
             OsPageHeader(
               title: AppLocaleKeys.osModuleExpenses.tr,
               currentRoute: '/os/expenses',
-              showModuleNav: true,
             ),
             Expanded(
               child: Padding(
@@ -631,9 +631,8 @@ class _OsExpensesPageState extends State<OsExpensesPage> {
                                     Row(
                                       children: [
                                         Expanded(
-                                          child: SingleChildScrollView(
-                                            scrollDirection: Axis.horizontal,
-                                            child: presets,
+                                          child: OsHorizontalScrollContainer(
+                                            builder: (_) => presets,
                                           ),
                                         ),
                                         const SizedBox(width: 8),
@@ -649,9 +648,8 @@ class _OsExpensesPageState extends State<OsExpensesPage> {
                               return Row(
                                 children: [
                                   Expanded(
-                                    child: SingleChildScrollView(
-                                      scrollDirection: Axis.horizontal,
-                                      child: Row(
+                                    child: OsHorizontalScrollContainer(
+                                      builder: (_) => Row(
                                         children: [
                                           presets,
                                           const SizedBox(width: 16),

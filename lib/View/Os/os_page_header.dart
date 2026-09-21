@@ -14,8 +14,9 @@ class OsPageHeader extends StatelessWidget {
     required this.title,
     this.actions,
     this.subtitle,
-    this.showModuleNav = true,
     this.showSettingsGear = true,
+    this.showBackButton = true,
+    this.onBack,
     this.currentRoute,
   });
 
@@ -23,16 +24,23 @@ class OsPageHeader extends StatelessWidget {
   final String? subtitle;
   final List<Widget>? actions;
 
-  /// Horizontal OS module jump links under the title row.
-  final bool showModuleNav;
-
   /// Highlighted nav route; defaults to [Get.currentRoute].
   final String? currentRoute;
+
+  /// Back control to return to `/os` (hidden on the hub dashboard).
+  final bool showBackButton;
+
+  /// When set, overrides default hub back navigation.
+  final VoidCallback? onBack;
 
   /// Gear shortcut to `/os/settings` on the far side of the title row.
   final bool showSettingsGear;
 
   void _goBackToOs() {
+    if (onBack != null) {
+      onBack!();
+      return;
+    }
     if (Get.previousRoute == '/os') {
       Get.back();
       return;
@@ -113,16 +121,17 @@ class OsPageHeader extends StatelessWidget {
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        IconButton(
-                          tooltip: AppLocaleKeys.osBackToHub.tr,
-                          onPressed: _goBackToOs,
-                          icon: Icon(
-                            Icons.arrow_back,
-                            size: 26,
-                            color: theme.primaryText,
+                        if (showBackButton)
+                          IconButton(
+                            tooltip: AppLocaleKeys.osBackToHub.tr,
+                            onPressed: _goBackToOs,
+                            icon: Icon(
+                              Icons.arrow_back,
+                              size: 26,
+                              color: theme.primaryText,
+                            ),
                           ),
-                        ),
-                        const SizedBox(width: 8),
+                        if (showBackButton) const SizedBox(width: 8),
                         Expanded(child: titleBlock),
                         if (showSettingsGear) const OsSettingsGearButton(),
                       ],
@@ -136,16 +145,17 @@ class OsPageHeader extends StatelessWidget {
               : Row(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    IconButton(
-                      tooltip: AppLocaleKeys.osBackToHub.tr,
-                      onPressed: _goBackToOs,
-                      icon: Icon(
-                        Icons.arrow_back,
-                        size: 26,
-                        color: theme.primaryText,
+                    if (showBackButton)
+                      IconButton(
+                        tooltip: AppLocaleKeys.osBackToHub.tr,
+                        onPressed: _goBackToOs,
+                        icon: Icon(
+                          Icons.arrow_back,
+                          size: 26,
+                          color: theme.primaryText,
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 16),
+                    if (showBackButton) const SizedBox(width: 16),
                     Expanded(child: titleBlock),
                     if (showSettingsGear) const OsSettingsGearButton(),
                     if (actionsRow != null) ...[
@@ -155,7 +165,7 @@ class OsPageHeader extends StatelessWidget {
                   ],
                 ),
         ),
-        if (showModuleNav) OsModuleNav(currentRoute: currentRoute),
+        OsModuleNav(currentRoute: currentRoute),
       ],
     );
   }

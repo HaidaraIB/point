@@ -4,13 +4,16 @@ import 'package:point/Localization/AppLocaleKeys.dart';
 import 'package:point/Models/Os/OsInvoiceModel.dart';
 import 'package:point/Utils/AppColors.dart';
 import 'package:point/Utils/app_theme_extension.dart';
+import 'package:point/View/Os/Invoices/os_invoice_pdf_download_action.dart';
 import 'package:point/View/Os/Invoices/os_invoice_print.dart';
 import 'package:point/View/Os/Invoices/os_invoice_share.dart';
+import 'package:point/View/Os/Messaging/os_messaging_hub_navigation.dart';
 import 'package:point/View/Os/os_button_styles.dart';
 import 'package:point/View/Os/os_finance_format.dart';
 import 'package:point/View/Os/os_finance_status_widgets.dart';
 import 'package:point/View/Os/os_invoice_stamp.dart';
 import 'package:point/View/Os/os_line_items_table.dart';
+import 'package:point/View/Shared/phone_number_text.dart';
 
 Future<void> showOsInvoicePreviewDialog(
   BuildContext context,
@@ -158,12 +161,21 @@ class _OsInvoicePreviewDialog extends StatelessWidget {
                             ),
                           ),
                           const SizedBox(height: 8),
+                          OsInvoicePdfDownloadFilledButton(
+                            invoice: invoice,
+                            backgroundColor: const Color(0xFFEA0038),
+                            foregroundColor: Colors.white,
+                          ),
+                          const SizedBox(height: 8),
                           _actionBtn(
                             label: AppLocaleKeys.osInvoicesWhatsapp.tr,
                             icon: Icons.send_outlined,
                             color: const Color(0xFF059669),
                             fg: Colors.white,
-                            onTap: () => shareOsInvoiceWhatsApp(invoice),
+                            onTap: () {
+                              Navigator.of(context).pop();
+                              openOsMessagingHubForInvoice(invoice);
+                            },
                           ),
                         ],
                       ],
@@ -195,12 +207,23 @@ class _OsInvoicePreviewDialog extends StatelessWidget {
                           ),
                           const SizedBox(width: 8),
                           Expanded(
+                            child: OsInvoicePdfDownloadFilledButton(
+                              invoice: invoice,
+                              backgroundColor: const Color(0xFFEA0038),
+                              foregroundColor: Colors.white,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
                             child: _actionBtn(
                               label: AppLocaleKeys.osInvoicesWhatsapp.tr,
                               icon: Icons.send_outlined,
                               color: const Color(0xFF059669),
                               fg: Colors.white,
-                              onTap: () => shareOsInvoiceWhatsApp(invoice),
+                              onTap: () {
+                                Navigator.of(context).pop();
+                                openOsMessagingHubForInvoice(invoice);
+                              },
                             ),
                           ),
                         ],
@@ -235,6 +258,7 @@ class _OsInvoicePreviewDialog extends StatelessWidget {
               theme,
               AppLocaleKeys.osInvoicesClientPhone.tr,
               invoice.clientPhone!,
+              ltrValue: true,
             ),
           if ((invoice.clientEmail ?? '').isNotEmpty)
             _metaCell(
@@ -281,7 +305,17 @@ class _OsInvoicePreviewDialog extends StatelessWidget {
     );
   }
 
-  Widget _metaCell(AppThemeExtension theme, String label, String value) {
+  Widget _metaCell(
+    AppThemeExtension theme,
+    String label,
+    String value, {
+    bool ltrValue = false,
+  }) {
+    final valueStyle = TextStyle(
+      fontSize: 13,
+      fontWeight: FontWeight.w800,
+      color: theme.primaryText,
+    );
     return SizedBox(
       width: 140,
       child: Column(
@@ -296,14 +330,9 @@ class _OsInvoicePreviewDialog extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 4),
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w800,
-              color: theme.primaryText,
-            ),
-          ),
+          ltrValue
+              ? PhoneNumberText(value, style: valueStyle)
+              : Text(value, style: valueStyle),
         ],
       ),
     );

@@ -69,10 +69,9 @@ Future<void> showOsBranchFormDialog(
           Row(
             children: [
               Expanded(
-                child: osTypedTextField(
+                child: osPhoneTextField(
                   controller: phoneCtrl,
                   style: const TextStyle(fontSize: 16),
-                  keyboardType: TextInputType.phone,
                   decoration: osFinanceFieldDecoration(
                     AppLocaleKeys.osBranchesPhone.tr,
                     hint: '07XXXXXXXXX',

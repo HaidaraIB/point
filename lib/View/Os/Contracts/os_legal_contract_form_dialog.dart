@@ -1443,7 +1443,7 @@ class _OsLegalContractDrafterDialogState
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     _label(AppLocaleKeys.osLegalContractPartyPhone.tr),
-                    osTypedTextField(
+                    osPhoneTextField(
                       controller: _partyTwoPhoneCtrl,
                       decoration: osDialogFieldDecoration(context),
                     ),

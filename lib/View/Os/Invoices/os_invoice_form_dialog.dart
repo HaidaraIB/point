@@ -539,7 +539,7 @@ class _OsInvoiceFormDialogState extends State<_OsInvoiceFormDialog> {
                       },
                     ),
                     const SizedBox(height: 14),
-                    osTypedTextFormField(
+                    osPhoneTextFormField(
                       controller: _phoneCtrl,
                       decoration: osFinanceFieldDecoration(
                         AppLocaleKeys.osInvoicesClientPhone.tr,

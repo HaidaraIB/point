@@ -15,6 +15,7 @@ import 'package:point/View/Os/Payroll/os_contracts_tab.dart';
 import 'package:point/View/Os/Payroll/os_payroll_run_tab.dart';
 import 'package:point/View/Os/Payroll/os_payslips_tab.dart';
 import 'package:point/View/Os/os_page_header.dart';
+import 'package:point/View/Os/os_horizontal_scroll_view.dart';
 import 'package:point/View/Shared/ResponsiveScaffold.dart';
 import 'package:point/View/Shared/responsive.dart';
 
@@ -94,24 +95,27 @@ class _OsPayrollPageState extends State<OsPayrollPage>
           ),
           Material(
             color: theme.cardSurface,
-            child: TabBar(
-              controller: _tabs,
-              isScrollable: true,
-              tabAlignment: TabAlignment.start,
-              labelColor: theme.accentText,
-              unselectedLabelColor: theme.mutedText,
-              indicatorColor: AppColors.primary,
-              labelPadding: const EdgeInsets.symmetric(horizontal: 18),
-              labelStyle: const TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.w700,
+            child: OsTabBarScrollContainer(
+              tabBarBuilder: (scrollController) => TabBar(
+                controller: _tabs,
+                scrollController: scrollController,
+                isScrollable: true,
+                tabAlignment: TabAlignment.start,
+                labelColor: theme.accentText,
+                unselectedLabelColor: theme.mutedText,
+                indicatorColor: AppColors.primary,
+                labelPadding: const EdgeInsets.symmetric(horizontal: 18),
+                labelStyle: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                ),
+                tabs: [
+                  Tab(text: AppLocaleKeys.osPayrollTabRun.tr),
+                  Tab(text: AppLocaleKeys.osPayrollTabSlips.tr),
+                  Tab(text: AppLocaleKeys.osPayrollTabContracts.tr),
+                  Tab(text: AppLocaleKeys.osPayrollTabAdvances.tr),
+                ],
               ),
-              tabs: [
-                Tab(text: AppLocaleKeys.osPayrollTabRun.tr),
-                Tab(text: AppLocaleKeys.osPayrollTabSlips.tr),
-                Tab(text: AppLocaleKeys.osPayrollTabContracts.tr),
-                Tab(text: AppLocaleKeys.osPayrollTabAdvances.tr),
-              ],
             ),
           ),
           Expanded(

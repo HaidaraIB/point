@@ -8,6 +8,7 @@ import 'package:point/Utils/app_theme_extension.dart';
 import 'package:point/View/Os/os_button_styles.dart';
 import 'package:point/View/Os/os_form_dialog.dart';
 import 'package:point/View/Os/os_snackbar.dart';
+import 'package:point/View/Shared/phone_number_text.dart';
 
 /// Editable agency contact lines used on invoice / voucher print headers.
 class OsPrintContactSettingsPanel extends StatefulWidget {
@@ -226,13 +227,22 @@ class _OsPrintContactSettingsPanelState
           ),
         ),
         const SizedBox(height: 8),
-        osTypedTextField(
-          controller: controller,
-          keyboardType: keyboard,
-          onChanged: (_) => _onChanged(),
-          hintText: hint,
-          decoration: osDialogFieldDecoration(context).copyWith(hintText: hint),
-        ),
+        keyboard == TextInputType.phone
+            ? osPhoneTextField(
+                controller: controller,
+                onChanged: (_) => _onChanged(),
+                hintText: hint,
+                decoration:
+                    osDialogFieldDecoration(context).copyWith(hintText: hint),
+              )
+            : osTypedTextField(
+                controller: controller,
+                keyboardType: keyboard,
+                onChanged: (_) => _onChanged(),
+                hintText: hint,
+                decoration:
+                    osDialogFieldDecoration(context).copyWith(hintText: hint),
+              ),
       ],
     );
   }
@@ -328,27 +338,35 @@ class OsPrintContactPreview extends StatelessWidget {
       );
     }
 
-    void addLine(IconData icon, String value) {
+    void addLine(IconData icon, String value, {bool phone = false}) {
       final text = value.trim();
       if (text.isEmpty) return;
+      final style = Appfonts.text(
+        fontSize: 10,
+        fontWeight: FontWeight.w700,
+        color: _navy,
+      );
       rows.add(
         _row(
           icon,
-          Text(
-            text,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: Appfonts.text(
-              fontSize: 10,
-              fontWeight: FontWeight.w700,
-              color: _navy,
-            ),
-          ),
+          phone
+              ? PhoneNumberText(
+                  text,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: style,
+                )
+              : Text(
+                  text,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: style,
+                ),
         ),
       );
     }
 
-    addLine(Icons.phone, settings.printPhone);
+    addLine(Icons.phone, settings.printPhone, phone: true);
     addLine(Icons.email, settings.printEmail);
     addLine(Icons.public, settings.printWebsite);
 

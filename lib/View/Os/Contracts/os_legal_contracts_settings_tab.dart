@@ -215,6 +215,7 @@ class _OsLegalContractsSettingsTabState
               AppLocaleKeys.osLegalContractSettingsPhone.tr,
               _phoneCtrl,
               (v) => _local = _local.copyWith(agencyPhone: v),
+              keyboardType: TextInputType.phone,
             ),
             _field(
               AppLocaleKeys.osLegalContractSettingsEmail.tr,

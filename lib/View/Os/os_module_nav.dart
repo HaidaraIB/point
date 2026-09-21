@@ -6,6 +6,7 @@ import 'package:point/Utils/AppColors.dart';
 import 'package:point/Utils/OsPermissions.dart';
 import 'package:point/Utils/app_theme_extension.dart';
 import 'package:point/View/Os/os_modules.dart';
+import 'package:point/View/Os/os_horizontal_scroll_view.dart';
 import 'package:point/View/Shared/responsive.dart';
 
 /// Compact jump links for OS *subpages* only (not the hub).
@@ -147,12 +148,8 @@ class _OsModuleNavState extends State<OsModuleNav> {
 
     final pillRow = SizedBox(
       height: stripHeight,
-      child: SingleChildScrollView(
+      child: OsHorizontalScrollView(
         controller: _scrollController,
-        scrollDirection: Axis.horizontal,
-        physics: const BouncingScrollPhysics(
-          parent: AlwaysScrollableScrollPhysics(),
-        ),
         clipBehavior: Clip.none,
         padding: EdgeInsetsDirectional.only(
           start: 4,
@@ -163,23 +160,11 @@ class _OsModuleNavState extends State<OsModuleNav> {
       ),
     );
 
-    final scrollable = mobile
-        ? pillRow
-        : Scrollbar(
-            controller: _scrollController,
-            thumbVisibility: false,
-            interactive: true,
-            scrollbarOrientation: ScrollbarOrientation.bottom,
-            radius: const Radius.circular(999),
-            thickness: 4,
-            child: pillRow,
-          );
-
     return Padding(
       padding: const EdgeInsets.fromLTRB(12, 0, 12, 10),
       child: Stack(
         children: [
-          scrollable,
+          pillRow,
           if (mobile) ...[
             PositionedDirectional(
               start: 0,

@@ -3,6 +3,7 @@ import 'package:point/Localization/AppLocaleKeys.dart';
 import 'package:point/Models/Os/OsInvoiceModel.dart';
 import 'package:point/Services/os_stamp_settings.dart';
 import 'package:point/View/Os/Print/os_brand_print.dart';
+import 'package:point/View/Os/Print/os_print_assets.dart';
 import 'package:point/View/Os/Print/os_print_codes.dart';
 import 'package:point/View/Os/os_finance_format.dart';
 import 'package:point/View/Os/os_line_item_print_format.dart';
@@ -80,67 +81,106 @@ String buildOsInvoicePlainText(OsInvoiceModel invoice) {
   return buf.toString();
 }
 
-String buildOsInvoicePrintHtml(
+String _osInvoicePrintInnerHtml(
   OsInvoiceModel invoice, {
-  String? paymentLink,
+  required String ref,
+  required String payLabel,
+  required List<String> padded,
+  required String phone,
+  required String email,
+  required String address,
+  required String taxNo,
+  required String notes,
+  required String totals,
+  required String qr,
+  required String barcode,
 }) {
-  final ref = OsFinanceFormat.invoiceRef(invoice);
+  return '''
+    ${OsBrandPrint.headerHtml()}
+    ${OsBrandPrint.watermarkHtml()}
+    <div class="content-layer">
+      <div class="no-split">
+        <div class="invoice-heading">
+          <h1 class="doc-title">${escapeHtml(AppLocaleKeys.osPrintInvoiceAr.tr)}</h1>
+          <div class="doc-title-en">INVOICE</div>
+        </div>
+        <div class="title-meta">
+          <div class="panel invoice-meta">
+            <div class="meta-row"><span class="lbl">${escapeHtml(AppLocaleKeys.osPrintInvoiceNo.tr)}</span><span class="val">${escapeHtml(ref)}</span></div>
+            <div class="meta-row"><span class="lbl">${escapeHtml(AppLocaleKeys.osPrintDate.tr)}</span><span class="val">${escapeHtml(invoice.date)}</span></div>
+            <div class="meta-row"><span class="lbl">${escapeHtml(AppLocaleKeys.osPrintDueDate.tr)}</span><span class="val">${escapeHtml(invoice.dueDate)}</span></div>
+            <div class="meta-row"><span class="lbl">${escapeHtml(AppLocaleKeys.osPrintPaymentMethod.tr)}</span><span class="val">${escapeHtml(payLabel)}</span></div>
+          </div>
+          <div class="panel-bordered invoice-client">
+            <div class="panel-head">${escapeHtml(AppLocaleKeys.osPrintClientDetails.tr)}</div>
+            <div class="panel-body">
+              <div class="client-row"><span class="lbl">${escapeHtml(AppLocaleKeys.osPrintClientName.tr)} :</span><span class="val">${escapeHtml(invoice.clientName)}</span></div>
+              <div class="client-row"><span class="lbl">${escapeHtml(AppLocaleKeys.osPrintClientPhone.tr)} :</span><span class="val ltr">${escapeHtml(phone)}</span></div>
+              <div class="client-row"><span class="lbl">${escapeHtml(AppLocaleKeys.osPrintClientEmail.tr)} :</span><span class="val">${escapeHtml(email)}</span></div>
+              <div class="client-row"><span class="lbl">${escapeHtml(AppLocaleKeys.osPrintClientAddress.tr)} :</span><span class="val">${escapeHtml(address)}</span></div>
+              <div class="client-row"><span class="lbl">${escapeHtml(AppLocaleKeys.osPrintClientTax.tr)} :</span><span class="val">${escapeHtml(taxNo)}</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="items-wrap">
+        <table class="items">
+          <colgroup>
+            <col class="col-n"/><col class="col-desc"/><col class="col-price"/><col class="col-total"/>
+          </colgroup>
+          <thead>
+            <tr>
+              <th>${escapeHtml(AppLocaleKeys.osPrintColIndex.tr)}</th>
+              <th>${escapeHtml(AppLocaleKeys.osPrintColDesc.tr)}</th>
+              <th>${escapeHtml(AppLocaleKeys.osPrintColPrice.tr)}</th>
+              <th>${escapeHtml(AppLocaleKeys.osPrintColTotal.tr)}</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${padded.join('\n')}
+          </tbody>
+        </table>
+      </div>
+
+      <div class="notes-totals no-split">
+        <div class="notes-box">
+          <h4>${escapeHtml(AppLocaleKeys.osPrintNotes.tr)}</h4>
+          <p>${escapeHtml(notes)}</p>
+        </div>
+        $totals
+      </div>
+
+      ${OsBrandPrint.invoiceFooterHtml(qrSvg: qr, barcodeSvg: barcode, documentRef: ref)}
+    </div>
+''';
+}
+
+String _osInvoicePrintDocumentShell({
+  required String ref,
+  required String bodySheets,
+  bool pdfCapture = false,
+}) {
   final title = escapeHtml(AppLocaleKeys.osPrintInvoiceTitle.tr);
-
-  final rows = <String>[];
-  if (invoice.items.isEmpty) {
-    final amt = invoice.amount > 0 ? invoice.amount : invoice.total;
-    rows.add(
-      '<tr>'
-      '<td>1</td>'
-      '<td class="desc">${escapeHtml(AppLocaleKeys.osInvoicesItemsFallback.tr)}</td>'
-      '<td>${OsBrandPrint.moneyHtml(amt)}</td>'
-      '<td>${OsBrandPrint.moneyHtml(amt)}</td>'
-      '</tr>',
-    );
-  } else {
-    for (var i = 0; i < invoice.items.length; i++) {
-      final it = invoice.items[i];
-      rows.add(
-        '<tr>'
-        '<td>${i + 1}</td>'
-        '${OsLineItemPrintFormat.descHtml(it)}'
-        '<td>${OsBrandPrint.moneyHtml(it.unitPrice)}</td>'
-        '<td>${OsBrandPrint.moneyHtml(it.total)}</td>'
-        '</tr>',
-      );
-    }
-  }
-  final padded = OsBrandPrint.padItemRows(rows, columnCount: 4);
-
-  final phone = invoice.clientPhone?.trim() ?? '';
-  final email = invoice.clientEmail?.trim() ?? '';
-  final address = invoice.clientAddress?.trim() ?? '';
-  final taxNo = invoice.clientTaxNumber?.trim() ?? '';
-  final notes = invoice.notes?.trim() ?? '';
-  final payLabel =
-      OsFinanceFormat.paymentMethodLabel(invoice.paymentMethod);
-
-  final qrData = paymentLink?.trim().isNotEmpty == true ? paymentLink!.trim() : '';
-  final qr = OsPrintCodes.qrSvg(qrData);
-  final barcode = OsPrintCodes.code128Svg(ref);
-
-  final totals = OsBrandPrint.totalsHtml(
-    subtotal: OsBrandPrint.moneyHtml(invoice.amount),
-    discount: OsBrandPrint.moneyHtml(invoice.discount),
-    tax: OsBrandPrint.moneyHtml(invoice.vat),
-    grandTotal: OsBrandPrint.moneyHtml(invoice.total),
-    taxLabel: AppLocaleKeys.osPrintTaxVat.tr,
-  );
-
+  final htmlClass = pdfCapture ? ' class="os-pdf-capture"' : '';
+  final fontLinks = pdfCapture
+      ? (OsPrintAssets.hasEmbeddedAlmarai
+          ? ''
+          : osPrintGoogleFontsLink)
+      : '';
+  final embeddedAlmarai = pdfCapture ? OsPrintAssets.embeddedAlmaraiFontFaceCss : '';
+  final baseCss =
+      pdfCapture ? osPrintA4CssWithoutFontImport() : osPrintA4Css;
   return '''
 <!DOCTYPE html>
-<html dir="rtl" lang="ar">
+<html dir="rtl" lang="ar"$htmlClass>
 <head>
 <meta charset="utf-8"/>
 <title>$title — ${escapeHtml(ref)}</title>
+$fontLinks
 <style>
-$osPrintA4Css
+$embeddedAlmarai
+$baseCss
 ${OsBrandPrint.brandCss()}
 .invoice-print .brand-header {
   margin-bottom: 4px;
@@ -305,68 +345,163 @@ ${OsLineItemPrintFormat.itemMarketingCss()}
 </style>
 </head>
 <body>
-'''
-      '${osPrintTwoCopies(sheetClass: 'invoice-print', innerHtml: '''
-    ${OsBrandPrint.headerHtml()}
-    ${OsBrandPrint.watermarkHtml()}
-    <div class="content-layer">
-      <div class="no-split">
-        <div class="invoice-heading">
-          <h1 class="doc-title">${escapeHtml(AppLocaleKeys.osPrintInvoiceAr.tr)}</h1>
-          <div class="doc-title-en">INVOICE</div>
-        </div>
-        <div class="title-meta">
-          <div class="panel invoice-meta">
-            <div class="meta-row"><span class="lbl">${escapeHtml(AppLocaleKeys.osPrintInvoiceNo.tr)}</span><span class="val">${escapeHtml(ref)}</span></div>
-            <div class="meta-row"><span class="lbl">${escapeHtml(AppLocaleKeys.osPrintDate.tr)}</span><span class="val">${escapeHtml(invoice.date)}</span></div>
-            <div class="meta-row"><span class="lbl">${escapeHtml(AppLocaleKeys.osPrintDueDate.tr)}</span><span class="val">${escapeHtml(invoice.dueDate)}</span></div>
-            <div class="meta-row"><span class="lbl">${escapeHtml(AppLocaleKeys.osPrintPaymentMethod.tr)}</span><span class="val">${escapeHtml(payLabel)}</span></div>
-          </div>
-          <div class="panel-bordered invoice-client">
-            <div class="panel-head">${escapeHtml(AppLocaleKeys.osPrintClientDetails.tr)}</div>
-            <div class="panel-body">
-              <div class="client-row"><span class="lbl">${escapeHtml(AppLocaleKeys.osPrintClientName.tr)} :</span><span class="val">${escapeHtml(invoice.clientName)}</span></div>
-              <div class="client-row"><span class="lbl">${escapeHtml(AppLocaleKeys.osPrintClientPhone.tr)} :</span><span class="val">${escapeHtml(phone)}</span></div>
-              <div class="client-row"><span class="lbl">${escapeHtml(AppLocaleKeys.osPrintClientEmail.tr)} :</span><span class="val">${escapeHtml(email)}</span></div>
-              <div class="client-row"><span class="lbl">${escapeHtml(AppLocaleKeys.osPrintClientAddress.tr)} :</span><span class="val">${escapeHtml(address)}</span></div>
-              <div class="client-row"><span class="lbl">${escapeHtml(AppLocaleKeys.osPrintClientTax.tr)} :</span><span class="val">${escapeHtml(taxNo)}</span></div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="items-wrap">
-        <table class="items">
-          <colgroup>
-            <col class="col-n"/><col class="col-desc"/><col class="col-price"/><col class="col-total"/>
-          </colgroup>
-          <thead>
-            <tr>
-              <th>${escapeHtml(AppLocaleKeys.osPrintColIndex.tr)}</th>
-              <th>${escapeHtml(AppLocaleKeys.osPrintColDesc.tr)}</th>
-              <th>${escapeHtml(AppLocaleKeys.osPrintColPrice.tr)}</th>
-              <th>${escapeHtml(AppLocaleKeys.osPrintColTotal.tr)}</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${padded.join('\n')}
-          </tbody>
-        </table>
-      </div>
-
-      <div class="notes-totals no-split">
-        <div class="notes-box">
-          <h4>${escapeHtml(AppLocaleKeys.osPrintNotes.tr)}</h4>
-          <p>${escapeHtml(notes)}</p>
-        </div>
-        $totals
-      </div>
-
-      ${OsBrandPrint.invoiceFooterHtml(qrSvg: qr, barcodeSvg: barcode, documentRef: ref)}
-    </div>
-''')}'
-      '''
+$bodySheets
 </body>
 </html>
 ''';
+}
+
+String buildOsInvoicePrintHtml(
+  OsInvoiceModel invoice, {
+  String? paymentLink,
+}) {
+  final parts = _buildOsInvoicePrintParts(invoice, paymentLink: paymentLink);
+  final inner = _osInvoicePrintInnerHtml(
+    invoice,
+    ref: parts.ref,
+    payLabel: parts.payLabel,
+    padded: parts.padded,
+    phone: parts.phone,
+    email: parts.email,
+    address: parts.address,
+    taxNo: parts.taxNo,
+    notes: parts.notes,
+    totals: parts.totals,
+    qr: parts.qr,
+    barcode: parts.barcode,
+  );
+  return _osInvoicePrintDocumentShell(
+    ref: parts.ref,
+    bodySheets: osPrintTwoCopies(
+      sheetClass: 'invoice-print',
+      innerHtml: inner,
+    ),
+  );
+}
+
+/// Print HTML for a single client-copy sheet (same layout as print, one page).
+String buildOsInvoiceClientCopyPrintHtml(
+  OsInvoiceModel invoice, {
+  String? paymentLink,
+}) {
+  final parts = _buildOsInvoicePrintParts(invoice, paymentLink: paymentLink);
+  final inner = _osInvoicePrintInnerHtml(
+    invoice,
+    ref: parts.ref,
+    payLabel: parts.payLabel,
+    padded: parts.padded,
+    phone: parts.phone,
+    email: parts.email,
+    address: parts.address,
+    taxNo: parts.taxNo,
+    notes: parts.notes,
+    totals: parts.totals,
+    qr: parts.qr,
+    barcode: parts.barcode,
+  );
+  return _osInvoicePrintDocumentShell(
+    ref: parts.ref,
+    bodySheets: osPrintSingleCopy(
+      sheetClass: 'invoice-print',
+      copyLabel: AppLocaleKeys.osPrintCopyClient.tr,
+      innerHtml: inner,
+    ),
+    pdfCapture: true,
+  );
+}
+
+class _OsInvoicePrintParts {
+  const _OsInvoicePrintParts({
+    required this.ref,
+    required this.payLabel,
+    required this.padded,
+    required this.phone,
+    required this.email,
+    required this.address,
+    required this.taxNo,
+    required this.notes,
+    required this.totals,
+    required this.qr,
+    required this.barcode,
+  });
+
+  final String ref;
+  final String payLabel;
+  final List<String> padded;
+  final String phone;
+  final String email;
+  final String address;
+  final String taxNo;
+  final String notes;
+  final String totals;
+  final String qr;
+  final String barcode;
+}
+
+_OsInvoicePrintParts _buildOsInvoicePrintParts(
+  OsInvoiceModel invoice, {
+  String? paymentLink,
+}) {
+  final ref = OsFinanceFormat.invoiceRef(invoice);
+
+  final rows = <String>[];
+  if (invoice.items.isEmpty) {
+    final amt = invoice.amount > 0 ? invoice.amount : invoice.total;
+    rows.add(
+      '<tr>'
+      '<td>1</td>'
+      '<td class="desc">${escapeHtml(AppLocaleKeys.osInvoicesItemsFallback.tr)}</td>'
+      '<td>${OsBrandPrint.moneyHtml(amt)}</td>'
+      '<td>${OsBrandPrint.moneyHtml(amt)}</td>'
+      '</tr>',
+    );
+  } else {
+    for (var i = 0; i < invoice.items.length; i++) {
+      final it = invoice.items[i];
+      rows.add(
+        '<tr>'
+        '<td>${i + 1}</td>'
+        '${OsLineItemPrintFormat.descHtml(it)}'
+        '<td>${OsBrandPrint.moneyHtml(it.unitPrice)}</td>'
+        '<td>${OsBrandPrint.moneyHtml(it.total)}</td>'
+        '</tr>',
+      );
+    }
+  }
+  final padded = OsBrandPrint.padItemRows(rows, columnCount: 4);
+
+  final phone = invoice.clientPhone?.trim() ?? '';
+  final email = invoice.clientEmail?.trim() ?? '';
+  final address = invoice.clientAddress?.trim() ?? '';
+  final taxNo = invoice.clientTaxNumber?.trim() ?? '';
+  final notes = invoice.notes?.trim() ?? '';
+  final payLabel =
+      OsFinanceFormat.paymentMethodLabel(invoice.paymentMethod);
+
+  final qrData =
+      paymentLink?.trim().isNotEmpty == true ? paymentLink!.trim() : '';
+  final qr = OsPrintCodes.qrSvg(qrData);
+  final barcode = OsPrintCodes.code128Svg(ref);
+
+  final totals = OsBrandPrint.totalsHtml(
+    subtotal: OsBrandPrint.moneyHtml(invoice.amount),
+    discount: OsBrandPrint.moneyHtml(invoice.discount),
+    tax: OsBrandPrint.moneyHtml(invoice.vat),
+    grandTotal: OsBrandPrint.moneyHtml(invoice.total),
+    taxLabel: AppLocaleKeys.osPrintTaxVat.tr,
+  );
+
+  return _OsInvoicePrintParts(
+    ref: ref,
+    payLabel: payLabel,
+    padded: padded,
+    phone: phone,
+    email: email,
+    address: address,
+    taxNo: taxNo,
+    notes: notes,
+    totals: totals,
+    qr: qr,
+    barcode: barcode,
+  );
 }

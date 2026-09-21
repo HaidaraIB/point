@@ -14,6 +14,7 @@ import 'package:point/View/Os/EmailHub/os_email_hub_logs_tab.dart';
 import 'package:point/View/Os/EmailHub/os_email_hub_app_tabs.dart';
 import 'package:point/View/Os/EmailHub/os_email_hub_tabs.dart';
 import 'package:point/View/Os/os_button_styles.dart';
+import 'package:point/View/Os/os_horizontal_scroll_view.dart';
 import 'package:point/View/Os/os_page_header.dart';
 import 'package:point/View/Os/os_snackbar.dart';
 import 'package:point/View/Shared/ResponsiveScaffold.dart';
@@ -169,7 +170,6 @@ class _OsEmailHubPageState extends State<OsEmailHubPage> {
             title: AppLocaleKeys.osEmailHubTitle.tr,
             subtitle: compact ? null : AppLocaleKeys.osEmailHubSubtitle.tr,
             currentRoute: '/os/email-hub',
-            showModuleNav: compact,
             actions: [
               FilledButton.icon(
                 onPressed: () => _selectPanel(OsEmailHubTabPersistence.logsIndex),
@@ -342,7 +342,7 @@ class _OsEmailHubPageState extends State<OsEmailHubPage> {
   }
 }
 
-/// Horizontal email-type tabs; hide [Scrollbar] on mobile (it drew through the chips).
+/// Horizontal email-type tabs with OS thin scrollbar (matches module nav).
 class _EmailHubTabStrip extends StatelessWidget {
   const _EmailHubTabStrip({
     required this.compact,
@@ -356,9 +356,8 @@ class _EmailHubTabStrip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scrollView = SingleChildScrollView(
+    return OsHorizontalScrollView(
       controller: controller,
-      scrollDirection: Axis.horizontal,
       physics: const AlwaysScrollableScrollPhysics(),
       padding: EdgeInsets.fromLTRB(
         compact ? 10 : 12,
@@ -367,15 +366,6 @@ class _EmailHubTabStrip extends StatelessWidget {
         compact ? 10 : 8,
       ),
       child: child,
-    );
-
-    if (compact) return scrollView;
-
-    return Scrollbar(
-      controller: controller,
-      thumbVisibility: true,
-      trackVisibility: true,
-      child: scrollView,
     );
   }
 }
@@ -390,6 +380,7 @@ class OsEmailHubDispatchPanel extends StatelessWidget {
     required this.children,
     required this.onSend,
     required this.isSending,
+    this.sendEnabled = true,
     this.emptyMessage,
     this.preview,
     this.sendLabel,
@@ -403,6 +394,7 @@ class OsEmailHubDispatchPanel extends StatelessWidget {
   final List<Widget> children;
   final Future<void> Function() onSend;
   final bool isSending;
+  final bool sendEnabled;
   final String? emptyMessage;
   final Widget? preview;
   final String? sendLabel;
@@ -430,7 +422,7 @@ class OsEmailHubDispatchPanel extends StatelessWidget {
     }
 
     final sendPrimary = FilledButton.icon(
-      onPressed: isSending ? null : onSend,
+      onPressed: (isSending || !sendEnabled) ? null : onSend,
       style: OsButtonStyles.primaryCompact(),
       icon: isSending
           ? const SizedBox(

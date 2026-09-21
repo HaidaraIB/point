@@ -322,7 +322,7 @@ class _OsQuotationFormDialogState extends State<_OsQuotationFormDialog> {
                     ),
                     const SizedBox(height: 12),
                     _label(AppLocaleKeys.osInvoicesClientPhone.tr),
-                    osTypedTextFormField(
+                    osPhoneTextFormField(
                       controller: _phoneCtrl,
                       decoration: osDialogFieldDecoration(context),
                     ),

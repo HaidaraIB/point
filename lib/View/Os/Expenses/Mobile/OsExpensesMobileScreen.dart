@@ -11,6 +11,7 @@ import 'package:point/Utils/app_theme_extension.dart';
 import 'package:point/View/Os/Expenses/OsExpensesPage.dart';
 import 'package:point/View/Os/os_button_styles.dart';
 import 'package:point/View/Os/os_list_filters.dart';
+import 'package:point/View/Os/os_horizontal_scroll_view.dart';
 import 'package:point/View/Os/os_page_header.dart';
 import 'package:point/View/Shared/safe_network_image.dart';
 
@@ -87,7 +88,6 @@ class OsExpensesMobileScreen extends StatelessWidget {
         OsPageHeader(
           title: AppLocaleKeys.osModuleExpenses.tr,
           currentRoute: '/os/expenses',
-          showModuleNav: true,
           actions: [
             if (list.isNotEmpty)
               FilledButton.icon(
@@ -110,11 +110,10 @@ class OsExpensesMobileScreen extends StatelessWidget {
             slivers: [
               const SliverToBoxAdapter(child: SizedBox(height: 10)),
               SliverToBoxAdapter(
-                child: SizedBox(
+                child: OsHorizontalScrollContainer(
                   height: 132,
-                  child: ListView(
-                    scrollDirection: Axis.horizontal,
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  builder: (_) => Row(
                     children: [
                       SizedBox(
                         width: 168,
@@ -363,10 +362,9 @@ class OsExpensesMobileFilters extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
+          OsHorizontalScrollContainer(
             clipBehavior: Clip.hardEdge,
-            child: Row(
+            builder: (_) => Row(
               children: [
                 for (final entry in const [
                   ('ALL', AppLocaleKeys.osExpensesFilterAll),

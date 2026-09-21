@@ -11,6 +11,7 @@ import 'package:point/Utils/AppColors.dart';
 import 'package:point/Utils/app_theme_extension.dart';
 import 'package:point/View/Os/Crm/os_crm_labels.dart';
 import 'package:point/View/Os/os_finance_format.dart';
+import 'package:point/View/Os/os_horizontal_scroll_view.dart';
 import 'package:point/View/Shared/responsive.dart';
 
 /// Mobile-friendly stage picker (replaces broken RTL drag on narrow boards).
@@ -276,10 +277,8 @@ class _OsCrmKanbanViewState extends State<OsCrmKanbanView> {
         );
 
         if (_isMobile) return board;
-        return Scrollbar(
+        return OsThinHorizontalScrollbar(
           controller: _horizontalController,
-          thumbVisibility: true,
-          scrollbarOrientation: ScrollbarOrientation.bottom,
           child: board,
         );
       },

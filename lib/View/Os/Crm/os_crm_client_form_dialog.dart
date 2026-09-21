@@ -133,10 +133,9 @@ Future<void> showOsCrmClientFormDialog(
           const SizedBox(height: 14),
           _crmFormFieldPair(
             stack: stack,
-            first: osTypedTextField(
+            first: osPhoneTextField(
               controller: phoneCtrl,
               style: const TextStyle(fontSize: 16),
-              keyboardType: TextInputType.phone,
               decoration: osFinanceFieldDecoration(
                 AppLocaleKeys.osCrmPhone.tr,
               ),

@@ -192,6 +192,7 @@ class _OsEmailSettingsPanelState extends State<OsEmailSettingsPanel> {
           context,
           label: AppLocaleKeys.osEmailHubSettingsPhone.tr,
           controller: _phone,
+          keyboardType: TextInputType.phone,
           onChanged: (_) => _onChanged(),
         ),
         const SizedBox(height: 12),

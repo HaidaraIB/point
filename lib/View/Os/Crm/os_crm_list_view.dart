@@ -11,6 +11,7 @@ import 'package:point/View/Os/Crm/os_crm_labels.dart';
 import 'package:point/View/Os/os_button_styles.dart';
 import 'package:point/View/Os/os_finance_format.dart';
 import 'package:point/View/Os/os_form_dialog.dart';
+import 'package:point/View/Shared/phone_number_text.dart';
 import 'package:point/View/Os/os_snackbar.dart';
 import 'package:point/View/Shared/app_data_table.dart';
 import 'package:point/View/Shared/responsive.dart';
@@ -292,13 +293,12 @@ class _OsCrmListViewState extends State<OsCrmListView> {
                   if ((c.phone ?? '').trim().isNotEmpty)
                     Padding(
                       padding: const EdgeInsets.only(bottom: 8),
-                      child: Text(
+                      child: PhoneNumberText(
                         c.phone!,
                         style: TextStyle(
                           fontSize: 13,
                           color: theme.secondaryText,
                         ),
-                        textDirection: TextDirection.ltr,
                       ),
                     ),
                   Row(
@@ -400,13 +400,15 @@ class _OsCrmListViewState extends State<OsCrmListView> {
                   ),
                 ),
                 appDataCell(
-                  Text(
-                    (c.phone ?? '').trim().isEmpty
-                        ? AppLocaleKeys.osCommonDash.tr
-                        : c.phone!,
-                    style: TextStyle(color: theme.secondaryText),
-                    textDirection: TextDirection.ltr,
-                  ),
+                  (c.phone ?? '').trim().isEmpty
+                      ? Text(
+                          AppLocaleKeys.osCommonDash.tr,
+                          style: TextStyle(color: theme.secondaryText),
+                        )
+                      : PhoneNumberText(
+                          c.phone!,
+                          style: TextStyle(color: theme.secondaryText),
+                        ),
                 ),
                 appDataCell(
                   OsCrmStageSelector(

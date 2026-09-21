@@ -17,6 +17,8 @@ class OsPrintAssets {
   static const paymentQiCardAsset = 'assets/images/qicard.png';
   static const paymentZainCashAsset = 'assets/images/zaincash.png';
   static const paymentFibAsset = 'assets/images/fib.png';
+  static const almaraiRegularAsset = 'assets/fonts/Almarai-Regular.ttf';
+  static const almaraiBoldAsset = 'assets/fonts/Almarai-Bold.ttf';
 
   static String? _headerBrandDataUri;
   static String? _headerSloganDataUri;
@@ -24,6 +26,8 @@ class OsPrintAssets {
   static String? _sealDataUri;
   static String? _voucherBrandDataUri;
   static List<String> _paymentMethodDataUris = const [];
+  static String? _almaraiRegularDataUri;
+  static String? _almaraiBoldDataUri;
   static Future<void>? _loading;
   static bool _ready = false;
 
@@ -35,6 +39,51 @@ class OsPrintAssets {
   static List<String> get paymentMethodDataUris => _paymentMethodDataUris;
 
   static bool get isLoaded => _ready;
+
+  static bool get hasEmbeddedAlmarai =>
+      _almaraiRegularDataUri != null &&
+      _almaraiRegularDataUri!.isNotEmpty &&
+      _almaraiBoldDataUri != null &&
+      _almaraiBoldDataUri!.isNotEmpty;
+
+  /// Inlined Almarai for PDF capture (no Google Fonts network / CORS in iframe).
+  static String get embeddedAlmaraiFontFaceCss {
+    final reg = _almaraiRegularDataUri;
+    final bold = _almaraiBoldDataUri;
+    if (reg == null || reg.isEmpty || bold == null || bold.isEmpty) {
+      return '';
+    }
+    return '''
+@font-face {
+  font-family: 'Almarai';
+  font-style: normal;
+  font-weight: 300;
+  font-display: block;
+  src: url($reg) format('truetype');
+}
+@font-face {
+  font-family: 'Almarai';
+  font-style: normal;
+  font-weight: 400;
+  font-display: block;
+  src: url($reg) format('truetype');
+}
+@font-face {
+  font-family: 'Almarai';
+  font-style: normal;
+  font-weight: 700;
+  font-display: block;
+  src: url($bold) format('truetype');
+}
+@font-face {
+  font-family: 'Almarai';
+  font-style: normal;
+  font-weight: 800;
+  font-display: block;
+  src: url($bold) format('truetype');
+}
+''';
+  }
 
   /// Prefetch header comps + seal. Safe to call multiple times.
   static Future<void> ensureLoaded() async {
@@ -49,6 +98,24 @@ class OsPrintAssets {
   static Future<String> _pngDataUri(String asset) async {
     final bytes = await rootBundle.load(asset);
     return 'data:image/png;base64,${base64Encode(bytes.buffer.asUint8List())}';
+  }
+
+  static Future<String> _ttfDataUri(String asset) async {
+    final bytes = await rootBundle.load(asset);
+    return 'data:font/ttf;base64,${base64Encode(bytes.buffer.asUint8List())}';
+  }
+
+  static Future<void> _loadAlmaraiFonts() async {
+    try {
+      _almaraiRegularDataUri = await _ttfDataUri(almaraiRegularAsset);
+    } catch (_) {
+      _almaraiRegularDataUri = '';
+    }
+    try {
+      _almaraiBoldDataUri = await _ttfDataUri(almaraiBoldAsset);
+    } catch (_) {
+      _almaraiBoldDataUri = '';
+    }
   }
 
   static Future<void> _load() async {
@@ -79,6 +146,7 @@ class OsPrintAssets {
 
     await _loadVoucherAssets();
     await _loadPaymentMethodAssets();
+    await _loadAlmaraiFonts();
 
     _ready = true;
   }

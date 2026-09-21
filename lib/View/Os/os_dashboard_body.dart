@@ -15,7 +15,10 @@ import 'package:point/View/Os/os_modules.dart';
 import 'package:point/View/Os/os_settings_gear_button.dart';
 
 class OsDashboardBody extends StatelessWidget {
-  const OsDashboardBody({super.key});
+  const OsDashboardBody({super.key, this.contentOnly = false});
+
+  /// When true, title row lives in [OsPageHeader] on the hub route.
+  final bool contentOnly;
 
   @override
   Widget build(BuildContext context) {
@@ -53,40 +56,47 @@ class OsDashboardBody extends StatelessWidget {
                   : (constraints.maxWidth >= 560 ? 2 : 1);
 
               return SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(16, 20, 16, 24),
+                padding: EdgeInsets.fromLTRB(
+                  16,
+                  contentOnly ? 8 : 20,
+                  16,
+                  24,
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                AppLocaleKeys.osDashboardTitle.tr,
-                                style: TextStyle(
-                                  fontSize: 26,
-                                  fontWeight: FontWeight.w800,
-                                  color: theme.primaryText,
+                    if (!contentOnly) ...[
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  AppLocaleKeys.osDashboardTitle.tr,
+                                  style: TextStyle(
+                                    fontSize: 26,
+                                    fontWeight: FontWeight.w800,
+                                    color: theme.primaryText,
+                                  ),
                                 ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                AppLocaleKeys.osDashboardSubtitle.tr,
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  color: theme.secondaryText,
+                                const SizedBox(height: 4),
+                                Text(
+                                  AppLocaleKeys.osDashboardSubtitle.tr,
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: theme.secondaryText,
+                                  ),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
-                        ),
-                        const OsSettingsGearButton(),
-                      ],
-                    ),
-                    const SizedBox(height: 20),
+                          const OsSettingsGearButton(),
+                        ],
+                      ),
+                      const SizedBox(height: 20),
+                    ],
                     if (showCrm || showInvoices) ...[
                       GridView.count(
                         crossAxisCount: kpiCrossAxisCount,

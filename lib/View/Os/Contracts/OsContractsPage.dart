@@ -14,6 +14,7 @@ import 'package:point/View/Os/Contracts/os_legal_contracts_templates_tab.dart';
 import 'package:point/View/Os/os_button_styles.dart';
 import 'package:point/View/Os/os_finance_format.dart';
 import 'package:point/View/Os/os_kpi_card.dart';
+import 'package:point/View/Os/os_horizontal_scroll_view.dart';
 import 'package:point/View/Os/Contracts/Mobile/OsContractsMobileScreen.dart';
 import 'package:point/View/Os/os_page_header.dart';
 import 'package:point/View/Shared/ResponsiveScaffold.dart';
@@ -78,11 +79,10 @@ class _OsContractsPageState extends State<OsContractsPage>
           ),
           Obx(() {
             final all = ctrl.contracts.toList();
-            return SizedBox(
+            return OsHorizontalScrollContainer(
               height: 118,
-              child: ListView(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+              builder: (_) => Row(
                 children: [
                   SizedBox(
                     width: 180,
@@ -137,28 +137,31 @@ class _OsContractsPageState extends State<OsContractsPage>
           const SizedBox(height: 4),
           Material(
             color: theme.cardSurface,
-            child: TabBar(
-              controller: _tabs,
-              isScrollable: true,
-              tabAlignment: TabAlignment.start,
-              labelColor: theme.accentText,
-              unselectedLabelColor: theme.mutedText,
-              indicatorColor: AppColors.primary,
-              labelPadding: const EdgeInsets.symmetric(horizontal: 18),
-              labelStyle: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w700,
-              ),
-              tabs: [
-                Tab(
-                  child: Obx(
-                    () => Text(
-                      '${AppLocaleKeys.osLegalContractTabRegistryFull.tr} (${Get.find<OsLegalContractsController>().contracts.length})',
+            child: OsTabBarScrollContainer(
+              tabBarBuilder: (scrollController) => TabBar(
+                controller: _tabs,
+                scrollController: scrollController,
+                isScrollable: true,
+                tabAlignment: TabAlignment.start,
+                labelColor: theme.accentText,
+                unselectedLabelColor: theme.mutedText,
+                indicatorColor: AppColors.primary,
+                labelPadding: const EdgeInsets.symmetric(horizontal: 18),
+                labelStyle: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                ),
+                tabs: [
+                  Tab(
+                    child: Obx(
+                      () => Text(
+                        '${AppLocaleKeys.osLegalContractTabRegistryFull.tr} (${Get.find<OsLegalContractsController>().contracts.length})',
+                      ),
                     ),
                   ),
-                ),
-                Tab(text: AppLocaleKeys.osLegalContractTabTemplatesFull.tr),
-              ],
+                  Tab(text: AppLocaleKeys.osLegalContractTabTemplatesFull.tr),
+                ],
+              ),
             ),
           ),
           Expanded(

@@ -1445,6 +1445,19 @@ service cloud.firestore {
       allow delete: if isSignedIn() && hasAuthRole() && isAdmin();
     }
 
+    match /os_whatsapp_logs/{logId} {
+      allow read:
+        if isSignedIn() && hasAuthRole() && hasOsModule('messaging');
+      allow create, update: if false;
+      allow delete: if isSignedIn() && hasAuthRole() && isAdmin();
+    }
+
+    match /os_whatsapp_session_windows/{phoneId} {
+      allow read:
+        if isSignedIn() && hasAuthRole() && hasOsModule('messaging');
+      allow create, update, delete: if false;
+    }
+
     // Server-only OS settings (Gemini API key via Edge Function service account)
     match /os_settings/{settingsId} {
       allow read, write: if false;

@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:point/Controller/HomeController.dart';
+import 'package:point/Localization/AppLocaleKeys.dart';
 import 'package:point/Utils/OsPermissions.dart';
 import 'package:point/View/Os/os_dashboard_body.dart';
+import 'package:point/View/Os/os_page_header.dart';
 import 'package:point/View/Shared/ResponsiveScaffold.dart';
 
 class OsDashboardPage extends StatelessWidget {
@@ -18,7 +20,18 @@ class OsDashboardPage extends StatelessWidget {
     return ResponsiveScaffold(
       selectedTab: 14,
       sideMenu: true,
-      body: const OsDashboardBody(),
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          OsPageHeader(
+            title: AppLocaleKeys.osDashboardTitle.tr,
+            subtitle: AppLocaleKeys.osDashboardSubtitle.tr,
+            currentRoute: '/os',
+            showBackButton: false,
+          ),
+          const Expanded(child: OsDashboardBody(contentOnly: true)),
+        ],
+      ),
     );
   }
 }

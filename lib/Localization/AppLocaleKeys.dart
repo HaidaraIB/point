@@ -561,6 +561,7 @@ class AppLocaleKeys {
   static const osModulePayroll = 'os.module.payroll';
   static const osModuleContracts = 'os.module.contracts';
   static const osModuleEmailHub = 'os.module.email_hub';
+  static const osModuleMessaging = 'os.module.messaging';
   static const osModuleServices = 'os.module.services';
   static const osModuleBranches = 'os.module.branches';
   static const osModuleSettings = 'os.module.settings';
@@ -848,6 +849,119 @@ class AppLocaleKeys {
       'os.settings.paytabs.server_key_required';
   static const osSettingsPaytabsBankRequired =
       'os.settings.paytabs.bank_required';
+  static const osSettingsWhatsappSection = 'os.settings.whatsapp.section';
+  static const osSettingsWhatsappDescription = 'os.settings.whatsapp.description';
+  static const osSettingsWhatsappConfigured = 'os.settings.whatsapp.configured';
+  static const osSettingsWhatsappNotConfigured =
+      'os.settings.whatsapp.not_configured';
+  static const osSettingsWhatsappTokenPreview =
+      'os.settings.whatsapp.token_preview';
+  static const osSettingsWhatsappTokenPreviewLabel =
+      'os.settings.whatsapp.token_preview_label';
+  static const osSettingsWhatsappAccessToken = 'os.settings.whatsapp.access_token';
+  static const osSettingsWhatsappAccessTokenHint =
+      'os.settings.whatsapp.access_token_hint';
+  static const osSettingsWhatsappPhoneNumberId =
+      'os.settings.whatsapp.phone_number_id';
+  static const osSettingsWhatsappPhoneNumberIdHint =
+      'os.settings.whatsapp.phone_number_id_hint';
+  static const osSettingsWhatsappBusinessAccountId =
+      'os.settings.whatsapp.business_account_id';
+  static const osSettingsWhatsappBusinessAccountIdHint =
+      'os.settings.whatsapp.business_account_id_hint';
+  static const osSettingsWhatsappEnabled = 'os.settings.whatsapp.enabled';
+  static const osSettingsWhatsappSave = 'os.settings.whatsapp.save';
+  static const osSettingsWhatsappSaved = 'os.settings.whatsapp.saved';
+  static const osSettingsWhatsappTest = 'os.settings.whatsapp.test';
+  static const osSettingsWhatsappTestSuccess = 'os.settings.whatsapp.test_success';
+  static const osSettingsWhatsappTestFailed = 'os.settings.whatsapp.test_failed';
+  static const osSettingsWhatsappTestFailedDetail =
+      'os.settings.whatsapp.test_failed_detail';
+  static const osSettingsWhatsappTokenRequired =
+      'os.settings.whatsapp.token_required';
+  static const osSettingsWhatsappPhoneIdRequired =
+      'os.settings.whatsapp.phone_id_required';
+  static const osSettingsWhatsappWabaIdRequired =
+      'os.settings.whatsapp.waba_id_required';
+  static const osSettingsWhatsappDisplayPhone =
+      'os.settings.whatsapp.display_phone';
+  static const osSettingsWhatsappDisplayPhoneLabel =
+      'os.settings.whatsapp.display_phone_label';
+  static const osSettingsWhatsappWebhookHint =
+      'os.settings.whatsapp.webhook_hint';
+  static const osMessagingHubTitle = 'os.messaging_hub.title';
+  static const osMessagingHubSubtitle = 'os.messaging_hub.subtitle';
+  static const osMessagingHubTabSend = 'os.messaging_hub.tab.send';
+  static const osMessagingHubTabInvoices = 'os.messaging_hub.tab.invoices';
+  static const osMessagingHubTabLogs = 'os.messaging_hub.tab.logs';
+  static const osMessagingHubSend = 'os.messaging_hub.send';
+  static const osMessagingHubSentSuccess = 'os.messaging_hub.sent_success';
+  static const osMessagingHubSendFailed = 'os.messaging_hub.send_failed';
+  static const osMessagingHubSelectClient = 'os.messaging_hub.select_client';
+  static const osMessagingHubRecipientPhone = 'os.messaging_hub.recipient_phone';
+  static const osMessagingHubSelectTemplate = 'os.messaging_hub.select_template';
+  static const osMessagingHubNoTemplates = 'os.messaging_hub.no_templates';
+  static const osMessagingHubTemplateParams = 'os.messaging_hub.template_params';
+  static const osMessagingHubBodyParam = 'os.messaging_hub.body_param';
+  static const osMessagingHubHeaderParam = 'os.messaging_hub.header_param';
+  static const osMessagingHubPreview = 'os.messaging_hub.preview';
+  static const osMessagingHubPreviewDocument =
+      'os.messaging_hub.preview.document';
+  static const osMessagingHubPreviewBtnUrl =
+      'os.messaging_hub.preview.btn_url';
+  static const osMessagingHubPreviewBtnCall =
+      'os.messaging_hub.preview.btn_call';
+  static const osMessagingHubPreviewBtnCallPermission =
+      'os.messaging_hub.preview.btn_call_permission';
+  static const osMessagingHubPreviewBtnQuickReply =
+      'os.messaging_hub.preview.btn_quick_reply';
+  static const osMessagingHubNotConfigured = 'os.messaging_hub.not_configured';
+  static const osMessagingHubOpening = 'os.messaging_hub.opening';
+  static const osMessagingHubInvoiceSubtitle = 'os.messaging_hub.invoice_subtitle';
+  static const osMessagingHubSelectInvoice = 'os.messaging_hub.select_invoice';
+  static const osMessagingHubNoInvoices = 'os.messaging_hub.no_invoices';
+  static const osMessagingHubNoInvoiceTemplates =
+      'os.messaging_hub.no_invoice_templates';
+  static const osMessagingHubInvoiceTemplateDocumentRequired =
+      'os.messaging_hub.invoice_template_document_required';
+  static const osMessagingHubErrorCallPermission =
+      'os.messaging_hub.error_call_permission';
+  static const osMessagingHubLogTypeInvoice =
+      'os.messaging_hub.log_type.invoice';
+  static const osMessagingHubLogTypeCrm = 'os.messaging_hub.log_type.crm';
+  static const osMessagingHubLogTypeCustom =
+      'os.messaging_hub.log_type.custom';
+  static const osMessagingHubLogsEmpty = 'os.messaging_hub.logs_empty';
+  static const osMessagingHubStatusSent = 'os.messaging_hub.status.sent';
+  static const osMessagingHubStatusFailed = 'os.messaging_hub.status.failed';
+  static const osMessagingHubSendViaApi = 'os.messaging_hub.send_via_api';
+  static const osMessagingHubInvoicePdfFailed =
+      'os.messaging_hub.invoice_pdf_failed';
+  static const osMessagingHubSendModeTemplate =
+      'os.messaging_hub.send_mode.template';
+  static const osMessagingHubSendModeSession =
+      'os.messaging_hub.send_mode.session';
+  static const osMessagingHubSessionHint =
+      'os.messaging_hub.session_hint';
+  static const osMessagingHubSessionOpenUntil =
+      'os.messaging_hub.session_open_until';
+  static const osMessagingHubSessionBlocked =
+      'os.messaging_hub.session_blocked';
+  static const osMessagingHubSessionNotTracked =
+      'os.messaging_hub.session_not_tracked';
+  static const osMessagingHubSessionMessage =
+      'os.messaging_hub.session_message';
+  static const osMessagingHubSessionMessageRequired =
+      'os.messaging_hub.session_message_required';
+  static const osMessagingHubErrorSessionClosed =
+      'os.messaging_hub.error_session_closed';
+  static const osMessagingHubLogTemplateSession =
+      'os.messaging_hub.log_template_session';
+  static const osMessagingHubLogInvoiceAttachment =
+      'os.messaging_hub.log_invoice_attachment';
+  static const osMessagingHubInvoiceSendModeHint =
+      'os.messaging_hub.invoice_send_mode_hint';
+  static const osCrmSendWhatsappTemplate = 'os.crm.send_whatsapp_template';
   static const osSettingsPrintContactSection =
       'os.settings.print_contact.section';
   static const osSettingsPrintContactDescription =
@@ -1152,6 +1266,9 @@ class AppLocaleKeys {
       'os.invoices.payment_link_preparing';
   static const osInvoicesWhatsapp = 'os.invoices.whatsapp';
   static const osInvoicesWhatsappBody = 'os.invoices.whatsapp_body';
+  static const osInvoicesDownloadWhatsappPdf = 'os.invoices.download_whatsapp_pdf';
+  static const osInvoicesDownloadWhatsappPdfDone =
+      'os.invoices.download_whatsapp_pdf_done';
   static const osInvoicesEmail = 'os.invoices.email';
   static const osInvoicesEmailSubject = 'os.invoices.email_subject';
   static const osInvoicesEmailBody = 'os.invoices.email_body';

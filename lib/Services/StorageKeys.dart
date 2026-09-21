@@ -335,6 +335,7 @@ class StorageKeys {
   static const prefsOsPayrollTabKey = 'point_os_payroll_tab_v1';
   static const prefsOsEmailHubTabKey = 'point_os_email_hub_tab_v1';
   static const prefsOsEmailHubDraftKey = 'point_os_email_hub_draft_v1';
+  static const prefsOsMessagingHubTabKey = 'point_os_messaging_hub_tab_v1';
   static const prefsOsCrmViewKey = 'point_os_crm_view_v1';
 
   /// OS electronic stamp (mirrors point_os localStorage).

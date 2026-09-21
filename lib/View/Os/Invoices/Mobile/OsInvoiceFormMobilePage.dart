@@ -14,6 +14,7 @@ import 'package:point/View/Os/os_finance_status_widgets.dart';
 import 'package:point/View/Os/os_form_dialog.dart';
 import 'package:point/View/Os/os_invoice_stamp.dart';
 import 'package:point/View/Os/os_line_items_editor.dart';
+import 'package:point/View/Os/os_page_header.dart';
 import 'package:point/View/Os/os_snackbar.dart';
 
 class OsInvoiceFormMobilePage extends StatefulWidget {
@@ -215,28 +216,26 @@ class _OsInvoiceFormMobilePageState extends State<OsInvoiceFormMobilePage> {
 
     return Scaffold(
       backgroundColor: theme.pageBackground,
-      appBar: AppBar(
-        leading: IconButton(
-          tooltip: AppLocaleKeys.osBackToHub.tr,
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () {
-            if (Navigator.of(context).canPop()) {
-              Get.back();
-            } else {
-              Get.offNamed('/os');
-            }
-          },
-        ),
-        title: Text(
-          widget.existing == null
-              ? AppLocaleKeys.osInvoicesAdd.tr
-              : AppLocaleKeys.osInvoicesEdit.tr,
-          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
-        ),
-      ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          OsPageHeader(
+            title: widget.existing == null
+                ? AppLocaleKeys.osInvoicesAdd.tr
+                : AppLocaleKeys.osInvoicesEdit.tr,
+            currentRoute: '/os/invoices',
+            onBack: () {
+              if (Get.key.currentState?.canPop() ?? false) {
+                Get.back();
+              } else {
+                Get.offNamed('/os/invoices');
+              }
+            },
+          ),
+          Expanded(
+            child: ListView(
+              padding: const EdgeInsets.all(16),
+              children: [
           DropdownButtonFormField<String>(
             key: ValueKey(_clientId),
             initialValue:
@@ -260,7 +259,7 @@ class _OsInvoiceFormMobilePageState extends State<OsInvoiceFormMobilePage> {
             },
           ),
           const SizedBox(height: 10),
-          osTypedTextFormField(
+          osPhoneTextFormField(
             controller: _phoneCtrl,
             decoration: osFinanceFieldDecoration(
               AppLocaleKeys.osInvoicesClientPhone.tr,
@@ -419,6 +418,9 @@ class _OsInvoiceFormMobilePageState extends State<OsInvoiceFormMobilePage> {
                   )
                 : const Icon(Icons.save_outlined),
             label: Text(AppLocaleKeys.osInvoicesSaveFull.tr),
+          ),
+              ],
+            ),
           ),
         ],
       ),

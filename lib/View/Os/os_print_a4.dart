@@ -77,7 +77,37 @@ td, th { overflow-wrap: break-word; }
     break-after: auto;
   }
 }
+/* WhatsApp / download PDF capture (hidden iframe + browser render). */
+html.os-pdf-capture body {
+  padding: 0 !important;
+  background: #fff !important;
+}
+html.os-pdf-capture .a4 {
+  width: 210mm !important;
+  max-width: 210mm !important;
+  min-height: 297mm !important;
+  padding: 10mm 12mm !important;
+  box-sizing: border-box;
+  box-shadow: none;
+}
+html.os-pdf-capture,
+html.os-pdf-capture body,
+html.os-pdf-capture .a4,
+html.os-pdf-capture .a4 * {
+  font-family: 'Almarai', sans-serif !important;
+}
 ''';
+
+/// Google Fonts link when bundled Almarai is unavailable (print / PDF fallback).
+const osPrintGoogleFontsLink = '''
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Almarai:wght@300;400;700;800&display=swap" crossorigin="anonymous"/>
+''';
+
+/// Same as [osPrintA4Css] but without `@import` — pair with [osPrintGoogleFontsLink].
+String osPrintA4CssWithoutFontImport() {
+  return osPrintA4Css.replaceFirst(RegExp(r"@import[^;]+;\s*"), '');
+}
 
 /// Two A4 sheets for one print job: agency copy, then client copy.
 String osPrintTwoCopies({
@@ -101,6 +131,26 @@ String osPrintTwoCopies({
 
   return '${page(AppLocaleKeys.osPrintCopyAgency.tr)}\n'
       '${page(AppLocaleKeys.osPrintCopyClient.tr)}';
+}
+
+/// Single A4 sheet with a copy watermark (e.g. client copy only).
+String osPrintSingleCopy({
+  String sheetClass = '',
+  required String copyLabel,
+  required String innerHtml,
+}) {
+  final safe = escapeHtml(copyLabel);
+  final classes = [
+    'sheet',
+    if (sheetClass.isNotEmpty) sheetClass,
+  ].join(' ');
+  return '''
+<div class="a4">
+  <div class="$classes">
+    <div class="copy-watermark" aria-hidden="true"><span>$safe</span></div>
+    $innerHtml
+  </div>
+</div>''';
 }
 
 String escapeHtml(String s) => s

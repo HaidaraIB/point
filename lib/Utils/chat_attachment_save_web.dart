@@ -24,7 +24,9 @@ Future<ChatAttachmentSaveResult> writeChatAttachmentBytes({
     document.body?.append(anchor);
     anchor.click();
     anchor.remove();
-    URL.revokeObjectURL(objectUrl);
+    Future<void>.delayed(const Duration(seconds: 2), () {
+      URL.revokeObjectURL(objectUrl);
+    });
     return const ChatAttachmentSaveResult(
       ok: true,
       location: ChatAttachmentSaveLocation.downloads,

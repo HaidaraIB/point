@@ -122,6 +122,12 @@ class _TypedTextDirectionState extends State<TypedTextDirection> {
 }
 
 /// [TextField] with paragraph direction from typed content, not UI locale.
+bool _forceLtrInput({
+  required bool forceLtrInput,
+  TextInputType? keyboardType,
+}) =>
+    forceLtrInput || keyboardType == TextInputType.phone;
+
 Widget typedDirectionTextField({
   required TextEditingController controller,
   required InputDecoration decoration,
@@ -142,8 +148,13 @@ Widget typedDirectionTextField({
   FocusNode? focusNode,
   TextAlign textAlign = TextAlign.start,
   bool autofocus = false,
+  bool forceLtrInput = false,
 }) {
   final hint = hintText ?? decoration.hintText;
+  final ltr = _forceLtrInput(
+    forceLtrInput: forceLtrInput,
+    keyboardType: keyboardType,
+  );
   return TypedTextDirection(
     controller: controller,
     hintText: hint,
@@ -160,13 +171,16 @@ Widget typedDirectionTextField({
       inputFormatters: inputFormatters,
       style: style,
       textAlignVertical: textAlignVertical,
-      textDirection: textDirection,
+      textDirection: ltr ? TextDirection.ltr : textDirection,
       obscureText: obscureText,
       enabled: enabled,
       focusNode: focusNode,
       textAlign: textAlign,
       autofocus: autofocus,
-      decoration: decoration.copyWith(hintTextDirection: hintTextDirection),
+      decoration: decoration.copyWith(
+        hintTextDirection:
+            ltr ? TextDirection.ltr : hintTextDirection,
+      ),
     ),
   );
 }
@@ -193,8 +207,13 @@ Widget typedDirectionTextFormField({
   FocusNode? focusNode,
   TextAlign textAlign = TextAlign.start,
   int? maxLength,
+  bool forceLtrInput = false,
 }) {
   final hint = hintText ?? decoration.hintText;
+  final ltr = _forceLtrInput(
+    forceLtrInput: forceLtrInput,
+    keyboardType: keyboardType,
+  );
   return TypedTextDirection(
     controller: controller,
     hintText: hint,
@@ -212,13 +231,16 @@ Widget typedDirectionTextFormField({
       inputFormatters: inputFormatters,
       style: style,
       textAlignVertical: textAlignVertical,
-      textDirection: textDirection,
+      textDirection: ltr ? TextDirection.ltr : textDirection,
       obscureText: obscureText,
       enabled: enabled,
       focusNode: focusNode,
       textAlign: textAlign,
       maxLength: maxLength,
-      decoration: decoration.copyWith(hintTextDirection: hintTextDirection),
+      decoration: decoration.copyWith(
+        hintTextDirection:
+            ltr ? TextDirection.ltr : hintTextDirection,
+      ),
     ),
   );
 }

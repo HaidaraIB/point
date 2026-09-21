@@ -238,7 +238,7 @@ ${OsLineItemPrintFormat.itemMarketingCss()}
           <div class="panel">
             <div class="client-row"><span class="lbl">${escapeHtml(AppLocaleKeys.osPrintQuoteTo.tr)} :</span><span class="val">${escapeHtml(clientName)}</span></div>
             <div class="client-row"><span class="lbl">${escapeHtml(AppLocaleKeys.osPrintClientAddress.tr)} :</span><span class="val">${escapeHtml(address)}</span></div>
-            <div class="client-row"><span class="lbl">${escapeHtml(AppLocaleKeys.osPrintClientPhone.tr)} :</span><span class="val">${escapeHtml(phone)}</span></div>
+            <div class="client-row"><span class="lbl">${escapeHtml(AppLocaleKeys.osPrintClientPhone.tr)} :</span><span class="val ltr">${escapeHtml(phone)}</span></div>
             <div class="client-row"><span class="lbl">${escapeHtml(AppLocaleKeys.osPrintClientEmail.tr)} :</span><span class="val">${escapeHtml(email)}</span></div>
           </div>
           <div class="greeting">${escapeHtml(AppLocaleKeys.osPrintQuoteGreeting.tr)}</div>

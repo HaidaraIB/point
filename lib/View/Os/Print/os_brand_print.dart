@@ -173,6 +173,11 @@ ${OsPrintContact.css()}
   text-align: right;
   min-width: 0;
 }
+.meta-row .val.ltr, .client-row .val.ltr {
+  direction: ltr;
+  unicode-bidi: isolate;
+  text-align: left;
+}
 .doc-title {
   font-size: 32px;
   font-weight: 900;

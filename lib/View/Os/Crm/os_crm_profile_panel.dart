@@ -21,6 +21,7 @@ import 'package:point/View/Os/os_button_styles.dart';
 import 'package:point/View/Os/os_finance_format.dart';
 import 'package:point/View/Os/os_form_dialog.dart';
 import 'package:point/View/Os/os_snackbar.dart';
+import 'package:point/View/Os/Messaging/os_messaging_hub_navigation.dart';
 import 'package:point/View/Shared/responsive.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -122,6 +123,9 @@ class _OsCrmProfilePanelState extends State<OsCrmProfilePanel> {
         OsPermissions.canAccessModule(emp, OsModuleIds.invoices);
     final canContract =
         OsPermissions.canAccessModule(emp, OsModuleIds.contracts);
+    final canMessaging =
+        OsPermissions.canAccessModule(emp, OsModuleIds.messaging);
+    final clientId = client.id?.trim() ?? '';
 
     Widget fullWidth(Widget child) =>
         SizedBox(width: double.infinity, child: child);
@@ -168,6 +172,17 @@ class _OsCrmProfilePanelState extends State<OsCrmProfilePanel> {
             icon: const Icon(Icons.history_rounded, size: 16),
             label: Text(
               AppLocaleKeys.osCrmActivityLogWhatsapp.tr,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          );
+    final sendTemplateBtn = !canMessaging || clientId.isEmpty || phone.isEmpty
+        ? null
+        : OutlinedButton.icon(
+            onPressed: () => openOsMessagingHubForClient(clientId),
+            icon: const Icon(Icons.chat_bubble_outline, size: 16),
+            label: Text(
+              AppLocaleKeys.osCrmSendWhatsappTemplate.tr,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
@@ -228,6 +243,7 @@ class _OsCrmProfilePanelState extends State<OsCrmProfilePanel> {
         children: [
           if (callBtn != null) callBtn,
           if (whatsappBtn != null) whatsappBtn,
+          if (sendTemplateBtn != null) sendTemplateBtn,
           if (logCallBtn != null) logCallBtn,
           if (logWhatsappBtn != null) logWhatsappBtn,
           if (emailBtn != null) emailBtn,
@@ -246,6 +262,10 @@ class _OsCrmProfilePanelState extends State<OsCrmProfilePanel> {
       rows.add(fullWidth(callBtn));
     } else if (whatsappBtn != null) {
       rows.add(fullWidth(whatsappBtn));
+    }
+    if (sendTemplateBtn != null) {
+      rows.add(const SizedBox(height: 8));
+      rows.add(fullWidth(sendTemplateBtn));
     }
     if (logCallBtn != null && logWhatsappBtn != null) {
       rows.add(const SizedBox(height: 8));

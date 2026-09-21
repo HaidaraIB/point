@@ -13,7 +13,9 @@ Widget osEmailHubTextField(
   bool showLabel = true,
   String? hintText,
   Widget? prefixIcon,
+  bool forceLtrInput = false,
 }) {
+  final ltr = forceLtrInput || keyboardType == TextInputType.phone;
   final decoration = _fieldDecoration(
     context,
     hintText: hintText,
@@ -33,8 +35,11 @@ Widget osEmailHubTextField(
           onChanged: onChanged,
           keyboardType: keyboardType,
           maxLines: maxLines,
-          textDirection: textDirection,
-          decoration: decoration.copyWith(hintTextDirection: hintTextDirection),
+          textDirection: ltr ? TextDirection.ltr : textDirection,
+          decoration: decoration.copyWith(
+            hintTextDirection:
+                ltr ? TextDirection.ltr : hintTextDirection,
+          ),
         ),
       ),
     );
@@ -48,6 +53,7 @@ Widget osEmailHubTextField(
     keyboardType: keyboardType,
     maxLines: maxLines,
     decoration: decoration,
+    forceLtrInput: forceLtrInput,
   );
 }
 
@@ -60,6 +66,7 @@ class _OsEmailHubBoundTextField extends StatefulWidget {
     this.maxLines = 1,
     this.showLabel = true,
     required this.decoration,
+    this.forceLtrInput = false,
   });
 
   final String label;
@@ -69,6 +76,7 @@ class _OsEmailHubBoundTextField extends StatefulWidget {
   final int maxLines;
   final bool showLabel;
   final InputDecoration decoration;
+  final bool forceLtrInput;
 
   @override
   State<_OsEmailHubBoundTextField> createState() =>
@@ -104,6 +112,8 @@ class _OsEmailHubBoundTextFieldState extends State<_OsEmailHubBoundTextField> {
 
   @override
   Widget build(BuildContext context) {
+    final ltr = widget.forceLtrInput ||
+        widget.keyboardType == TextInputType.phone;
     return _OsEmailHubTextFieldShell(
       context: context,
       label: widget.label,
@@ -116,9 +126,10 @@ class _OsEmailHubBoundTextFieldState extends State<_OsEmailHubBoundTextField> {
           onChanged: widget.onChanged,
           keyboardType: widget.keyboardType,
           maxLines: widget.maxLines,
-          textDirection: textDirection,
+          textDirection: ltr ? TextDirection.ltr : textDirection,
           decoration: widget.decoration.copyWith(
-            hintTextDirection: hintTextDirection,
+            hintTextDirection:
+                ltr ? TextDirection.ltr : hintTextDirection,
           ),
         ),
       ),

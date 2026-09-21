@@ -7,6 +7,7 @@ import 'package:point/Models/Os/os_finance_enums.dart';
 import 'package:point/Utils/OsPermissions.dart';
 import 'package:point/Utils/app_theme_extension.dart';
 import 'package:point/View/Os/Invoices/Mobile/OsInvoiceFormMobilePage.dart';
+import 'package:point/View/Os/Invoices/os_invoice_pdf_download_action.dart';
 import 'package:point/View/Os/Invoices/os_invoice_share.dart';
 import 'package:point/View/Os/os_button_styles.dart';
 import 'package:point/View/Os/os_finance_format.dart';
@@ -247,6 +248,11 @@ class _OsInvoiceMobileCard extends StatelessWidget {
                 tooltip: AppLocaleKeys.osInvoicesEmail.tr,
                 icon: Icons.mail_outline,
                 onPressed: onEmail,
+              ),
+              OsInvoicePdfDownloadIconButton(
+                invoice: inv,
+                iconSize: 22,
+                constraints: const BoxConstraints(),
               ),
               if (!inv.isPaid) ...[
                 _InvoiceIconAction(

@@ -47,6 +47,7 @@ import 'package:point/View/Os/Invoices/OsInvoicesPage.dart';
 import 'package:point/View/Os/Expenses/OsExpensesPage.dart';
 import 'package:point/View/Os/Payroll/OsPayrollPage.dart';
 import 'package:point/View/Os/EmailHub/OsEmailHubPage.dart';
+import 'package:point/View/Os/Messaging/OsMessagingHubPage.dart';
 import 'package:point/View/Os/Quotations/OsQuotationsPage.dart';
 import 'package:point/View/Statistics/Statistics.dart';
 import 'package:point/View/Tasks/Tasks.dart';
@@ -293,6 +294,11 @@ class AppRouting {
         GetPage(
           name: '/os/email-hub',
           page: () => const OsEmailHubPage(),
+          middlewares: [AuthMiddleware()],
+        ),
+        GetPage(
+          name: '/os/messaging',
+          page: () => const OsMessagingHubPage(),
           middlewares: [AuthMiddleware()],
         ),
         GetPage(

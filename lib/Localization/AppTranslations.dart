@@ -953,6 +953,7 @@ class AppTranslations extends Translations {
         'os.module.payroll': 'Payroll',
         'os.module.contracts': 'Contracts',
         'os.module.email_hub': 'Email hub',
+        'os.module.messaging': 'Messaging',
         'os.module.services': 'Services',
         'os.module.branches': 'Branches',
         'os.email_hub.title': 'Email hub',
@@ -1391,6 +1392,102 @@ class AppTranslations extends Translations {
         'os.settings.paytabs.server_key_required': 'Server key is required when PayTabs is enabled',
         'os.settings.paytabs.bank_required':
             'Choose the bank account that receives card payments',
+        'os.settings.whatsapp.section': 'WhatsApp Business API (Meta)',
+        'os.settings.whatsapp.description':
+            'Connect your WhatsApp Business number to send approved template messages from Point OS.',
+        'os.settings.whatsapp.configured': 'WhatsApp API configured',
+        'os.settings.whatsapp.not_configured': 'WhatsApp API not configured',
+        'os.settings.whatsapp.token_preview': 'Token: @preview',
+        'os.settings.whatsapp.token_preview_label': 'Token',
+        'os.settings.whatsapp.access_token': 'Permanent access token',
+        'os.settings.whatsapp.access_token_hint': 'EAAG…',
+        'os.settings.whatsapp.phone_number_id': 'Phone number ID',
+        'os.settings.whatsapp.phone_number_id_hint': 'From Meta developer console',
+        'os.settings.whatsapp.business_account_id': 'WhatsApp Business account ID',
+        'os.settings.whatsapp.business_account_id_hint': 'WABA ID',
+        'os.settings.whatsapp.enabled': 'Enable WhatsApp API sending',
+        'os.settings.whatsapp.save': 'Save WhatsApp settings',
+        'os.settings.whatsapp.saved': 'WhatsApp settings saved',
+        'os.settings.whatsapp.test': 'Test connection',
+        'os.settings.whatsapp.test_success': 'Connection verified: @name (@phone)',
+        'os.settings.whatsapp.test_failed': 'Could not verify WhatsApp settings',
+        'os.settings.whatsapp.test_failed_detail': '@detail',
+        'os.settings.whatsapp.token_required':
+            'Access token is required when WhatsApp is enabled',
+        'os.settings.whatsapp.phone_id_required':
+            'Phone number ID is required when WhatsApp is enabled',
+        'os.settings.whatsapp.waba_id_required':
+            'Business account ID is required when WhatsApp is enabled',
+        'os.settings.whatsapp.display_phone': 'Connected number: @phone',
+        'os.settings.whatsapp.display_phone_label': 'Connected number',
+        'os.settings.whatsapp.webhook_hint':
+            'For direct (24h) messages, point Meta’s webhook to the os-whatsapp-webhook function and set WHATSAPP_WEBHOOK_VERIFY_TOKEN. Customer replies refresh the session window automatically.',
+        'os.messaging_hub.title': 'Messaging',
+        'os.messaging_hub.subtitle':
+            'Send approved WhatsApp templates to clients and review delivery logs.',
+        'os.messaging_hub.tab.send': 'Send',
+        'os.messaging_hub.tab.invoices': 'Invoices',
+        'os.messaging_hub.tab.logs': 'Logs',
+        'os.messaging_hub.send': 'Send message',
+        'os.messaging_hub.sent_success': 'WhatsApp message sent',
+        'os.messaging_hub.send_failed': 'Could not send WhatsApp message',
+        'os.messaging_hub.select_client': 'Select client',
+        'os.messaging_hub.recipient_phone': 'Recipient phone',
+        'os.messaging_hub.select_template': 'Approved template',
+        'os.messaging_hub.no_templates':
+            'No approved templates. Configure WhatsApp in settings or approve templates in Meta.',
+        'os.messaging_hub.template_params': 'Template parameters',
+        'os.messaging_hub.body_param': 'Body @index',
+        'os.messaging_hub.header_param': 'Header @index',
+        'os.messaging_hub.preview': 'Message preview',
+        'os.messaging_hub.preview.document': 'Document',
+        'os.messaging_hub.preview.btn_url': 'Visit website',
+        'os.messaging_hub.preview.btn_call': 'Call',
+        'os.messaging_hub.preview.btn_call_permission':
+            'Allow phone calls',
+        'os.messaging_hub.preview.btn_quick_reply': 'Quick reply',
+        'os.messaging_hub.not_configured':
+            'WhatsApp API is not configured or disabled. Ask an admin to set it up in OS settings.',
+        'os.messaging_hub.opening': 'Opening WhatsApp messaging…',
+        'os.messaging_hub.invoice_subtitle':
+            'Send an invoice reminder using an approved template (include payment link in parameters).',
+        'os.messaging_hub.select_invoice': 'Select invoice',
+        'os.messaging_hub.no_invoices': 'No unpaid invoices available',
+        'os.messaging_hub.no_invoice_templates':
+            'No approved invoice templates. Use a Meta template with a Document header and no call-permission button.',
+        'os.messaging_hub.invoice_template_document_required':
+            'Choose a template with a document header and no call-permission button.',
+        'os.messaging_hub.error_call_permission':
+            'This template includes a call-permission button, which Meta rejected for this recipient. Use an invoice template without that button, or pick another customer.',
+        'os.messaging_hub.log_type.invoice': 'Invoice',
+        'os.messaging_hub.log_type.crm': 'CRM',
+        'os.messaging_hub.log_type.custom': 'Other',
+        'os.messaging_hub.logs_empty': 'No WhatsApp messages sent yet',
+        'os.messaging_hub.status.sent': 'Sent',
+        'os.messaging_hub.status.failed': 'Failed',
+        'os.messaging_hub.send_via_api': 'Send via WhatsApp API',
+        'os.messaging_hub.invoice_pdf_failed':
+            'Could not create the invoice PDF. Try again or use Print first.',
+        'os.messaging_hub.send_mode.template': 'Template',
+        'os.messaging_hub.send_mode.session': 'Session message',
+        'os.messaging_hub.session_hint':
+            'Session messages work only if the customer messaged your business number in the last 24 hours. Outside that window, use an approved template.',
+        'os.messaging_hub.session_open_until':
+            'Customer service window open until @time. You can send a direct message.',
+        'os.messaging_hub.session_blocked':
+            'The 24-hour window is closed for this number. Switch to a template or wait for the customer to message you again.',
+        'os.messaging_hub.session_not_tracked':
+            'We have not recorded a recent message from this customer yet. Direct messages are blocked until they write to your WhatsApp number (configure the Meta webhook in OS settings).',
+        'os.messaging_hub.session_message': 'Message text',
+        'os.messaging_hub.session_message_required':
+            'Enter message text or attach a document.',
+        'os.messaging_hub.error_session_closed':
+            'The 24-hour messaging window is closed. Ask the customer to message you first, or send an approved template.',
+        'os.messaging_hub.log_template_session': 'Session message',
+        'os.messaging_hub.log_invoice_attachment': 'Invoice PDF',
+        'os.messaging_hub.invoice_send_mode_hint':
+            'Without a document-header template, send the invoice PDF as a session message (24-hour window) or pick any template without a call-permission button—the PDF is sent right after the template.',
+        'os.crm.send_whatsapp_template': 'Send template',
         'os.settings.print_contact.section': 'Print contact header',
         'os.settings.print_contact.description':
             'These lines appear on invoices, quotations, contracts, and payment vouchers instead of a fixed image.',
@@ -1575,6 +1672,8 @@ class AppTranslations extends Translations {
         'os.invoices.whatsapp': 'Send via WhatsApp',
         'os.invoices.whatsapp_body':
             'Hello, here is Nogta Agency invoice @ref for @amount. View and pay: @link',
+        'os.invoices.download_whatsapp_pdf': 'Download WhatsApp PDF',
+        'os.invoices.download_whatsapp_pdf_done': 'Invoice PDF saved',
         'os.invoices.email': 'Send via agency email',
         'os.invoices.email_subject':
             'Official invoice @ref — Nogta Creative Production Agency',
@@ -3958,6 +4057,7 @@ class AppTranslations extends Translations {
         "os.module.payroll": "الرواتب",
         "os.module.contracts": "العقود",
         "os.module.email_hub": "مركز البريد",
+        "os.module.messaging": "المراسلات",
         "os.module.services": "الخدمات",
         "os.module.branches": "الفروع",
         "os.email_hub.title": "مركز البريد",
@@ -4252,6 +4352,102 @@ class AppTranslations extends Translations {
             "مفتاح الخادم مطلوب عند تفعيل PayTabs",
         "os.settings.paytabs.bank_required":
             "اختر الحساب البنكي الذي يستلم مدفوعات البطاقات",
+        "os.settings.whatsapp.section": "WhatsApp Business API (Meta)",
+        "os.settings.whatsapp.description":
+            "ربط رقم واتساب Business لإرسال قوالب معتمدة من نظام نقطة.",
+        "os.settings.whatsapp.configured": "تم إعداد WhatsApp API",
+        "os.settings.whatsapp.not_configured": "WhatsApp API غير مُعد",
+        "os.settings.whatsapp.token_preview": "التوكن: @preview",
+        "os.settings.whatsapp.token_preview_label": "التوكن",
+        "os.settings.whatsapp.access_token": "توكن الوصول الدائم",
+        "os.settings.whatsapp.access_token_hint": "EAAG…",
+        "os.settings.whatsapp.phone_number_id": "معرّف رقم الهاتف",
+        "os.settings.whatsapp.phone_number_id_hint": "من لوحة Meta للمطورين",
+        "os.settings.whatsapp.business_account_id": "معرّف حساب WhatsApp Business",
+        "os.settings.whatsapp.business_account_id_hint": "WABA ID",
+        "os.settings.whatsapp.enabled": "تفعيل الإرسال عبر WhatsApp API",
+        "os.settings.whatsapp.save": "حفظ إعدادات WhatsApp",
+        "os.settings.whatsapp.saved": "تم حفظ إعدادات WhatsApp",
+        "os.settings.whatsapp.test": "اختبار الاتصال",
+        "os.settings.whatsapp.test_success": "تم التحقق: @name (@phone)",
+        "os.settings.whatsapp.test_failed": "تعذّر التحقق من إعدادات WhatsApp",
+        "os.settings.whatsapp.test_failed_detail": "@detail",
+        "os.settings.whatsapp.token_required":
+            "التوكن مطلوب عند تفعيل WhatsApp",
+        "os.settings.whatsapp.phone_id_required":
+            "معرّف رقم الهاتف مطلوب عند التفعيل",
+        "os.settings.whatsapp.waba_id_required":
+            "معرّف حساب Business مطلوب عند التفعيل",
+        "os.settings.whatsapp.display_phone": "الرقم المتصل: @phone",
+        "os.settings.whatsapp.display_phone_label": "الرقم المتصل",
+        "os.settings.whatsapp.webhook_hint":
+            "للرسائل المباشرة (24 ساعة)، وجّه webhook في Meta إلى دالة os-whatsapp-webhook واضبط WHATSAPP_WEBHOOK_VERIFY_TOKEN. ردود العملاء تحدّث نافذة المراسلة تلقائياً.",
+        "os.messaging_hub.title": "المراسلات",
+        "os.messaging_hub.subtitle":
+            "إرسال قوالب WhatsApp المعتمدة للعملاء ومراجعة سجل الإرسال.",
+        "os.messaging_hub.tab.send": "إرسال",
+        "os.messaging_hub.tab.invoices": "الفواتير",
+        "os.messaging_hub.tab.logs": "السجل",
+        "os.messaging_hub.send": "إرسال الرسالة",
+        "os.messaging_hub.sent_success": "تم إرسال رسالة WhatsApp",
+        "os.messaging_hub.send_failed": "تعذّر إرسال رسالة WhatsApp",
+        "os.messaging_hub.select_client": "اختر العميل",
+        "os.messaging_hub.recipient_phone": "هاتف المستلم",
+        "os.messaging_hub.select_template": "قالب معتمد",
+        "os.messaging_hub.no_templates":
+            "لا توجد قوالب معتمدة. أعد الإعداد في Meta أو من إعدادات النظام.",
+        "os.messaging_hub.template_params": "متغيرات القالب",
+        "os.messaging_hub.body_param": "المحتوى @index",
+        "os.messaging_hub.header_param": "الترويسة @index",
+        "os.messaging_hub.preview": "معاينة الرسالة",
+        "os.messaging_hub.preview.document": "مستند",
+        "os.messaging_hub.preview.btn_url": "زيارة الموقع",
+        "os.messaging_hub.preview.btn_call": "اتصال",
+        "os.messaging_hub.preview.btn_call_permission":
+            "السماح بالمكالمات الهاتفية",
+        "os.messaging_hub.preview.btn_quick_reply": "رد سريع",
+        "os.messaging_hub.not_configured":
+            "WhatsApp API غير مفعّل. اطلب من المدير إعداده في إعدادات النظام.",
+        "os.messaging_hub.opening": "جاري فتح مركز WhatsApp…",
+        "os.messaging_hub.invoice_subtitle":
+            "إرسال تذكير فاتورة بقالب معتمد (ضمّن رابط الدفع في المتغيرات).",
+        "os.messaging_hub.select_invoice": "اختر الفاتورة",
+        "os.messaging_hub.no_invoices": "لا توجد فواتير غير مدفوعة",
+        "os.messaging_hub.no_invoice_templates":
+            "لا توجد قوالب مناسبة للفواتير. استخدم قالباً بترويسة Document بدون زر طلب إذن المكالمة.",
+        "os.messaging_hub.invoice_template_document_required":
+            "اختر قالباً بترويسة مستند وبدون زر طلب إذن المكالمة.",
+        "os.messaging_hub.error_call_permission":
+            "القالب يتضمن زر طلب إذن المكالمة ورفضه Meta لهذا المستلم. استخدم قالب فاتورة بدون هذا الزر أو عميلاً آخر.",
+        "os.messaging_hub.log_type.invoice": "فاتورة",
+        "os.messaging_hub.log_type.crm": "CRM",
+        "os.messaging_hub.log_type.custom": "أخرى",
+        "os.messaging_hub.logs_empty": "لم يُرسل أي WhatsApp بعد",
+        "os.messaging_hub.status.sent": "مُرسل",
+        "os.messaging_hub.status.failed": "فشل",
+        "os.messaging_hub.send_via_api": "إرسال عبر WhatsApp API",
+        "os.messaging_hub.invoice_pdf_failed":
+            "تعذّر إنشاء PDF للفاتورة. أعد المحاولة أو استخدم الطباعة أولاً.",
+        "os.messaging_hub.send_mode.template": "قالب",
+        "os.messaging_hub.send_mode.session": "رسالة مباشرة",
+        "os.messaging_hub.session_hint":
+            "الرسائل المباشرة متاحة فقط إذا راسل العميل رقمكم خلال 24 ساعة. خارج هذه الفترة استخدم قالباً معتمداً.",
+        "os.messaging_hub.session_open_until":
+            "نافذة المراسلة مفتوحة حتى @time. يمكنك إرسال رسالة مباشرة.",
+        "os.messaging_hub.session_blocked":
+            "انتهت نافذة الـ 24 ساعة لهذا الرقم. انتقل إلى قالب أو انتظر رسالة جديدة من العميل.",
+        "os.messaging_hub.session_not_tracked":
+            "لم نسجّل رسالة حديثة من هذا العميل بعد. الرسائل المباشرة مقفلة حتى يراسلك على WhatsApp (فعّل webhook في إعدادات النظام).",
+        "os.messaging_hub.session_message": "نص الرسالة",
+        "os.messaging_hub.session_message_required":
+            "أدخل نص الرسالة أو أرفق مستنداً.",
+        "os.messaging_hub.error_session_closed":
+            "انتهت نافذة المراسلة (24 ساعة). اطلب من العميل مراسلتكم أولاً، أو أرسل قالباً معتمداً.",
+        "os.messaging_hub.log_template_session": "رسالة مباشرة",
+        "os.messaging_hub.log_invoice_attachment": "PDF الفاتورة",
+        "os.messaging_hub.invoice_send_mode_hint":
+            "بدون قالب بترويسة مستند: أرسل PDF الفاتورة كرسالة مباشرة (نافذة 24 ساعة)، أو اختر أي قالب بدون زر طلب إذن المكالمة—يُرسل PDF بعد القالب.",
+        "os.crm.send_whatsapp_template": "إرسال قالب",
         "os.settings.print_contact.section": "بيانات الترويسة للطباعة",
         "os.settings.print_contact.description":
             "تظهر هذه البيانات في الفواتير والعروض والعقود وسندات القبض والدفع بدل الصورة الثابتة.",
@@ -4572,6 +4768,8 @@ class AppTranslations extends Translations {
         "os.invoices.whatsapp": "إرسال واتساب",
         "os.invoices.whatsapp_body":
             "مرحباً، إليكم فاتورة وكالة نقطة رقم @ref بمبلغ @amount للاطلاع والدفع: @link",
+        "os.invoices.download_whatsapp_pdf": "تنزيل PDF للواتساب",
+        "os.invoices.download_whatsapp_pdf_done": "تم حفظ PDF الفاتورة",
         "os.invoices.email": "إرسال عبر البريد المخصص",
         "os.invoices.email_subject":
             "فاتورة رسمية رقم @ref - وكالة نقطة للإنتاج الإبداعي",
