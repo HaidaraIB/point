@@ -226,11 +226,6 @@ class _OsWhatsappSettingsPanelState extends State<OsWhatsappSettingsPanel> {
           AppLocaleKeys.osSettingsWhatsappDescription.tr,
           style: TextStyle(fontSize: 13, height: 1.5, color: theme.secondaryText),
         ),
-        const SizedBox(height: 8),
-        Text(
-          AppLocaleKeys.osSettingsWhatsappWebhookHint.tr,
-          style: TextStyle(fontSize: 12, height: 1.45, color: theme.mutedText),
-        ),
         const SizedBox(height: 16),
         Row(
           children: [

@@ -887,8 +887,6 @@ class AppLocaleKeys {
       'os.settings.whatsapp.display_phone';
   static const osSettingsWhatsappDisplayPhoneLabel =
       'os.settings.whatsapp.display_phone_label';
-  static const osSettingsWhatsappWebhookHint =
-      'os.settings.whatsapp.webhook_hint';
   static const osMessagingHubTitle = 'os.messaging_hub.title';
   static const osMessagingHubSubtitle = 'os.messaging_hub.subtitle';
   static const osMessagingHubTabSend = 'os.messaging_hub.tab.send';

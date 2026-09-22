@@ -20,8 +20,6 @@ export { OS_SETTINGS_DOC };
 export const WHATSAPP_LOGS_COLLECTION = "os_whatsapp_logs";
 export const WHATSAPP_SESSION_WINDOWS_COLLECTION = "os_whatsapp_session_windows";
 
-const SESSION_WINDOW_MS = 24 * 60 * 60 * 1000;
-
 const GRAPH_VERSION = "v25.0";
 const GRAPH_BASE = `https://graph.facebook.com/${GRAPH_VERSION}`;
 
@@ -193,41 +191,6 @@ export type WhatsappSessionWindowStatus = {
   lastInboundAt?: string;
   tracked: boolean;
 };
-
-export async function recordWhatsappCustomerInbound(
-  saAccessToken: string,
-  projectId: string,
-  customerPhone: string,
-  inboundAt: Date = new Date(),
-): Promise<void> {
-  const phone = normalizeWhatsappPhone(customerPhone);
-  if (!phone) return;
-  const expiresAt = new Date(inboundAt.getTime() + SESSION_WINDOW_MS);
-  const fields: Record<string, unknown> = {
-    phone: toFirestoreString(phone),
-    lastInboundAt: toFirestoreTimestamp(inboundAt),
-    sessionExpiresAt: toFirestoreTimestamp(expiresAt),
-  };
-  const docPath = `${WHATSAPP_SESSION_WINDOWS_COLLECTION}/${phone}`;
-  const existing = await getFirestoreDoc(saAccessToken, projectId, docPath);
-  if (existing) {
-    await setFirestoreDoc(
-      saAccessToken,
-      projectId,
-      docPath,
-      fields,
-      ["phone", "lastInboundAt", "sessionExpiresAt"],
-    );
-  } else {
-    await createFirestoreDoc(
-      saAccessToken,
-      projectId,
-      WHATSAPP_SESSION_WINDOWS_COLLECTION,
-      phone,
-      fields,
-    );
-  }
-}
 
 export async function getWhatsappSessionWindowStatus(
   saAccessToken: string,

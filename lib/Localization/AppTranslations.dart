@@ -1420,8 +1420,6 @@ class AppTranslations extends Translations {
             'Business account ID is required when WhatsApp is enabled',
         'os.settings.whatsapp.display_phone': 'Connected number: @phone',
         'os.settings.whatsapp.display_phone_label': 'Connected number',
-        'os.settings.whatsapp.webhook_hint':
-            'For direct (24h) messages, point Meta’s webhook to the os-whatsapp-webhook function and set WHATSAPP_WEBHOOK_VERIFY_TOKEN. Customer replies refresh the session window automatically.',
         'os.messaging_hub.title': 'Messaging',
         'os.messaging_hub.subtitle':
             'Send approved WhatsApp templates to clients and review delivery logs.',
@@ -4380,8 +4378,6 @@ class AppTranslations extends Translations {
             "معرّف حساب Business مطلوب عند التفعيل",
         "os.settings.whatsapp.display_phone": "الرقم المتصل: @phone",
         "os.settings.whatsapp.display_phone_label": "الرقم المتصل",
-        "os.settings.whatsapp.webhook_hint":
-            "للرسائل المباشرة (24 ساعة)، وجّه webhook في Meta إلى دالة os-whatsapp-webhook واضبط WHATSAPP_WEBHOOK_VERIFY_TOKEN. ردود العملاء تحدّث نافذة المراسلة تلقائياً.",
         "os.messaging_hub.title": "المراسلات",
         "os.messaging_hub.subtitle":
             "إرسال قوالب WhatsApp المعتمدة للعملاء ومراجعة سجل الإرسال.",
