@@ -6,17 +6,28 @@ class OsMessagingHubTabPersistence {
 
   static const prefsKey = StorageKeys.prefsOsMessagingHubTabKey;
   static const send = 'send';
-  static const invoices = 'invoices';
   static const logs = 'logs';
-  static const names = [send, invoices, logs];
+  static const names = [send, logs];
 
   static int get logsIndex => names.indexOf(logs);
+
+  /// Maps legacy 3-tab indices (`send` | `invoices` | `logs`) to the current
+  /// 2-tab layout (`send` | `logs`).
+  static int migrateLegacyIndex(int raw) {
+    if (raw <= 0) return 0;
+    if (raw == 1) return 0;
+    return logsIndex;
+  }
 
   static Future<int> loadSavedIndex() async {
     final prefs = await SharedPreferences.getInstance();
     final raw = prefs.getInt(prefsKey);
     if (raw == null) return 0;
-    return raw.clamp(0, names.length - 1);
+    final migrated = migrateLegacyIndex(raw);
+    if (migrated != raw) {
+      await saveIndex(migrated);
+    }
+    return migrated;
   }
 
   static Future<void> saveIndex(int index) async {

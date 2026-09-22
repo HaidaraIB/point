@@ -53,41 +53,8 @@ String _statementRow(String label, String value, {bool bold = false}) {
 </div>''';
 }
 
-String buildOsVoucherPrintHtml({
-  required OsVoucherModel voucher,
-  required String accountName,
-}) {
-  final ref = OsFinanceFormat.voucherRef(voucher);
-  final isReceipt = voucher.type == OsVoucherType.receipt;
-  final desc = OsFinanceFormat.displayDescription(voucher.description);
-  final titleAr = isReceipt
-      ? AppLocaleKeys.osPrintVoucherReceiptAr.tr
-      : AppLocaleKeys.osPrintVoucherPaymentAr.tr;
-  final titleEn = isReceipt
-      ? AppLocaleKeys.osPrintVoucherReceiptEn.tr
-      : AppLocaleKeys.osPrintVoucherPaymentEn.tr;
-  final typeLabel = isReceipt
-      ? AppLocaleKeys.osVouchersTypeReceipt.tr
-      : AppLocaleKeys.osVouchersTypePayment.tr;
-  final partyLabel = isReceipt
-      ? AppLocaleKeys.osVouchersFrom.tr
-      : AppLocaleKeys.osVouchersTo.tr;
-  final about = desc.isEmpty
-      ? AppLocaleKeys.osVouchersDefaultDesc.tr
-      : desc;
-
-  final qr = OsPrintCodes.qrSvg('${OsBrandPrint.agencySiteUrl}?v=$ref');
-  final barcode = OsPrintCodes.code128Svg(ref);
-
+String _osVoucherPrintExtraCss() {
   return '''
-<!DOCTYPE html>
-<html dir="rtl" lang="ar">
-<head>
-<meta charset="utf-8"/>
-<title>${escapeHtml(titleAr)} — ${escapeHtml(ref)}</title>
-<style>
-$osPrintA4Css
-${OsBrandPrint.brandCss()}
 .voucher-print.sheet { min-height: 0; }
 .voucher-print .watermark-logo {
   left: 4%;
@@ -254,12 +221,24 @@ ${OsBrandPrint.brandCss()}
   font-size: 12px;
   letter-spacing: 1.2px;
 }
-</style>
-</head>
-<body>
-'''
-      '${osPrintTwoCopies(sheetClass: 'voucher-print', innerHtml: '''
-      ${OsBrandPrint.watermarkHtml()}
+''';
+}
+
+String _osVoucherPrintInnerHtml({
+  required OsVoucherModel voucher,
+  required String accountName,
+  required String ref,
+  required String titleAr,
+  required String titleEn,
+  required String typeLabel,
+  required String partyLabel,
+  required String about,
+  required String qr,
+  required String barcode,
+  bool includeBrandWatermark = true,
+}) {
+  return '''
+      ${includeBrandWatermark ? OsBrandPrint.watermarkHtml() : ''}
       <div class="content-layer">
         ${OsBrandPrint.headerHtml()}
         <div class="voucher-title-row no-split">
@@ -293,9 +272,68 @@ ${OsBrandPrint.brandCss()}
           documentRef: ref,
         )}
       </div>
-''')}'
-      '''
+''';
+}
+
+String buildOsVoucherPrintHtml({
+  required OsVoucherModel voucher,
+  required String accountName,
+  bool forPdf = false,
+}) {
+  final ref = OsFinanceFormat.voucherRef(voucher);
+  final isReceipt = voucher.type == OsVoucherType.receipt;
+  final desc = OsFinanceFormat.displayDescription(voucher.description);
+  final titleAr = isReceipt
+      ? AppLocaleKeys.osPrintVoucherReceiptAr.tr
+      : AppLocaleKeys.osPrintVoucherPaymentAr.tr;
+  final titleEn = isReceipt
+      ? AppLocaleKeys.osPrintVoucherReceiptEn.tr
+      : AppLocaleKeys.osPrintVoucherPaymentEn.tr;
+  final typeLabel = isReceipt
+      ? AppLocaleKeys.osVouchersTypeReceipt.tr
+      : AppLocaleKeys.osVouchersTypePayment.tr;
+  final partyLabel = isReceipt
+      ? AppLocaleKeys.osVouchersFrom.tr
+      : AppLocaleKeys.osVouchersTo.tr;
+  final about = desc.isEmpty
+      ? AppLocaleKeys.osVouchersDefaultDesc.tr
+      : desc;
+
+  final qr = OsPrintCodes.qrSvg('${OsBrandPrint.agencySiteUrl}?v=$ref');
+  final barcode = OsPrintCodes.code128Svg(ref);
+  final inner = _osVoucherPrintInnerHtml(
+    voucher: voucher,
+    accountName: accountName,
+    ref: ref,
+    titleAr: titleAr,
+    titleEn: titleEn,
+    typeLabel: typeLabel,
+    partyLabel: partyLabel,
+    about: about,
+    qr: qr,
+    barcode: barcode,
+    includeBrandWatermark: !forPdf,
+  );
+  final bodySheets = forPdf
+      ? osPrintSingleSheet(sheetClass: 'voucher-print', innerHtml: inner)
+      : osPrintTwoCopies(sheetClass: 'voucher-print', innerHtml: inner);
+
+  return '''
+<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+<head>
+<meta charset="utf-8"/>
+<title>${escapeHtml(titleAr)} — ${escapeHtml(ref)}</title>
+<style>
+$osPrintA4Css
+${OsBrandPrint.brandCss()}
+${_osVoucherPrintExtraCss()}
+</style>
+</head>
+<body>
+$bodySheets
 </body>
 </html>
 ''';
 }
+

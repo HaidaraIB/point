@@ -40,13 +40,13 @@ class _OsMessagingHubPageState extends State<OsMessagingHubPage> {
       }
     });
     final args = Get.arguments;
-    final openInvoicesTab = args is Map &&
+    final openInvoiceInSendTab = args is Map &&
         (args['invoiceId']?.toString().trim().isNotEmpty ?? false);
-    if (openInvoicesTab) {
-      _panelIndex = 1;
-      OsMessagingHubTabPersistence.saveIndex(1);
+    if (openInvoiceInSendTab) {
+      _panelIndex = 0;
+      OsMessagingHubTabPersistence.saveIndex(0);
       _hub.applyNavigationArguments(args);
-      _hub.ensureInvoiceDocumentTemplate();
+      _hub.ensureInvoicePurposeSelected();
     } else {
       _restoreSavedPanel();
     }
@@ -64,10 +64,6 @@ class _OsMessagingHubPageState extends State<OsMessagingHubPage> {
     if (_panelIndex == safe) return;
     setState(() => _panelIndex = safe);
     OsMessagingHubTabPersistence.saveIndex(safe);
-    if (OsMessagingHubTabPersistence.nameAt(safe) ==
-        OsMessagingHubTabPersistence.invoices) {
-      _hub.ensureInvoiceDocumentTemplate();
-    }
   }
 
   @override
@@ -78,8 +74,6 @@ class _OsMessagingHubPageState extends State<OsMessagingHubPage> {
 
   Widget _buildPanel() {
     switch (OsMessagingHubTabPersistence.nameAt(_panelIndex)) {
-      case OsMessagingHubTabPersistence.invoices:
-        return OsMessagingHubInvoicesTab(hub: _hub);
       case OsMessagingHubTabPersistence.logs:
         return OsMessagingHubLogsTab(hub: _hub);
       case OsMessagingHubTabPersistence.send:
@@ -139,13 +133,6 @@ class _OsMessagingHubPageState extends State<OsMessagingHubPage> {
                     icon: Icons.send_outlined,
                     label: AppLocaleKeys.osMessagingHubTabSend.tr,
                   ),
-                  if (OsPermissions.canAccessModule(emp, OsModuleIds.invoices))
-                    _tabChip(
-                      theme,
-                      index: 1,
-                      icon: Icons.receipt_long_outlined,
-                      label: AppLocaleKeys.osMessagingHubTabInvoices.tr,
-                    ),
                   _tabChip(
                     theme,
                     index: OsMessagingHubTabPersistence.logsIndex,

@@ -1,6 +1,7 @@
 import 'package:get/get.dart';
 import 'package:point/Localization/AppLocaleKeys.dart';
 import 'package:point/Models/Os/OsQuotationModel.dart';
+import 'package:point/Utils/whatsapp_phone.dart';
 import 'package:point/Services/os_quote_template_settings.dart';
 import 'package:point/View/Os/Print/os_brand_print.dart';
 import 'package:point/View/Os/Print/os_print_codes.dart';
@@ -82,75 +83,8 @@ String buildOsQuotationPlainText(OsQuotationModel quote) {
   return buf.toString();
 }
 
-String buildOsQuotationPrintHtml(OsQuotationModel quote) {
-  final ref = OsFinanceFormat.quotationRef(quote);
-
-  final notesRaw = (quote.notes?.trim().isNotEmpty == true)
-      ? quote.notes!.trim()
-      : AppLocaleKeys.osPrintQuoteNotesDefault.tr;
-
-  final rows = <String>[];
-  if (quote.items.isEmpty) {
-    final amt = quote.amount > 0 ? quote.amount : quote.total;
-    rows.add(
-      '<tr>'
-      '<td>1</td>'
-      '<td class="desc">${escapeHtml(AppLocaleKeys.osInvoicesItemsFallback.tr)}</td>'
-      '<td>${OsBrandPrint.moneyHtml(amt)}</td>'
-      '</tr>',
-    );
-  } else {
-    for (var i = 0; i < quote.items.length; i++) {
-      final it = quote.items[i];
-      rows.add(
-        '<tr>'
-        '<td>${i + 1}</td>'
-        '${OsLineItemPrintFormat.descHtml(it)}'
-        '<td>${OsBrandPrint.moneyHtml(it.total)}</td>'
-        '</tr>',
-      );
-    }
-  }
-  final padded = OsBrandPrint.padItemRows(rows, columnCount: 3);
-
-  final phone = quote.clientPhone?.trim() ?? '';
-  final email = quote.clientEmail?.trim() ?? '';
-  final address = quote.clientAddress?.trim() ?? '';
-  final clientName = quote.clientName.trim().isEmpty
-      ? AppLocaleKeys.osPrintQuoteClientPlaceholder.tr
-      : quote.clientName.trim();
-
-  final validity = AppLocaleKeys.osPrintQuoteValidity.trParams({
-    'days': '30',
-  });
-
-  final notesLines = notesRaw
-      .split(RegExp(r'[\n•]+'))
-      .map((e) => e.replaceFirst(RegExp(r'^[-–—]\s*'), '').trim())
-      .where((e) => e.isNotEmpty)
-      .toList();
-  final notesHtml = notesLines.isEmpty
-      ? '<p></p>'
-      : '<ul>${notesLines.map((l) => '<li>${escapeHtml(l)}</li>').join()}</ul>';
-
-  final qr = OsPrintCodes.qrSvg(OsBrandPrint.agencySiteUrl);
-  final totals = OsBrandPrint.totalsHtml(
-    subtotal: OsBrandPrint.moneyHtml(quote.amount),
-    discount: OsBrandPrint.moneyHtml(quote.discount),
-    tax: OsBrandPrint.moneyHtml(quote.vat),
-    grandTotal: OsBrandPrint.moneyHtml(quote.total),
-    taxLabel: AppLocaleKeys.osPrintTaxIfAny.tr,
-  );
-
+String _osQuotationPrintExtraCss() {
   return '''
-<!DOCTYPE html>
-<html dir="rtl" lang="ar">
-<head>
-<meta charset="utf-8"/>
-<title>${escapeHtml(AppLocaleKeys.osPrintQuoteTitle.tr)} — ${escapeHtml(ref)}</title>
-<style>
-$osPrintA4Css
-${OsBrandPrint.brandCss()}
 .quote-print.sheet { min-height: 277mm; }
 .quote-print .brand-header {
   margin-bottom: 12px;
@@ -226,11 +160,70 @@ ${OsLineItemPrintFormat.itemMarketingCss()}
 .quote-meta-col .val.ltr { direction: ltr; unicode-bidi: isolate; }
 .quote-meta-col .val.rtl-val { direction: rtl; }
 .greeting { margin: 0; }
-</style>
-</head>
-<body>
-'''
-      '${osPrintTwoCopies(sheetClass: 'quote-print', innerHtml: '''
+''';
+}
+
+String _osQuotationPrintInnerHtml(OsQuotationModel quote) {
+  final ref = OsFinanceFormat.quotationRef(quote);
+
+  final notesRaw = (quote.notes?.trim().isNotEmpty == true)
+      ? quote.notes!.trim()
+      : AppLocaleKeys.osPrintQuoteNotesDefault.tr;
+
+  final rows = <String>[];
+  if (quote.items.isEmpty) {
+    final amt = quote.amount > 0 ? quote.amount : quote.total;
+    rows.add(
+      '<tr>'
+      '<td>1</td>'
+      '<td class="desc">${escapeHtml(AppLocaleKeys.osInvoicesItemsFallback.tr)}</td>'
+      '<td>${OsBrandPrint.moneyHtml(amt)}</td>'
+      '</tr>',
+    );
+  } else {
+    for (var i = 0; i < quote.items.length; i++) {
+      final it = quote.items[i];
+      rows.add(
+        '<tr>'
+        '<td>${i + 1}</td>'
+        '${OsLineItemPrintFormat.descHtml(it)}'
+        '<td>${OsBrandPrint.moneyHtml(it.total)}</td>'
+        '</tr>',
+      );
+    }
+  }
+  final padded = OsBrandPrint.padItemRows(rows, columnCount: 3);
+
+  final phone = formatWhatsappPhoneDisplay(quote.clientPhone);
+  final email = quote.clientEmail?.trim() ?? '';
+  final address = quote.clientAddress?.trim() ?? '';
+  final clientName = quote.clientName.trim().isEmpty
+      ? AppLocaleKeys.osPrintQuoteClientPlaceholder.tr
+      : quote.clientName.trim();
+
+  final validity = AppLocaleKeys.osPrintQuoteValidity.trParams({
+    'days': '30',
+  });
+
+  final notesLines = notesRaw
+      .split(RegExp(r'[\n•]+'))
+      .map((e) => e.replaceFirst(RegExp(r'^[-–—]\s*'), '').trim())
+      .where((e) => e.isNotEmpty)
+      .toList();
+  final notesHtml = notesLines.isEmpty
+      ? '<p></p>'
+      : '<ul>${notesLines.map((l) => '<li>${escapeHtml(l)}</li>').join()}</ul>';
+
+  final qr = OsPrintCodes.qrSvg(OsBrandPrint.agencySiteUrl);
+  final totals = OsBrandPrint.totalsHtml(
+    subtotal: OsBrandPrint.moneyHtml(quote.amount),
+    discount: OsBrandPrint.moneyHtml(quote.discount),
+    tax: OsBrandPrint.moneyHtml(quote.vat),
+    grandTotal: OsBrandPrint.moneyHtml(quote.total),
+    taxLabel: AppLocaleKeys.osPrintTaxIfAny.tr,
+  );
+
+  return '''
     ${OsBrandPrint.headerHtml()}
     <div class="content-layer">
       <div class="quote-top no-split">
@@ -284,9 +277,31 @@ ${OsLineItemPrintFormat.itemMarketingCss()}
 
       ${OsBrandPrint.quotationFooterHtml(qrSvg: qr)}
     </div>
-''')}'
-      '''
+''';
+}
+
+String buildOsQuotationPrintHtml(OsQuotationModel quote, {bool forPdf = false}) {
+  final ref = OsFinanceFormat.quotationRef(quote);
+  final inner = _osQuotationPrintInnerHtml(quote);
+  final bodySheets = forPdf
+      ? osPrintSingleSheet(sheetClass: 'quote-print', innerHtml: inner)
+      : osPrintTwoCopies(sheetClass: 'quote-print', innerHtml: inner);
+  return '''
+<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+<head>
+<meta charset="utf-8"/>
+<title>${escapeHtml(AppLocaleKeys.osPrintQuoteTitle.tr)} — ${escapeHtml(ref)}</title>
+<style>
+$osPrintA4Css
+${OsBrandPrint.brandCss()}
+${_osQuotationPrintExtraCss()}
+</style>
+</head>
+<body>
+$bodySheets
 </body>
 </html>
 ''';
 }
+

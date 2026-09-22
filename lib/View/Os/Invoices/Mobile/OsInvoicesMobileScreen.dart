@@ -10,8 +10,11 @@ import 'package:point/View/Os/Invoices/Mobile/OsInvoiceFormMobilePage.dart';
 import 'package:point/View/Os/Invoices/os_invoice_pdf_download_action.dart';
 import 'package:point/View/Os/Invoices/os_invoice_share.dart';
 import 'package:point/View/Os/os_button_styles.dart';
+import 'package:point/View/Os/os_document_action_button.dart';
 import 'package:point/View/Os/os_finance_format.dart';
 import 'package:point/View/Os/os_finance_status_widgets.dart';
+import 'package:point/Models/Os/os_whatsapp_template_map.dart';
+import 'package:point/View/Os/Messaging/os_whatsapp_send_icon_button.dart';
 import 'package:point/View/Os/os_page_header.dart';
 import 'package:point/View/Shared/responsive.dart';
 
@@ -39,7 +42,7 @@ class OsInvoicesMobileScreen extends StatelessWidget {
   final void Function(OsInvoiceModel, String) onStatusChange;
   final ValueChanged<OsInvoiceModel> onPreview;
   final ValueChanged<OsInvoiceModel> onPaymentLink;
-  final ValueChanged<OsInvoiceModel> onWhatsApp;
+  final Future<void> Function(OsInvoiceModel) onWhatsApp;
   final ValueChanged<OsInvoiceModel> onEmail;
   final ValueChanged<OsInvoiceModel> onLinkAccount;
 
@@ -143,7 +146,7 @@ class _OsInvoiceMobileCard extends StatelessWidget {
   final String accountLabel;
   final VoidCallback onPreview;
   final VoidCallback onPaymentLink;
-  final VoidCallback onWhatsApp;
+  final Future<void> Function() onWhatsApp;
   final VoidCallback onEmail;
   final VoidCallback onLinkAccount;
   final VoidCallback onMarkPaid;
@@ -244,22 +247,17 @@ class _OsInvoiceMobileCard extends StatelessWidget {
                 icon: Icons.visibility_outlined,
                 onPressed: onPreview,
               ),
-              _InvoiceIconAction(
+              OsDocumentActionIconButton(
                 tooltip: AppLocaleKeys.osInvoicesEmail.tr,
                 icon: Icons.mail_outline,
-                onPressed: onEmail,
+                onPressed: () async => onEmail(),
               ),
-              OsInvoicePdfDownloadIconButton(
-                invoice: inv,
-                iconSize: 22,
-                constraints: const BoxConstraints(),
+              OsInvoicePdfDownloadIconButton(invoice: inv),
+              OsWhatsappSendIconButton(
+                purpose: OsWhatsappTemplatePurpose.invoice,
+                onSend: onWhatsApp,
               ),
               if (!inv.isPaid) ...[
-                _InvoiceIconAction(
-                  tooltip: AppLocaleKeys.osInvoicesWhatsapp.tr,
-                  icon: Icons.send_outlined,
-                  onPressed: onWhatsApp,
-                ),
                 _InvoiceIconAction(
                   tooltip: AppLocaleKeys.osInvoicesPaymentLink.tr,
                   icon: Icons.link,

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
@@ -11,19 +12,25 @@ import 'package:point/Utils/os_arabic_currency.dart';
 import 'package:point/View/Os/Finance/os_voucher_print.dart';
 import 'package:point/View/Os/Finance/os_voucher_print_text.dart';
 import 'package:point/View/Os/os_button_styles.dart';
+import 'package:point/View/Os/Messaging/os_whatsapp_quick_send.dart';
+import 'package:point/View/Os/Messaging/os_whatsapp_send_filled_button.dart';
 import 'package:point/View/Os/os_electronic_stamp.dart';
 import 'package:point/View/Os/os_finance_format.dart';
+import 'package:point/View/Os/os_document_action_button.dart';
+import 'package:point/View/Os/os_print_pdf_button.dart';
 
 class OsVoucherDetailPanel extends StatefulWidget {
   const OsVoucherDetailPanel({
     super.key,
     required this.voucher,
     required this.accountName,
+    this.onEdit,
     this.onDelete,
   });
 
   final OsVoucherModel voucher;
   final String accountName;
+  final VoidCallback? onEdit;
   final VoidCallback? onDelete;
 
   @override
@@ -55,6 +62,160 @@ class _OsVoucherDetailPanelState extends State<OsVoucherDetailPanel> {
     );
   }
 
+  Future<void> _downloadPdf() => downloadOsVoucherClientCopyPdf(
+        voucher: widget.voucher,
+        accountName: widget.accountName,
+      );
+
+  Widget _buildHintRow(AppThemeExtension theme) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(Icons.info_outline, size: 18, color: theme.accentText),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            AppLocaleKeys.osVouchersPrintHint.tr,
+            style: TextStyle(
+              fontSize: 13,
+              color: theme.secondaryText,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildCopyButton(AppThemeExtension theme, {bool expand = false}) {
+    final button = FilledButton.icon(
+      onPressed: _copy,
+      style: OsButtonStyles.secondaryCompact(theme),
+      icon: Icon(_copied ? Icons.check : Icons.copy, size: 18),
+      label: osDocumentActionLabel(
+        _copied
+            ? AppLocaleKeys.osVouchersCopied.tr
+            : AppLocaleKeys.osVouchersCopy.tr,
+        expand: expand,
+      ),
+    );
+    return expand ? SizedBox(width: double.infinity, child: button) : button;
+  }
+
+  Widget _buildEditButton(AppThemeExtension theme, {bool expand = false}) {
+    final button = FilledButton.icon(
+      onPressed: widget.onEdit,
+      style: OsButtonStyles.secondaryCompact(theme),
+      icon: const Icon(Icons.edit_outlined, size: 18),
+      label: osDocumentActionLabel(AppLocaleKeys.osVouchersEdit.tr, expand: expand),
+    );
+    return expand ? SizedBox(width: double.infinity, child: button) : button;
+  }
+
+  Widget _buildDeleteButton(AppThemeExtension theme, {bool expand = false}) {
+    final button = FilledButton.icon(
+      onPressed: widget.onDelete,
+      style: OsButtonStyles.secondaryCompact(theme).copyWith(
+        foregroundColor: const WidgetStatePropertyAll(AppColors.destructive),
+      ),
+      icon: const Icon(Icons.delete_outline, size: 18),
+      label: osDocumentActionLabel(
+        AppLocaleKeys.osVouchersDelete.tr,
+        expand: expand,
+      ),
+    );
+    return expand ? SizedBox(width: double.infinity, child: button) : button;
+  }
+
+  Widget _buildActionsToolbar(
+    BuildContext context,
+    AppThemeExtension theme,
+  ) {
+    final narrow = MediaQuery.sizeOf(context).width < 640;
+    final whatsapp = OsWhatsappSendFilledButton(
+      purpose: osWhatsappPurposeForVoucher(widget.voucher),
+      expand: narrow,
+      onSend: () => sendOsVoucherViaWhatsapp(widget.voucher),
+    );
+    final printButton = OsDocumentActionFilledButton(
+      style: OsButtonStyles.printCompact(theme),
+      icon: Icons.print_outlined,
+      label: AppLocaleKeys.osVouchersPrint.tr,
+      onPressed: _print,
+      expand: narrow,
+    );
+    final pdfButton = OsPrintPdfFilledCompactButton(
+      theme: theme,
+      onDownload: _downloadPdf,
+      expand: narrow,
+    );
+    final copyButton = _buildCopyButton(theme, expand: narrow);
+    final editButton =
+        widget.onEdit != null ? _buildEditButton(theme, expand: narrow) : null;
+    final deleteButton = widget.onDelete != null
+        ? _buildDeleteButton(theme, expand: narrow)
+        : null;
+    final hasManageActions = editButton != null || deleteButton != null;
+
+    if (narrow) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _buildHintRow(theme),
+          const SizedBox(height: 12),
+          whatsapp,
+          const SizedBox(height: 8),
+          printButton,
+          if (kIsWeb) ...[
+            const SizedBox(height: 8),
+            pdfButton,
+          ],
+          const SizedBox(height: 8),
+          copyButton,
+          if (hasManageActions) ...[
+            const SizedBox(height: 8),
+            if (editButton != null) editButton,
+            if (deleteButton != null) ...[
+              if (editButton != null) const SizedBox(height: 8),
+              deleteButton,
+            ],
+          ],
+        ],
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _buildHintRow(theme),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(child: whatsapp),
+            const SizedBox(width: 8),
+            Expanded(child: printButton),
+            if (kIsWeb) ...[
+              const SizedBox(width: 8),
+              Expanded(child: pdfButton),
+            ],
+            const SizedBox(width: 8),
+            Expanded(child: copyButton),
+          ],
+        ),
+        if (hasManageActions) ...[
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              if (editButton != null) Expanded(child: editButton),
+              if (editButton != null && deleteButton != null)
+                const SizedBox(width: 8),
+              if (deleteButton != null) Expanded(child: deleteButton),
+            ],
+          ),
+        ],
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = context.appTheme;
@@ -79,68 +240,7 @@ class _OsVoucherDetailPanelState extends State<OsVoucherDetailPanel> {
             borderRadius: BorderRadius.circular(14),
             border: Border.all(color: theme.border),
           ),
-          child: Wrap(
-            spacing: 8,
-            runSpacing: 10,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            alignment: WrapAlignment.spaceBetween,
-            children: [
-              ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 280),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.info_outline,
-                        size: 18, color: theme.accentText),
-                    const SizedBox(width: 8),
-                    Flexible(
-                      child: Text(
-                        AppLocaleKeys.osVouchersPrintHint.tr,
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: theme.secondaryText,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                crossAxisAlignment: WrapCrossAlignment.center,
-                children: [
-                  FilledButton.icon(
-                    onPressed: _copy,
-                    style: OsButtonStyles.secondaryCompact(theme),
-                    icon: Icon(_copied ? Icons.check : Icons.copy, size: 18),
-                    label: Text(
-                      _copied
-                          ? AppLocaleKeys.osVouchersCopied.tr
-                          : AppLocaleKeys.osVouchersCopy.tr,
-                    ),
-                  ),
-                  FilledButton.icon(
-                    onPressed: _print,
-                    style: OsButtonStyles.primaryCompact(),
-                    icon: const Icon(Icons.print_outlined, size: 18),
-                    label: Text(AppLocaleKeys.osVouchersPrint.tr),
-                  ),
-                  if (widget.onDelete != null)
-                    FilledButton.icon(
-                      onPressed: widget.onDelete,
-                      style: OsButtonStyles.secondaryCompact(theme).copyWith(
-                        foregroundColor: const WidgetStatePropertyAll(
-                          AppColors.destructive,
-                        ),
-                      ),
-                      icon: const Icon(Icons.delete_outline, size: 18),
-                      label: Text(AppLocaleKeys.osVouchersDelete.tr),
-                    ),
-                ],
-              ),
-            ],
-          ),
+          child: _buildActionsToolbar(context, theme),
         ),
         const SizedBox(height: 12),
         Container(

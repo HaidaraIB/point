@@ -11,6 +11,7 @@ import 'package:point/Services/os_email_hub_service.dart';
 import 'package:point/Services/os_paytabs_service.dart';
 import 'package:point/Models/Os/os_email_enums.dart';
 import 'package:point/Utils/AppColors.dart';
+import 'package:point/Utils/AppFonts.dart';
 import 'package:point/Utils/app_theme_extension.dart';
 import 'package:point/View/Os/EmailHub/os_email_hub_helpers.dart';
 import 'package:point/View/Os/os_finance_format.dart';
@@ -274,7 +275,7 @@ Future<void> showOsInvoicePaymentLinkDialog(
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(14),
                         ),
-                        textStyle: const TextStyle(
+                        textStyle: Appfonts.text(
                           fontSize: 15,
                           fontWeight: FontWeight.w700,
                         ),

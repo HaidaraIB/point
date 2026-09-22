@@ -3,8 +3,10 @@ import 'package:get/get.dart';
 import 'package:point/Controller/OsFinanceController.dart';
 import 'package:point/Localization/AppLocaleKeys.dart';
 import 'package:point/Models/Os/OsBranchModel.dart';
+import 'package:point/Utils/whatsapp_phone.dart';
 import 'package:point/View/Os/os_form_dialog.dart';
 import 'package:point/View/Os/os_snackbar.dart';
+import 'package:point/View/Shared/whatsapp_phone_field.dart';
 
 Future<void> showOsBranchFormDialog(
   BuildContext context, {
@@ -69,13 +71,14 @@ Future<void> showOsBranchFormDialog(
           Row(
             children: [
               Expanded(
-                child: osPhoneTextField(
-                  controller: phoneCtrl,
-                  style: const TextStyle(fontSize: 16),
+                child: WhatsappPhoneField(
+                  initialNormalized: phoneCtrl.text.trim().isEmpty
+                      ? null
+                      : phoneCtrl.text.trim(),
                   decoration: osFinanceFieldDecoration(
                     AppLocaleKeys.osBranchesPhone.tr,
-                    hint: '07XXXXXXXXX',
                   ),
+                  onChanged: (v) => phoneCtrl.text = v ?? '',
                 ),
               ),
               const SizedBox(width: 12),
@@ -126,7 +129,8 @@ Future<void> showOsBranchFormDialog(
   final name = nameCtrl.text.trim();
   final location = locationCtrl.text.trim();
   final manager = managerCtrl.text.trim();
-  final phone = phoneCtrl.text.trim();
+  final phone = normalizeWhatsappPhone(phoneCtrl.text.trim()) ??
+      phoneCtrl.text.trim();
   nameCtrl.dispose();
   managerCtrl.dispose();
   locationCtrl.dispose();

@@ -241,6 +241,11 @@ class AppLocaleKeys {
 
   static const commonConfirm = 'common.confirm';
   static const commonCancel = 'common.cancel';
+  static const commonRequired = 'common.required';
+  static const commonPhoneRequired = 'common.phone_required';
+  static const commonPhoneInvalid = 'common.phone_invalid';
+  static const commonPhoneNational = 'common.phone_national';
+  static const commonPhoneNationalHint = 'common.phone_national_hint';
   static const commonSearch = 'common.search';
   static const commonNow = 'common.now';
   static const commonMinutesAgo = 'common.minutes_ago';
@@ -787,6 +792,10 @@ class AppLocaleKeys {
       'os.email_hub.preview.broadcast_body';
   static const osSettingsTitle = 'os.settings.title';
   static const osSettingsSubtitle = 'os.settings.subtitle';
+  static const osSettingsTabGeneral = 'os.settings.tab.general';
+  static const osSettingsTabIntegrations = 'os.settings.tab.integrations';
+  static const osSettingsTabPrintBrand = 'os.settings.tab.print_brand';
+  static const osSettingsTabLegal = 'os.settings.tab.legal';
   static const osSettingsAiSection = 'os.settings.ai.section';
   static const osSettingsAiDescription = 'os.settings.ai.description';
   static const osSettingsAiConfigured = 'os.settings.ai.configured';
@@ -935,6 +944,12 @@ class AppLocaleKeys {
   static const osMessagingHubSendViaApi = 'os.messaging_hub.send_via_api';
   static const osMessagingHubInvoicePdfFailed =
       'os.messaging_hub.invoice_pdf_failed';
+  static const osMessagingHubDocumentPdfDone =
+      'os.messaging_hub.document_pdf_done';
+  static const osMessagingHubDocumentPdfFailed =
+      'os.messaging_hub.document_pdf_failed';
+  static const osMessagingHubDownloadDocumentPdf =
+      'os.messaging_hub.download_document_pdf';
   static const osMessagingHubSendModeTemplate =
       'os.messaging_hub.send_mode.template';
   static const osMessagingHubSendModeSession =
@@ -959,6 +974,126 @@ class AppLocaleKeys {
       'os.messaging_hub.log_invoice_attachment';
   static const osMessagingHubInvoiceSendModeHint =
       'os.messaging_hub.invoice_send_mode_hint';
+  static const osMessagingHubNoMappedTemplates =
+      'os.messaging_hub.no_mapped_templates';
+  static const osMessagingHubSelectPurpose =
+      'os.messaging_hub.select_purpose';
+  static const osMessagingHubSelectQuotation =
+      'os.messaging_hub.select_quotation';
+  static const osMessagingHubNoQuotations =
+      'os.messaging_hub.no_quotations';
+  static const osMessagingHubSelectVoucher =
+      'os.messaging_hub.select_voucher';
+  static const osMessagingHubNoVouchers = 'os.messaging_hub.no_vouchers';
+  static const osMessagingHubSelectContract =
+      'os.messaging_hub.select_contract';
+  static const osMessagingHubNoContracts = 'os.messaging_hub.no_contracts';
+  static const osMessagingHubSelectPayslip =
+      'os.messaging_hub.select_payslip';
+  static const osMessagingHubNoPayslips = 'os.messaging_hub.no_payslips';
+  static const osMessagingHubSelectPaidInvoice =
+      'os.messaging_hub.select_paid_invoice';
+  static const osMessagingHubNoPaidInvoices =
+      'os.messaging_hub.no_paid_invoices';
+  static const osMessagingHubTemplateParamsIncomplete =
+      'os.messaging_hub.template_params_incomplete';
+  static const osMessagingHubInvoiceNotConfigured =
+      'os.messaging_hub.invoice_not_configured';
+  static const osWhatsappPurposeInvoice = 'os.whatsapp.purpose.invoice';
+  static const osWhatsappPurposeQuotation = 'os.whatsapp.purpose.quotation';
+  static const osWhatsappPurposePaymentConfirmation =
+      'os.whatsapp.purpose.payment_confirmation';
+  static const osWhatsappPurposePaymentReceipt =
+      'os.whatsapp.purpose.payment_receipt';
+  static const osWhatsappPurposeContract = 'os.whatsapp.purpose.contract';
+  static const osWhatsappPurposePayslip = 'os.whatsapp.purpose.payslip';
+  static const osWhatsappPurposeCustom = 'os.whatsapp.purpose.custom';
+  static const osWhatsappPurposeUnused = 'os.whatsapp.purpose.unused';
+  static const osWhatsappMissingFieldsTitle =
+      'os.whatsapp.missing_fields.title';
+  static const osWhatsappMissingFieldsSubtitle =
+      'os.whatsapp.missing_fields.subtitle';
+  static const osWhatsappMissingFieldsSend =
+      'os.whatsapp.missing_fields.send';
+  static const osWhatsappQuickSendSending = 'os.whatsapp.quick_send.sending';
+  static const osWhatsappQuickSendNoTemplate =
+      'os.whatsapp.quick_send.no_template';
+  static const osWhatsappFieldClientName = 'os.whatsapp.field.client_name';
+  static const osWhatsappFieldCompany = 'os.whatsapp.field.company';
+  static const osWhatsappFieldPhone = 'os.whatsapp.field.phone';
+  static const osWhatsappFieldInvoiceRef = 'os.whatsapp.field.invoice_ref';
+  static const osWhatsappFieldQuoteRef = 'os.whatsapp.field.quote_ref';
+  static const osWhatsappFieldAmount = 'os.whatsapp.field.amount';
+  static const osWhatsappFieldTotal = 'os.whatsapp.field.total';
+  static const osWhatsappFieldIssueDate = 'os.whatsapp.field.issue_date';
+  static const osWhatsappFieldDueDate = 'os.whatsapp.field.due_date';
+  static const osWhatsappFieldExpiryDate = 'os.whatsapp.field.expiry_date';
+  static const osWhatsappFieldPaymentLink = 'os.whatsapp.field.payment_link';
+  static const osWhatsappFieldInvoiceStatus = 'os.whatsapp.field.invoice_status';
+  static const osWhatsappFieldVoucherRef = 'os.whatsapp.field.voucher_ref';
+  static const osWhatsappFieldVoucherPayee = 'os.whatsapp.field.voucher_payee';
+  static const osWhatsappFieldVoucherDate = 'os.whatsapp.field.voucher_date';
+  static const osWhatsappFieldContractNumber =
+      'os.whatsapp.field.contract_number';
+  static const osWhatsappFieldContractTitle = 'os.whatsapp.field.contract_title';
+  static const osWhatsappFieldContractPartyName =
+      'os.whatsapp.field.contract_party_name';
+  static const osWhatsappFieldContractStartDate =
+      'os.whatsapp.field.contract_start_date';
+  static const osWhatsappFieldContractEndDate =
+      'os.whatsapp.field.contract_end_date';
+  static const osWhatsappFieldContractTotalValue =
+      'os.whatsapp.field.contract_total_value';
+  static const osWhatsappFieldPayslipEmployeeName =
+      'os.whatsapp.field.payslip_employee_name';
+  static const osWhatsappFieldPayslipPeriod = 'os.whatsapp.field.payslip_period';
+  static const osWhatsappFieldPayslipRef = 'os.whatsapp.field.payslip_ref';
+  static const osWhatsappFieldPayslipNetPay = 'os.whatsapp.field.payslip_net_pay';
+  static const osWhatsappFieldManual = 'os.whatsapp.field.manual';
+  static const osSettingsWhatsappTemplatesSection =
+      'os.settings.whatsapp.templates.section';
+  static const osSettingsWhatsappTemplatesDescription =
+      'os.settings.whatsapp.templates.description';
+  static const osSettingsWhatsappTemplatesSave =
+      'os.settings.whatsapp.templates.save';
+  static const osSettingsWhatsappTemplatesSaved =
+      'os.settings.whatsapp.templates.saved';
+  static const osSettingsWhatsappTemplatesPurpose =
+      'os.settings.whatsapp.templates.purpose';
+  static const osSettingsWhatsappTemplatesEnabled =
+      'os.settings.whatsapp.templates.enabled';
+  static const osSettingsWhatsappTemplatesCustomLabel =
+      'os.settings.whatsapp.templates.custom_label';
+  static const osSettingsWhatsappTemplatesDocument =
+      'os.settings.whatsapp.templates.document';
+  static const osSettingsWhatsappTemplatesValuesFrom =
+      'os.settings.whatsapp.templates.values_from';
+  static const osSettingsWhatsappTemplatesChooseField =
+      'os.settings.whatsapp.templates.choose_field';
+  static const osSettingsWhatsappTemplatesPlaceholdersIncomplete =
+      'os.settings.whatsapp.templates.placeholders_incomplete';
+  static const osSettingsWhatsappTemplatesDocumentMismatch =
+      'os.settings.whatsapp.templates.document_mismatch';
+  static const osSettingsWhatsappTemplatesDocNone =
+      'os.settings.whatsapp.templates.doc_none';
+  static const osSettingsWhatsappTemplatesDocInvoice =
+      'os.settings.whatsapp.templates.doc_invoice';
+  static const osSettingsWhatsappTemplatesDocQuotation =
+      'os.settings.whatsapp.templates.doc_quotation';
+  static const osSettingsWhatsappTemplatesDocVoucher =
+      'os.settings.whatsapp.templates.doc_voucher';
+  static const osSettingsWhatsappTemplatesDocPayment =
+      'os.settings.whatsapp.templates.doc_payment';
+  static const osSettingsWhatsappTemplatesDocContract =
+      'os.settings.whatsapp.templates.doc_contract';
+  static const osSettingsWhatsappTemplatesDocPayslip =
+      'os.settings.whatsapp.templates.doc_payslip';
+  static const osSettingsWhatsappTemplatesPlaceholders =
+      'os.settings.whatsapp.templates.placeholders';
+  static const osSettingsWhatsappTemplatesPurposeDuplicate =
+      'os.settings.whatsapp.templates.purpose_duplicate';
+  static const osSettingsWhatsappTemplatesShowPreview =
+      'os.settings.whatsapp.templates.show_preview';
   static const osCrmSendWhatsappTemplate = 'os.crm.send_whatsapp_template';
   static const osSettingsPrintContactSection =
       'os.settings.print_contact.section';
@@ -1136,6 +1271,7 @@ class AppLocaleKeys {
   static const osQuotationsEdit = 'os.quotations.edit';
   static const osQuotationsEmpty = 'os.quotations.empty';
   static const osQuotationsClient = 'os.quotations.client';
+  static const osQuotationsCustomClient = 'os.quotations.custom_client';
   static const osQuotationsClientHint = 'os.quotations.client_hint';
   static const osQuotationsTotal = 'os.quotations.total';
   static const osQuotationsExpiry = 'os.quotations.expiry';
@@ -1195,6 +1331,8 @@ class AppLocaleKeys {
   static const osInvoicesEmptyFilter = 'os.invoices.empty_filter';
   static const osInvoicesSearch = 'os.invoices.search';
   static const osInvoicesClient = 'os.invoices.client';
+  static const osInvoicesCustomClient = 'os.invoices.custom_client';
+  static const osInvoicesClientName = 'os.invoices.client_name';
   static const osInvoicesDate = 'os.invoices.date';
   static const osInvoicesDueDate = 'os.invoices.due_date';
   static const osInvoicesStatus = 'os.invoices.status';
@@ -1247,6 +1385,16 @@ class AppLocaleKeys {
   static const osInvoicesStampHue = 'os.invoices.stamp.hue';
   static const osInvoicesStampSaturation = 'os.invoices.stamp.saturation';
   static const osInvoicesStampBrightness = 'os.invoices.stamp.brightness';
+  static const osInvoicesStampSignatureImage =
+      'os.invoices.stamp.signature_image';
+  static const osInvoicesStampSignatureHint =
+      'os.invoices.stamp.signature_hint';
+  static const osInvoicesStampSignatureUpload =
+      'os.invoices.stamp.signature_upload';
+  static const osInvoicesStampSignatureRemove =
+      'os.invoices.stamp.signature_remove';
+  static const osInvoicesStampSignatureTooLarge =
+      'os.invoices.stamp.signature_too_large';
   static const osInvoicesStampDisabledHint = 'os.invoices.stamp.disabled_hint';
   static const osInvoicesNumber = 'os.invoices.number';
   static const osInvoicesSaveFull = 'os.invoices.save_full';
@@ -1356,6 +1504,9 @@ class AppLocaleKeys {
   static const osPrintEmployeeSign = 'os.print.employee_sign';
   static const osPrintCopyAgency = 'os.print.copy_agency';
   static const osPrintCopyClient = 'os.print.copy_client';
+  static const osPrintPayslipTitle = 'os.print.payslip_title';
+  static const osPrintPayslipAr = 'os.print.payslip_ar';
+  static const osPrintPayslipEn = 'os.print.payslip_en';
 
   static const osFinanceTitle = 'os.finance.title';
   static const osFinanceSubtitle = 'os.finance.subtitle';
@@ -1427,6 +1578,8 @@ class AppLocaleKeys {
   static const osVouchersPayeeReceipt = 'os.vouchers.payee_receipt';
   static const osVouchersPayeePayment = 'os.vouchers.payee_payment';
   static const osVouchersPayeeHint = 'os.vouchers.payee_hint';
+  static const osVouchersPayeePhone = 'os.vouchers.payee_phone';
+  static const osVouchersPayeePhoneHint = 'os.vouchers.payee_phone_hint';
   static const osVouchersDescription = 'os.vouchers.description';
   static const osVouchersDescriptionHint = 'os.vouchers.description_hint';
   static const osVouchersAccount = 'os.vouchers.account';
@@ -1479,12 +1632,26 @@ class AppLocaleKeys {
   static const osVouchersDeletePostedConfirm =
       'os.vouchers.delete_posted_confirm';
   static const osVouchersDeleted = 'os.vouchers.deleted';
+  static const osVouchersEdit = 'os.vouchers.edit';
+  static const osVouchersEditTitle = 'os.vouchers.edit_title';
+  static const osVouchersUpdated = 'os.vouchers.updated';
+  static const osVouchersPayrollEditWarning = 'os.vouchers.payroll_edit_warning';
+  static const osVouchersTransferPaymentDesc =
+      'os.vouchers.transfer_payment_desc';
+  static const osVouchersTransferReceiptDesc =
+      'os.vouchers.transfer_receipt_desc';
+  static const osVouchersErrorTypeLocked = 'os.vouchers.error.type_locked';
+  static const osVouchersErrorTransferAmbiguous =
+      'os.vouchers.error.transfer_ambiguous';
 
   static const osCommonCancel = 'os.common.cancel';
+  static const osCommonDownloadClientPdf = 'os.common.download_client_pdf';
   static const osCommonDelete = 'os.common.delete';
   static const osCommonDeleteFailed = 'os.common.delete_failed';
   static const osCommonSave = 'os.common.save';
   static const osCommonSaveFailed = 'os.common.save_failed';
+  static const osClientContactSaveToClientHint =
+      'os.client_contact.save_to_client_hint';
   static const osCommonActions = 'os.common.actions';
   static const osCommonClose = 'os.common.close';
   static const osCommonNa = 'os.common.na';

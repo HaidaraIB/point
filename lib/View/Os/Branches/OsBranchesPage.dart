@@ -7,6 +7,7 @@ import 'package:point/Models/Os/OsBranchModel.dart';
 import 'package:point/Services/FunHelper.dart';
 import 'package:point/Services/firestore/firestore_os_branches_api.dart';
 import 'package:point/Utils/AppColors.dart';
+import 'package:point/Utils/AppFonts.dart';
 import 'package:point/Utils/OsPermissions.dart';
 import 'package:point/Utils/os_module_ids.dart';
 import 'package:point/Utils/app_theme_extension.dart';
@@ -846,7 +847,7 @@ class _BranchCard extends StatelessWidget {
                       foregroundColor: theme.primaryText,
                       side: BorderSide(color: theme.border),
                       padding: const EdgeInsets.symmetric(vertical: 10),
-                      textStyle: const TextStyle(
+                      textStyle: Appfonts.text(
                         fontSize: 11,
                         fontWeight: FontWeight.w700,
                       ),
@@ -863,7 +864,7 @@ class _BranchCard extends StatelessWidget {
                       foregroundColor: theme.primaryText,
                       side: BorderSide(color: theme.border),
                       padding: const EdgeInsets.symmetric(vertical: 10),
-                      textStyle: const TextStyle(
+                      textStyle: Appfonts.text(
                         fontSize: 11,
                         fontWeight: FontWeight.w700,
                       ),

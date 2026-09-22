@@ -14,6 +14,7 @@ import 'package:point/Utils/OsPermissions.dart';
 import 'package:point/Utils/os_module_ids.dart';
 import 'package:point/Utils/app_theme_extension.dart';
 import 'package:point/View/Os/Finance/os_voucher_detail_panel.dart';
+import 'package:point/View/Os/Finance/os_voucher_edit_dialog.dart';
 import 'package:point/View/Os/os_button_styles.dart';
 import 'package:point/View/Os/os_finance_format.dart';
 import 'package:point/View/Os/os_form_dialog.dart';
@@ -22,8 +23,10 @@ import 'package:point/View/Os/os_list_filters.dart';
 import 'package:point/View/Os/os_page_header.dart';
 import 'package:point/View/Os/os_snackbar.dart';
 import 'package:point/View/Os/Finance/Mobile/OsFinanceMobileScreen.dart';
+import 'package:point/Utils/whatsapp_phone.dart';
 import 'package:point/View/Shared/ResponsiveScaffold.dart';
 import 'package:point/View/Shared/responsive.dart';
+import 'package:point/View/Shared/whatsapp_phone_field.dart';
 
 class OsFinancePage extends StatefulWidget {
   const OsFinancePage({super.key});
@@ -1226,6 +1229,7 @@ class _OsFinanceVouchersTabState extends State<OsFinanceVouchersTab> {
     final payeeCtrl = TextEditingController();
     final descCtrl = TextEditingController();
     final amountCtrl = TextEditingController();
+    var payeePhone = '';
     var type = OsVoucherType.receipt;
     String? accountId = finance.bankAccounts.first.id;
     var date = DateTime.now();
@@ -1322,6 +1326,16 @@ class _OsFinanceVouchersTabState extends State<OsFinanceVouchersTab> {
                   ),
                 ),
                 const SizedBox(height: 14),
+                WhatsappPhoneField(
+                  initialNormalized:
+                      payeePhone.trim().isEmpty ? null : payeePhone.trim(),
+                  decoration: osFinanceFieldDecoration(
+                    AppLocaleKeys.osVouchersPayeePhone.tr,
+                    hint: AppLocaleKeys.osVouchersPayeePhoneHint.tr,
+                  ),
+                  onChanged: (v) => payeePhone = v ?? '',
+                ),
+                const SizedBox(height: 14),
                 osTypedTextField(
                   controller: descCtrl,
                   style: const TextStyle(fontSize: 16),
@@ -1341,6 +1355,7 @@ class _OsFinanceVouchersTabState extends State<OsFinanceVouchersTab> {
     final amount = double.tryParse(amountCtrl.text.trim()) ?? 0;
     final payee = payeeCtrl.text.trim();
     final desc = descCtrl.text.trim();
+    final normalizedPhone = normalizeWhatsappPhone(payeePhone.trim());
     payeeCtrl.dispose();
     descCtrl.dispose();
     amountCtrl.dispose();
@@ -1361,6 +1376,7 @@ class _OsFinanceVouchersTabState extends State<OsFinanceVouchersTab> {
           amount: amount,
           date: OsFinanceFormat.ymd(date),
           payeeOrPayer: payee,
+          payeePhone: normalizedPhone,
           description: desc,
           bankAccountId: accountId!,
           source: OsVoucherSource.manual,
@@ -1438,6 +1454,10 @@ class _OsFinanceVouchersTabState extends State<OsFinanceVouchersTab> {
     }
   }
 
+  Future<void> _openEdit(BuildContext context, OsVoucherModel voucher) async {
+    await showOsVoucherEditDialog(context, voucher: voucher);
+  }
+
   Future<void> _showVoucherDetailSheet(
     BuildContext context,
     OsFinanceController finance,
@@ -1466,6 +1486,10 @@ class _OsFinanceVouchersTabState extends State<OsFinanceVouchersTab> {
               child: OsVoucherDetailPanel(
                 voucher: voucher,
                 accountName: accountName,
+                onEdit: () async {
+                  Navigator.of(sheetContext).pop();
+                  await _openEdit(context, voucher);
+                },
                 onDelete: OsPermissions.canDeleteCurrentOsRecords
                     ? () async {
                         Navigator.of(sheetContext).pop();
@@ -1722,6 +1746,7 @@ class _OsFinanceVouchersTabState extends State<OsFinanceVouchersTab> {
                                         .accountById(selected.bankAccountId)
                                         ?.name ??
                                     AppLocaleKeys.osFinanceUnknownAccount.tr,
+                                onEdit: () => _openEdit(context, selected),
                                 onDelete: OsPermissions.canDeleteCurrentOsRecords
                                     ? () => _confirmDeleteVoucher(selected)
                                     : null,

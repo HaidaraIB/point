@@ -17,7 +17,10 @@ class OsWhatsappSettingsPanel extends StatefulWidget {
   State<OsWhatsappSettingsPanel> createState() => _OsWhatsappSettingsPanelState();
 }
 
-class _OsWhatsappSettingsPanelState extends State<OsWhatsappSettingsPanel> {
+class _OsWhatsappSettingsPanelState extends State<OsWhatsappSettingsPanel>
+    with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
   final _tokenCtrl = TextEditingController();
   final _phoneIdCtrl = TextEditingController();
   final _wabaIdCtrl = TextEditingController();
@@ -211,6 +214,7 @@ class _OsWhatsappSettingsPanelState extends State<OsWhatsappSettingsPanel> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     if (_loading) {
       return const Center(child: CircularProgressIndicator());
     }

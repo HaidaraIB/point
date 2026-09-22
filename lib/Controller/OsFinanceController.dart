@@ -13,6 +13,7 @@ import 'package:point/Models/Os/os_finance_enums.dart';
 import 'package:point/Services/NotificationService.dart';
 import 'package:point/Services/firestore/firestore_os_branches_api.dart';
 import 'package:point/Services/firestore/firestore_os_finance_api.dart';
+import 'package:point/Services/firestore/firestore_os_payroll_api.dart';
 import 'package:point/Services/firestore/firestore_os_services_api.dart';
 import 'package:point/Utils/OsPermissions.dart';
 import 'package:point/Utils/app_log.dart';
@@ -396,6 +397,37 @@ class OsFinanceController extends GetxController {
     }
   }
 
+  Future<bool> saveVoucher(OsVoucherModel voucher) async {
+    isLoading.value = true;
+    try {
+      return await FirestoreOsFinanceApi.updateVoucherContact(voucher);
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  Future<bool> updateVoucher(
+    OsVoucherModel voucher, {
+    OsTransferVoucherEdit? transfer,
+  }) async {
+    isLoading.value = true;
+    try {
+      final result = await FirestoreOsFinanceApi.updateVoucher(
+        updated: voucher,
+        transfer: transfer,
+      );
+      final runId = result.payrollRunIdToRefresh;
+      if (runId != null && runId.isNotEmpty) {
+        await FirestoreOsPayrollApi.refreshRunTotals(runId);
+      }
+      return true;
+    } on OsFinanceException {
+      rethrow;
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
   Future<bool> deleteVoucher(String id) async {
     isLoading.value = true;
     try {
@@ -453,7 +485,17 @@ class OsFinanceController extends GetxController {
   Future<bool> updateExpense(OsDailyExpenseModel expense) async {
     isLoading.value = true;
     try {
-      return await FirestoreOsFinanceApi.updateExpense(expense);
+      final vendor = expense.vendor?.trim() ?? '';
+      final desc = AppLocaleKeys.osExpensesVoucherDesc.trParams({
+        'title': expense.title,
+        'vendor': vendor.isEmpty ? '' : ' ($vendor)',
+      });
+      return await FirestoreOsFinanceApi.updateExpense(
+        expense: expense,
+        voucherDescription: desc,
+      );
+    } on OsFinanceException {
+      rethrow;
     } finally {
       isLoading.value = false;
     }

@@ -5,6 +5,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:get/get.dart';
 import 'package:point/Controller/HomeController.dart';
+import 'package:point/Localization/AppLocaleKeys.dart';
+import 'package:point/Utils/whatsapp_phone.dart';
+import 'package:point/View/Shared/whatsapp_phone_field.dart';
 import 'package:point/Models/ClientModel.dart';
 import 'package:point/Services/FunHelper.dart';
 import 'package:point/Utils/AppColors.dart';
@@ -466,6 +469,7 @@ Future<void> showAddEmployeeDialog(BuildContext context, {ClientModel? model}) a
     return;
   }
   final nameController = TextEditingController(text: model?.name);
+  final phoneController = TextEditingController(text: model?.phone);
   final emailController = TextEditingController(text: model?.email);
   final passwordController = TextEditingController();
   final desccontroller = TextEditingController(text: model?.description);
@@ -656,6 +660,24 @@ Future<void> showAddEmployeeDialog(BuildContext context, {ClientModel? model}) a
                                     height: 42,
                                     borderRadius: 5,
                                   ),
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 12),
+                                  child: WhatsappPhoneField(
+                                    initialNormalized:
+                                        phoneController.text.trim().isEmpty
+                                            ? null
+                                            : phoneController.text.trim(),
+                                    decoration: InputDecoration(
+                                      labelText:
+                                          AppLocaleKeys.osCrmPhone.tr,
+                                      border: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(5),
+                                      ),
+                                    ),
+                                    onChanged: (v) =>
+                                        phoneController.text = v ?? '',
+                                  ),
+                                ),
                                 if (model == null || canEditCredentials)
                                   InputText(
                                     hintText:
@@ -892,6 +914,23 @@ Future<void> showAddEmployeeDialog(BuildContext context, {ClientModel? model}) a
                                       ),
                                       onPressed: () {
                                         if (_key.currentState!.validate()) {
+                                          final normalizedPhone =
+                                              normalizeWhatsappPhone(
+                                            phoneController.text.trim(),
+                                          );
+                                          if (normalizedPhone == null ||
+                                              normalizedPhone.isEmpty) {
+                                            FunHelper.showSnackbar(
+                                              'validation.title'.tr,
+                                              AppLocaleKeys
+                                                  .commonPhoneInvalid.tr,
+                                              snackPosition:
+                                                  SnackPosition.BOTTOM,
+                                              colorText: Colors.white,
+                                              backgroundColor: Colors.red,
+                                            );
+                                            return;
+                                          }
                                           if (model == null) {
                                             final selectedAsset = metaAssets
                                                 .firstWhereOrNull(
@@ -909,6 +948,7 @@ Future<void> showAddEmployeeDialog(BuildContext context, {ClientModel? model}) a
                                                     id:
                                                         const Uuid().v4(),
                                                     name: nameController.text,
+                                                    phone: normalizedPhone,
                                                     email: emailController.text,
                                                     image:
                                                         controller
@@ -963,6 +1003,7 @@ Future<void> showAddEmployeeDialog(BuildContext context, {ClientModel? model}) a
                                                 .updateClient(
                                                   model.copyWith(
                                                     name: nameController.text,
+                                                    phone: normalizedPhone,
                                                     email:
                                                         canEditCredentials
                                                             ? emailController.text

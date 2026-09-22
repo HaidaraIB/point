@@ -7,7 +7,10 @@ import 'package:get/get_utils/src/extensions/internacionalization.dart';
 import 'package:get/instance_manager.dart';
 import 'package:point/Controller/ClientController.dart';
 import 'package:point/Controller/HomeController.dart';
+import 'package:point/Localization/AppLocaleKeys.dart';
 import 'package:point/Models/ClientModel.dart';
+import 'package:point/Utils/whatsapp_phone.dart';
+import 'package:point/View/Shared/whatsapp_phone_field.dart';
 import 'package:point/Services/FunHelper.dart';
 import 'package:point/Services/StorageKeys.dart';
 import 'package:point/Utils/AppColors.dart';
@@ -35,6 +38,7 @@ class CreateUserAccount extends StatelessWidget {
 Widget _buildDesktopLayout(BuildContext context) {
   final _key = GlobalKey<FormState>();
   var nameController = TextEditingController();
+  var phoneController = TextEditingController();
   var emailController = TextEditingController();
   var passwordController = TextEditingController();
   return GetBuilder<ClientController>(
@@ -103,6 +107,18 @@ Widget _buildDesktopLayout(BuildContext context) {
 
                       borderRadius: 5,
                     ),
+                    Padding(
+                      padding: const EdgeInsets.only(top: 12),
+                      child: WhatsappPhoneField(
+                        decoration: InputDecoration(
+                          labelText: AppLocaleKeys.osCrmPhone.tr,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(5),
+                          ),
+                        ),
+                        onChanged: (v) => phoneController.text = v ?? '',
+                      ),
+                    ),
                     InputText(
                       hintText: ''.tr,
                       labelText: 'password'.tr,
@@ -146,11 +162,27 @@ Widget _buildDesktopLayout(BuildContext context) {
                         title: 'createaccount'.tr,
                         onPressed: () async {
                           if (_key.currentState!.validate()) {
+                            final normalizedPhone = normalizeWhatsappPhone(
+                              phoneController.text.trim(),
+                            );
+                            if (normalizedPhone == null ||
+                                normalizedPhone.isEmpty) {
+                              FunHelper.showSnackbarDeduped(
+                                'validation.title'.tr,
+                                AppLocaleKeys.commonPhoneInvalid.tr,
+                                dedupeKey: 'auth_create_phone_invalid',
+                                snackPosition: SnackPosition.TOP,
+                                backgroundColor: Colors.red,
+                                colorText: Colors.white,
+                              );
+                              return;
+                            }
                             await Get.find<HomeController>()
                                 .addClient(
                                   password: passwordController.text.trim(),
                                   ClientModel(
                                     name: nameController.text,
+                                    phone: normalizedPhone,
                                     email: emailController.text
                                         .trim()
                                         .toLowerCase(),

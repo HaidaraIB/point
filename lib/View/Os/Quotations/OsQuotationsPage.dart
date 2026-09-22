@@ -15,7 +15,12 @@ import 'package:point/Utils/app_theme_extension.dart';
 import 'package:point/View/Os/Invoices/os_invoice_form_dialog.dart';
 import 'package:point/View/Os/Invoices/os_invoice_share.dart';
 import 'package:point/View/Os/Quotations/os_quotation_form_dialog.dart';
+import 'package:point/View/Os/Quotations/os_quotation_pdf_download_action.dart';
 import 'package:point/View/Os/Quotations/os_quotation_preview_dialog.dart';
+import 'package:point/Models/Os/os_whatsapp_template_map.dart';
+import 'package:point/View/Os/Messaging/os_whatsapp_quick_send.dart';
+import 'package:point/View/Os/Messaging/os_whatsapp_send_filled_button.dart';
+import 'package:point/View/Os/Messaging/os_whatsapp_send_icon_button.dart';
 import 'package:point/View/Os/Quotations/os_quotation_share.dart';
 import 'package:point/View/Os/os_button_styles.dart';
 import 'package:point/View/Os/os_finance_format.dart';
@@ -516,6 +521,11 @@ class _QuoteCard extends StatelessWidget {
     ];
 
     final toolActions = <Widget>[
+      OsQuotationPdfDownloadIconButton(quote: quote),
+      OsWhatsappSendIconButton(
+        purpose: OsWhatsappTemplatePurpose.quotation,
+        onSend: () => sendOsQuotationViaWhatsapp(quote),
+      ),
       toolButton(
         onPressed: onPreview,
         label: AppLocaleKeys.osQuotationsPreview.tr,
@@ -806,14 +816,27 @@ class _QuoteCardMobile extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 8),
-          OutlinedButton.icon(
-            onPressed: onCopyLink,
-            icon: Icon(copied ? Icons.check : Icons.link, size: 18),
-            label: Text(
-              copied
-                  ? AppLocaleKeys.osQuotationsCopied.tr
-                  : AppLocaleKeys.osQuotationsCopyLink.tr,
-            ),
+          Row(
+            children: [
+              Expanded(
+                child: OsWhatsappSendOutlinedButton(
+                  purpose: OsWhatsappTemplatePurpose.quotation,
+                  onSend: () => sendOsQuotationViaWhatsapp(quote),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: onCopyLink,
+                  icon: Icon(copied ? Icons.check : Icons.link, size: 18),
+                  label: Text(
+                    copied
+                        ? AppLocaleKeys.osQuotationsCopied.tr
+                        : AppLocaleKeys.osQuotationsCopyLink.tr,
+                  ),
+                ),
+              ),
+            ],
           ),
           if (isApproved || isRejected) ...[
             const SizedBox(height: 8),

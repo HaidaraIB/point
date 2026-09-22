@@ -3,6 +3,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:point/Controller/HomeController.dart';
+import 'package:point/Localization/AppLocaleKeys.dart';
 import 'package:point/Models/ClientModel.dart';
 import 'package:point/Services/FunHelper.dart';
 import 'package:point/Utils/AppColors.dart';
@@ -13,7 +14,9 @@ import 'package:point/View/Shared/InputText.dart';
 import 'package:point/View/Shared/ReadOnlyAccountEmailField.dart';
 import 'package:point/Utils/PasswordValidator.dart';
 import 'package:point/Utils/app_theme_extension.dart';
+import 'package:point/Utils/whatsapp_phone.dart';
 import 'package:point/View/Shared/safe_network_image.dart';
+import 'package:point/View/Shared/whatsapp_phone_field.dart';
 import 'package:uuid/uuid.dart';
 
 /// Mobile-only full-screen add/edit client form.
@@ -30,6 +33,7 @@ class ClientFormMobilePage extends StatefulWidget {
 class _ClientFormMobilePageState extends State<ClientFormMobilePage> {
   final _formKey = GlobalKey<FormState>();
   late final TextEditingController nameController;
+  late final TextEditingController phoneController;
   late final TextEditingController emailController;
   late final TextEditingController passwordController;
   late final TextEditingController descController;
@@ -62,6 +66,7 @@ class _ClientFormMobilePageState extends State<ClientFormMobilePage> {
     super.initState();
     final m = widget.model;
     nameController = TextEditingController(text: m?.name);
+    phoneController = TextEditingController(text: m?.phone);
     emailController = TextEditingController(text: m?.email);
     passwordController = TextEditingController();
     descController = TextEditingController(text: m?.description);
@@ -78,6 +83,7 @@ class _ClientFormMobilePageState extends State<ClientFormMobilePage> {
   @override
   void dispose() {
     nameController.dispose();
+    phoneController.dispose();
     emailController.dispose();
     passwordController.dispose();
     descController.dispose();
@@ -149,6 +155,17 @@ class _ClientFormMobilePageState extends State<ClientFormMobilePage> {
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
+    final normalizedPhone = normalizeWhatsappPhone(phoneController.text.trim());
+    if (normalizedPhone == null || normalizedPhone.isEmpty) {
+      FunHelper.showSnackbar(
+        'validation.title'.tr,
+        AppLocaleKeys.commonPhoneInvalid.tr,
+        snackPosition: SnackPosition.BOTTOM,
+        colorText: Colors.white,
+        backgroundColor: Colors.red,
+      );
+      return;
+    }
     if (startAt == null || endAt == null) {
       FunHelper.showSnackbar(
         'validation.title'.tr,
@@ -176,6 +193,7 @@ class _ClientFormMobilePageState extends State<ClientFormMobilePage> {
         ClientModel(
           id: const Uuid().v4(),
           name: nameController.text,
+          phone: normalizedPhone,
           email: emailController.text,
           image: controller.uploadedFilesPaths.lastOrNull,
           description: descController.text,
@@ -199,6 +217,7 @@ class _ClientFormMobilePageState extends State<ClientFormMobilePage> {
       final success = await controller.updateClient(
         model.copyWith(
           name: nameController.text,
+          phone: normalizedPhone,
           email:
               _canEditCredentials
                   ? emailController.text
@@ -297,6 +316,19 @@ class _ClientFormMobilePageState extends State<ClientFormMobilePage> {
                     controller: nameController,
                     validator: (v) => (v == null || v.isEmpty) ? ' ' : null,
                     borderRadius: 8,
+                  ),
+                  const SizedBox(height: 16),
+                  WhatsappPhoneField(
+                    initialNormalized: phoneController.text.trim().isEmpty
+                        ? null
+                        : phoneController.text.trim(),
+                    decoration: InputDecoration(
+                      labelText: AppLocaleKeys.osCrmPhone.tr,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    onChanged: (v) => phoneController.text = v ?? '',
                   ),
                   const SizedBox(height: 16),
                   if (widget.model == null || _canEditCredentials) ...[

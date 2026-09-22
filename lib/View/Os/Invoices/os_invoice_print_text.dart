@@ -1,6 +1,7 @@
 import 'package:get/get.dart';
 import 'package:point/Localization/AppLocaleKeys.dart';
 import 'package:point/Models/Os/OsInvoiceModel.dart';
+import 'package:point/Utils/whatsapp_phone.dart';
 import 'package:point/Services/os_stamp_settings.dart';
 import 'package:point/View/Os/Print/os_brand_print.dart';
 import 'package:point/View/Os/Print/os_print_assets.dart';
@@ -94,10 +95,11 @@ String _osInvoicePrintInnerHtml(
   required String totals,
   required String qr,
   required String barcode,
+  bool includeBrandWatermark = true,
 }) {
   return '''
     ${OsBrandPrint.headerHtml()}
-    ${OsBrandPrint.watermarkHtml()}
+    ${includeBrandWatermark ? OsBrandPrint.watermarkHtml() : ''}
     <div class="content-layer">
       <div class="no-split">
         <div class="invoice-heading">
@@ -354,6 +356,7 @@ $bodySheets
 String buildOsInvoicePrintHtml(
   OsInvoiceModel invoice, {
   String? paymentLink,
+  bool forPdf = false,
 }) {
   final parts = _buildOsInvoicePrintParts(invoice, paymentLink: paymentLink);
   final inner = _osInvoicePrintInnerHtml(
@@ -369,44 +372,14 @@ String buildOsInvoicePrintHtml(
     totals: parts.totals,
     qr: parts.qr,
     barcode: parts.barcode,
+    includeBrandWatermark: !forPdf,
   );
+  final bodySheets = forPdf
+      ? osPrintSingleSheet(sheetClass: 'invoice-print', innerHtml: inner)
+      : osPrintTwoCopies(sheetClass: 'invoice-print', innerHtml: inner);
   return _osInvoicePrintDocumentShell(
     ref: parts.ref,
-    bodySheets: osPrintTwoCopies(
-      sheetClass: 'invoice-print',
-      innerHtml: inner,
-    ),
-  );
-}
-
-/// Print HTML for a single client-copy sheet (same layout as print, one page).
-String buildOsInvoiceClientCopyPrintHtml(
-  OsInvoiceModel invoice, {
-  String? paymentLink,
-}) {
-  final parts = _buildOsInvoicePrintParts(invoice, paymentLink: paymentLink);
-  final inner = _osInvoicePrintInnerHtml(
-    invoice,
-    ref: parts.ref,
-    payLabel: parts.payLabel,
-    padded: parts.padded,
-    phone: parts.phone,
-    email: parts.email,
-    address: parts.address,
-    taxNo: parts.taxNo,
-    notes: parts.notes,
-    totals: parts.totals,
-    qr: parts.qr,
-    barcode: parts.barcode,
-  );
-  return _osInvoicePrintDocumentShell(
-    ref: parts.ref,
-    bodySheets: osPrintSingleCopy(
-      sheetClass: 'invoice-print',
-      copyLabel: AppLocaleKeys.osPrintCopyClient.tr,
-      innerHtml: inner,
-    ),
-    pdfCapture: true,
+    bodySheets: bodySheets,
   );
 }
 
@@ -470,7 +443,7 @@ _OsInvoicePrintParts _buildOsInvoicePrintParts(
   }
   final padded = OsBrandPrint.padItemRows(rows, columnCount: 4);
 
-  final phone = invoice.clientPhone?.trim() ?? '';
+  final phone = formatWhatsappPhoneDisplay(invoice.clientPhone);
   final email = invoice.clientEmail?.trim() ?? '';
   final address = invoice.clientAddress?.trim() ?? '';
   final taxNo = invoice.clientTaxNumber?.trim() ?? '';

@@ -1,6 +1,7 @@
 import 'package:get/get.dart';
 import 'package:point/Controller/OsGeneralSettingsController.dart';
 import 'package:point/Models/Os/OsGeneralSettings.dart';
+import 'package:point/Utils/whatsapp_phone.dart';
 import 'package:point/View/Os/os_print_a4.dart';
 
 /// HTML/CSS for the agency contact block on print headers.
@@ -100,7 +101,7 @@ class OsPrintContact {
       rows.add(_row(_pinSvg(), lines.toString()));
     }
 
-    final phone = settings.printPhone.trim();
+    final phone = formatWhatsappPhoneDisplay(settings.printPhone);
     if (phone.isNotEmpty) {
       rows.add(_row(_phoneSvg(), _line(phone)));
     }

@@ -1,6 +1,9 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:get/get.dart';
 import 'package:point/Models/Os/OsWhatsappLogModel.dart';
 import 'package:point/Models/Os/OsWhatsappSettingsStatus.dart';
+import 'package:point/Models/Os/os_whatsapp_template_map.dart';
+import 'package:point/Utils/os_whatsapp_template_vars.dart';
 import 'package:point/Utils/EdgeFunctionRateLimiter.dart';
 import 'package:point/Utils/app_log.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -83,6 +86,9 @@ class OsWhatsappService {
 
   OsWhatsappSettingsStatus? _cachedSettings;
   OsWhatsappSettingsStatus? get cachedSettings => _cachedSettings;
+
+  List<OsWhatsappTemplateModel>? _cachedTemplates;
+  List<OsWhatsappTemplateModel>? get cachedTemplates => _cachedTemplates;
 
   static OsWhatsappSettingsStatus? parseSettingsFromResponse(dynamic data) {
     if (data is! Map) return null;
@@ -186,25 +192,139 @@ class OsWhatsappService {
     }
   }
 
-  Future<List<OsWhatsappTemplateModel>> listTemplates() async {
+  OsWhatsappTemplateMapConfig _cachedTemplateMap =
+      const OsWhatsappTemplateMapConfig();
+
+  OsWhatsappTemplateMapConfig get cachedTemplateMap => _cachedTemplateMap;
+
+  final RxBool templateMapReady = false.obs;
+  final RxInt templateMapRevision = 0.obs;
+
+  Future<void>? _templateMapLoadFuture;
+
+  void _notifyTemplateMapChanged() {
+    templateMapReady.value = true;
+    templateMapRevision.value++;
+  }
+
+  bool hasEnabledTemplateForPurpose(String purpose) {
+    return cachedTemplateMap.primaryForPurpose(purpose) != null;
+  }
+
+  /// Optimistic while the map is still loading; false once loaded with no match.
+  bool isQuickSendEnabledForPurpose(String purpose) {
+    if (!templateMapReady.value) return true;
+    return hasEnabledTemplateForPurpose(purpose);
+  }
+
+  Future<void> ensureTemplateMapLoaded() {
+    if (templateMapReady.value) {
+      return Future.value();
+    }
+    _templateMapLoadFuture ??= listTemplatesWithMap().then((_) {}).whenComplete(() {
+      _templateMapLoadFuture = null;
+    });
+    return _templateMapLoadFuture!;
+  }
+
+  Future<({List<OsWhatsappTemplateModel> templates, OsWhatsappTemplateMapConfig map})>
+      listTemplatesWithMap({bool force = false}) async {
+    if (!force &&
+        _cachedTemplates != null &&
+        _cachedTemplates!.isNotEmpty) {
+      if (!templateMapReady.value) {
+        _notifyTemplateMapChanged();
+      }
+      return (templates: _cachedTemplates!, map: _cachedTemplateMap);
+    }
     try {
       final data = await _invokeRaw(body: {'action': 'list-templates'});
-      if (data is! Map) return const [];
+      if (data is! Map) {
+        _notifyTemplateMapChanged();
+        return (
+          templates: const <OsWhatsappTemplateModel>[],
+          map: const OsWhatsappTemplateMapConfig(),
+        );
+      }
       final map = Map<String, dynamic>.from(data);
-      if (map['success'] != true) return const [];
+      if (map['success'] != true) {
+        _notifyTemplateMapChanged();
+        return (
+          templates: const <OsWhatsappTemplateModel>[],
+          map: const OsWhatsappTemplateMapConfig(),
+        );
+      }
       final raw = map['templates'];
-      if (raw is! List) return const [];
-      return raw
-          .whereType<Map>()
-          .map((e) => OsWhatsappTemplateModel.fromJson(
-                Map<String, dynamic>.from(e),
-              ))
-          .where((t) => t.name.isNotEmpty)
-          .toList(growable: false);
+      final templates = raw is List
+          ? raw
+              .whereType<Map>()
+              .map((e) => OsWhatsappTemplateModel.fromJson(
+                    Map<String, dynamic>.from(e),
+                  ))
+              .where((t) => t.name.isNotEmpty)
+              .toList(growable: false)
+          : <OsWhatsappTemplateModel>[];
+      final config = OsWhatsappTemplateMapConfig.fromJson(map['templateMap']);
+      _cachedTemplateMap = config;
+      _cachedTemplates = templates;
+      _notifyTemplateMapChanged();
+      return (templates: templates, map: config);
     } catch (e, st) {
-      appLog('OsWhatsappService.listTemplates failed: $e\n$st');
-      return const [];
+      appLog('OsWhatsappService.listTemplatesWithMap failed: $e\n$st');
+      _notifyTemplateMapChanged();
+      return (
+        templates: _cachedTemplates ?? const <OsWhatsappTemplateModel>[],
+        map: _cachedTemplateMap,
+      );
     }
+  }
+
+  Future<List<OsWhatsappTemplateModel>> listTemplates() async {
+    final result = await listTemplatesWithMap();
+    return result.templates;
+  }
+
+  Future<OsWhatsappTemplateMapConfig?> saveTemplateMap(
+    OsWhatsappTemplateMapConfig config,
+  ) async {
+    try {
+      final data = await _invokeRaw(
+        body: {
+          'action': 'save-template-map',
+          'templateMap': config.toJson(),
+        },
+      );
+      if (data is! Map) return null;
+      final map = Map<String, dynamic>.from(data);
+      if (map['success'] != true) return null;
+      final saved = OsWhatsappTemplateMapConfig.fromJson(map['templateMap']);
+      _cachedTemplateMap = saved;
+      _notifyTemplateMapChanged();
+      return saved;
+    } catch (e, st) {
+      appLog('OsWhatsappService.saveTemplateMap failed: $e\n$st');
+      return null;
+    }
+  }
+
+  static List<Map<String, dynamic>> _graphParamsToJson(
+    List<OsWhatsappGraphTextParameter> params,
+  ) {
+    return params
+        .map((p) => p.toJson())
+        .toList(growable: false);
+  }
+
+  static List<Map<String, dynamic>> _buttonParamsToJson(
+    Map<int, List<OsWhatsappGraphTextParameter>> byIndex,
+  ) {
+    final keys = byIndex.keys.toList()..sort();
+    return keys
+        .map((index) => {
+              'index': index,
+              'parameters': _graphParamsToJson(byIndex[index] ?? const []),
+            })
+        .toList(growable: false);
   }
 
   Future<OsWhatsappSessionWindowStatus?> checkSessionWindow(
@@ -299,8 +419,9 @@ class OsWhatsappService {
     required String toPhone,
     required String templateName,
     required String languageCode,
-    List<String>? bodyParameters,
-    List<String>? headerParameters,
+    List<OsWhatsappGraphTextParameter>? bodyParameters,
+    List<OsWhatsappGraphTextParameter>? headerParameters,
+    Map<int, List<OsWhatsappGraphTextParameter>>? buttonParameters,
     String? referenceId,
     String? recipientName,
     String? category,
@@ -316,8 +437,12 @@ class OsWhatsappService {
           'toPhone': toPhone.trim(),
           'templateName': templateName.trim(),
           'languageCode': languageCode.trim(),
-          'bodyParameters': bodyParameters ?? const [],
-          'headerParameters': headerParameters ?? const [],
+          'bodyParameters':
+              _graphParamsToJson(bodyParameters ?? const []),
+          'headerParameters':
+              _graphParamsToJson(headerParameters ?? const []),
+          if (buttonParameters != null && buttonParameters.isNotEmpty)
+            'buttonParameters': _buttonParamsToJson(buttonParameters),
           if (referenceId != null) 'referenceId': referenceId.trim(),
           if (recipientName != null) 'recipientName': recipientName.trim(),
           if (category != null) 'category': category.trim(),

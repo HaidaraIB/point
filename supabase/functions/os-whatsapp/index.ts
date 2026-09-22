@@ -10,9 +10,11 @@ import {
   getWhatsappSessionWindowStatus,
   listApprovedWhatsappTemplates,
   loadWhatsappSettings,
+  loadWhatsappTemplateMap,
   normalizeWhatsappPhone,
   persistWhatsappConnectionMeta,
   saveWhatsappSettings,
+  saveWhatsappTemplateMap,
   sendWhatsappTemplate,
   sendWhatsappSession,
   testWhatsappConnection,
@@ -28,8 +30,10 @@ type WhatsappBody = {
   toPhone?: string;
   templateName?: string;
   languageCode?: string;
-  bodyParameters?: string[];
-  headerParameters?: string[];
+  bodyParameters?: unknown;
+  headerParameters?: unknown;
+  buttonParameters?: unknown;
+  templateMap?: { templates?: unknown[] };
   referenceId?: string;
   recipientName?: string;
   category?: string;
@@ -209,10 +213,49 @@ Deno.serve(async (req: Request) => {
       }
       try {
         const templates = await listApprovedWhatsappTemplates(settings);
-        return json({ success: true, templates });
+        const templateMap = await loadWhatsappTemplateMap(
+          saAccessToken,
+          caller.firebaseProjectId,
+        );
+        return json({ success: true, templates, templateMap });
       } catch (e) {
         return json({ success: false, ...graphErrorPayload(e) }, 400);
       }
+    }
+
+    if (action === "get-template-map") {
+      await assertOsAccess(
+        saAccessToken,
+        caller.firebaseProjectId,
+        caller.uid,
+        "messaging",
+      );
+      const templateMap = await loadWhatsappTemplateMap(
+        saAccessToken,
+        caller.firebaseProjectId,
+      );
+      return json({ success: true, templateMap });
+    }
+
+    if (action === "save-template-map") {
+      await assertOsAdmin(
+        saAccessToken,
+        caller.firebaseProjectId,
+        caller.uid,
+      );
+      const raw = body.templateMap;
+      const templates = raw && typeof raw === "object" && Array.isArray(
+        (raw as { templates?: unknown[] }).templates,
+      )
+        ? (raw as { templates: unknown[] }).templates
+        : [];
+      const templateMap = await saveWhatsappTemplateMap(
+        { templates: templates as Array<Record<string, unknown>> },
+        saAccessToken,
+        caller.firebaseProjectId,
+        caller.uid,
+      );
+      return json({ success: true, templateMap });
     }
 
     if (action === "check-session-window") {
@@ -275,13 +318,6 @@ Deno.serve(async (req: Request) => {
         );
       }
 
-      const bodyParameters = Array.isArray(body.bodyParameters)
-        ? body.bodyParameters.map((p) => String(p))
-        : [];
-      const headerParameters = Array.isArray(body.headerParameters)
-        ? body.headerParameters.map((p) => String(p))
-        : [];
-
       const documentBase64 = (body.documentBase64 ?? "").trim();
       const documentFilename = (body.documentFilename ?? "").trim();
       const templateHasDocumentHeader = body.templateHasDocumentHeader === true;
@@ -290,8 +326,9 @@ Deno.serve(async (req: Request) => {
         toPhone,
         templateName,
         languageCode,
-        bodyParameters,
-        headerParameters,
+        bodyParameters: body.bodyParameters,
+        headerParameters: body.headerParameters,
+        buttonParameters: body.buttonParameters,
         referenceId: body.referenceId,
         recipientName: body.recipientName,
         category: body.category,

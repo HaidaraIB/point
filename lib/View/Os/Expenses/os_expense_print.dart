@@ -5,7 +5,9 @@ import 'package:point/Models/Os/OsDailyExpenseModel.dart';
 import 'package:point/Models/Os/os_expense_constants.dart';
 import 'package:point/View/Os/os_finance_format.dart';
 import 'package:point/View/Os/os_print_a4.dart';
+import 'package:point/View/Os/Print/os_print_assets.dart';
 import 'package:point/View/Os/os_print_document.dart';
+import 'package:point/View/Os/os_print_pdf.dart';
 
 /// Builds and opens the point_os-style daily expenses A4 print sheet (web).
 Future<void> printOsExpensesSheet({
@@ -21,6 +23,24 @@ Future<void> printOsExpensesSheet({
     ),
     titleKey: AppLocaleKeys.osExpensesPrint,
     fallbackKey: AppLocaleKeys.osExpensesPrintFallback,
+  );
+}
+
+Future<void> downloadOsExpensesSheetPdf({
+  required List<OsDailyExpenseModel> expenses,
+  required String Function(OsDailyExpenseModel) categoryLabel,
+  required String Function(OsDailyExpenseModel) amountLabel,
+}) async {
+  await OsPrintAssets.ensureLoaded();
+  final printDate = DateFormat('yyyy-MM-dd').format(DateTime.now());
+  await downloadOsPrintPdf(
+    printHtml: buildOsExpensesPrintHtml(
+      expenses: expenses,
+      categoryLabel: categoryLabel,
+      amountLabel: amountLabel,
+    ),
+    fileName: 'expenses-$printDate.pdf',
+    titleKey: AppLocaleKeys.osExpensesPrint,
   );
 }
 

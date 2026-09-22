@@ -4,6 +4,8 @@ import 'package:point/Localization/AppLocaleKeys.dart';
 import 'package:point/Models/Os/OsWhatsappLogModel.dart';
 import 'package:point/Models/Os/os_whatsapp_enums.dart';
 import 'package:point/Utils/app_theme_extension.dart';
+import 'package:point/Utils/whatsapp_phone.dart';
+import 'package:point/Utils/os_whatsapp_template_vars.dart';
 import 'package:point/View/Os/Messaging/os_whatsapp_log_display.dart';
 
 class WhatsappTemplateButtonPreview {
@@ -102,6 +104,19 @@ class WhatsappTemplatePreviewContent {
       headerFormat: headerFormat,
       headerText: _substitute(headerText ?? '', headerParameters),
       bodyText: _substitute(bodyText, bodyParameters),
+      footerText: footerText,
+      buttons: buttons,
+      documentLabel: documentLabel,
+    );
+  }
+
+  WhatsappTemplatePreviewContent applyValueMap(Map<String, String> values) {
+    return WhatsappTemplatePreviewContent(
+      headerFormat: headerFormat,
+      headerText: headerText != null && headerText!.trim().isNotEmpty
+          ? osWhatsappSubstitutePlaceholders(headerText!, values)
+          : headerText,
+      bodyText: osWhatsappSubstitutePlaceholders(bodyText, values),
       footerText: footerText,
       buttons: buttons,
       documentLabel: documentLabel,
@@ -246,12 +261,7 @@ class OsWhatsappMessagePreview extends StatelessWidget {
     return false;
   }
 
-  String _fakeTime() {
-    final now = DateTime.now();
-    final h = now.hour.toString().padLeft(2, '0');
-    final m = now.minute.toString().padLeft(2, '0');
-    return '$h:$m';
-  }
+  String _fakeTime() => '12:00';
 }
 
 class _HeaderSection extends StatelessWidget {
@@ -372,7 +382,10 @@ class _ButtonRow extends StatelessWidget {
         icon = Icons.phone_rounded;
         label = button.text.isNotEmpty
             ? button.text
-            : (button.phoneNumber ?? AppLocaleKeys.osMessagingHubPreviewBtnCall.tr);
+            : (button.phoneNumber != null &&
+                    button.phoneNumber!.trim().isNotEmpty
+                ? formatWhatsappPhoneDisplay(button.phoneNumber)
+                : AppLocaleKeys.osMessagingHubPreviewBtnCall.tr);
       case 'CALL_PERMISSION_REQUEST':
         icon = Icons.phone_in_talk_rounded;
         label = button.text.isNotEmpty
@@ -457,6 +470,7 @@ Widget osMessagingHubWhatsappPreview(
   OsWhatsappTemplateModel? template, {
   List<String> headerParameters = const [],
   List<String> bodyParameters = const [],
+  Map<String, String> valueByToken = const {},
   String? documentFilename,
 }) {
   final theme = context.appTheme;
@@ -476,11 +490,28 @@ Widget osMessagingHubWhatsappPreview(
   }
 
   final base = WhatsappTemplatePreviewContent.fromTemplate(template);
-  final content = base.applyParameters(
-    headerParameters: headerParameters,
-    bodyParameters: bodyParameters,
-    documentLabel: template.hasDocumentHeader ? documentFilename : null,
-  );
+  final WhatsappTemplatePreviewContent content;
+  if (valueByToken.isNotEmpty) {
+    var mapped = base.applyValueMap(valueByToken);
+    if (template.hasDocumentHeader &&
+        documentFilename != null &&
+        documentFilename.isNotEmpty) {
+      mapped = WhatsappTemplatePreviewContent(
+        headerFormat: 'DOCUMENT',
+        bodyText: mapped.bodyText,
+        footerText: mapped.footerText,
+        buttons: mapped.buttons,
+        documentLabel: documentFilename,
+      );
+    }
+    content = mapped;
+  } else {
+    content = base.applyParameters(
+      headerParameters: headerParameters,
+      bodyParameters: bodyParameters,
+      documentLabel: template.hasDocumentHeader ? documentFilename : null,
+    );
+  }
 
   return OsWhatsappMessagePreview(content: content);
 }

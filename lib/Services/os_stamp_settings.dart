@@ -8,6 +8,9 @@ class OsStampSettingsController extends GetxController {
   final stampText = 'وكالة نقطة - قسم الحسابات'.obs;
   final stampColorHex = '#1e1b4b'.obs;
   final stampEnabled = true.obs;
+  final signatureImageDataUri = ''.obs;
+
+  static const maxSignatureBytes = 600 * 1024;
 
   @override
   void onInit() {
@@ -23,7 +26,26 @@ class OsStampSettingsController extends GetxController {
         stampColorHex.value;
     stampEnabled.value =
         prefs.getBool(StorageKeys.prefsOsStampEnabled) ?? true;
+    signatureImageDataUri.value =
+        prefs.getString(StorageKeys.prefsOsPrintSignatureDataUri) ?? '';
   }
+
+  Future<bool> setSignatureImageDataUri(String dataUri) async {
+    final trimmed = dataUri.trim();
+    if (trimmed.isNotEmpty && trimmed.length > maxSignatureBytes * 4 ~/ 3) {
+      return false;
+    }
+    signatureImageDataUri.value = trimmed;
+    final prefs = await SharedPreferences.getInstance();
+    if (trimmed.isEmpty) {
+      await prefs.remove(StorageKeys.prefsOsPrintSignatureDataUri);
+    } else {
+      await prefs.setString(StorageKeys.prefsOsPrintSignatureDataUri, trimmed);
+    }
+    return true;
+  }
+
+  Future<void> clearSignatureImage() => setSignatureImageDataUri('');
 
   Color get stampColor {
     final raw = stampColorHex.value.trim().replaceFirst('#', '');

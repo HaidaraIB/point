@@ -57,6 +57,10 @@ String whatsappLogErrorForUi(String? raw) {
       msg.toLowerCase().contains('call permission request')) {
     return AppLocaleKeys.osMessagingHubErrorCallPermission.tr;
   }
+  if (msg.contains('ERR_WHATSAPP_DOCUMENT_HEADER_REQUIRED') ||
+      msg.contains('ERR_WHATSAPP_DOCUMENT_REQUIRED')) {
+    return AppLocaleKeys.osMessagingHubInvoiceTemplateDocumentRequired.tr;
+  }
   if (msg.contains('ERR_WHATSAPP_SESSION_CLOSED') ||
       msg.contains('131047') ||
       msg.contains('131026')) {

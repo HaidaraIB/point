@@ -28,7 +28,6 @@ class HtmlEmailPreviewFallback extends StatelessWidget {
             child: SelectableText(
               html,
               style: TextStyle(
-                fontFamily: 'monospace',
                 fontSize: 11,
                 height: 1.45,
                 color: theme.secondaryText,

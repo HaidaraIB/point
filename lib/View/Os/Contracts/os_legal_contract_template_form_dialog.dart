@@ -400,7 +400,6 @@ class _OsLegalContractTemplateFormDialogState
       }),
       style: TextStyle(
         fontSize: 11,
-        fontFamily: 'monospace',
         color: theme.mutedText,
       ),
     );

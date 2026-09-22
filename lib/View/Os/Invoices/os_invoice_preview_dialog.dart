@@ -2,13 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:point/Localization/AppLocaleKeys.dart';
 import 'package:point/Models/Os/OsInvoiceModel.dart';
-import 'package:point/Utils/AppColors.dart';
 import 'package:point/Utils/app_theme_extension.dart';
 import 'package:point/View/Os/Invoices/os_invoice_pdf_download_action.dart';
 import 'package:point/View/Os/Invoices/os_invoice_print.dart';
 import 'package:point/View/Os/Invoices/os_invoice_share.dart';
-import 'package:point/View/Os/Messaging/os_messaging_hub_navigation.dart';
+import 'package:point/Models/Os/os_whatsapp_template_map.dart';
+import 'package:point/View/Os/Messaging/os_whatsapp_quick_send.dart';
+import 'package:point/View/Os/Messaging/os_whatsapp_send_filled_button.dart';
 import 'package:point/View/Os/os_button_styles.dart';
+import 'package:point/View/Os/os_document_action_button.dart';
 import 'package:point/View/Os/os_finance_format.dart';
 import 'package:point/View/Os/os_finance_status_widgets.dart';
 import 'package:point/View/Os/os_invoice_stamp.dart';
@@ -93,11 +95,11 @@ class _OsInvoicePreviewDialog extends StatelessWidget {
                       ],
                     ),
                   ),
-                  FilledButton.icon(
-                    onPressed: () => printOsInvoice(invoice),
-                    style: OsButtonStyles.secondaryCompact(theme),
-                    icon: const Icon(Icons.print_outlined, size: 18),
-                    label: Text(AppLocaleKeys.osInvoicesPrint.tr),
+                  OsDocumentActionFilledButton(
+                    style: OsButtonStyles.printCompact(theme),
+                    icon: Icons.print_outlined,
+                    label: AppLocaleKeys.osInvoicesPrint.tr,
+                    onPressed: () async => printOsInvoice(invoice),
                   ),
                   IconButton(
                     onPressed: () => Navigator.pop(context),
@@ -141,92 +143,93 @@ class _OsInvoicePreviewDialog extends StatelessWidget {
                   ? Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        _actionBtn(
-                          label: AppLocaleKeys.osInvoicesEmail.tr,
+                        OsDocumentActionFilledButton(
+                          style: OsButtonStyles.emailCompact(theme),
                           icon: Icons.mail_outline,
-                          color: theme.primaryText,
-                          fg: theme.pageBackground,
-                          onTap: () => sendOsInvoiceEmail(invoice),
+                          label: AppLocaleKeys.osInvoicesEmail.tr,
+                          onPressed: () => sendOsInvoiceEmail(invoice),
+                          expand: true,
                         ),
                         if (!invoice.isPaid) ...[
                           const SizedBox(height: 8),
-                          _actionBtn(
-                            label: AppLocaleKeys.osInvoicesPaymentLink.tr,
+                          OsDocumentActionFilledButton(
+                            style: OsButtonStyles.primaryCompact(),
                             icon: Icons.link,
-                            color: AppColors.primary,
-                            fg: Colors.white,
-                            onTap: () => showOsInvoicePaymentLinkDialog(
-                              context,
-                              invoice,
-                            ),
+                            label: AppLocaleKeys.osInvoicesPaymentLink.tr,
+                            onPressed: () async {
+                              showOsInvoicePaymentLinkDialog(context, invoice);
+                            },
+                            expand: true,
                           ),
                           const SizedBox(height: 8),
                           OsInvoicePdfDownloadFilledButton(
                             invoice: invoice,
-                            backgroundColor: const Color(0xFFEA0038),
-                            foregroundColor: Colors.white,
-                          ),
-                          const SizedBox(height: 8),
-                          _actionBtn(
-                            label: AppLocaleKeys.osInvoicesWhatsapp.tr,
-                            icon: Icons.send_outlined,
-                            color: const Color(0xFF059669),
-                            fg: Colors.white,
-                            onTap: () {
-                              Navigator.of(context).pop();
-                              openOsMessagingHubForInvoice(invoice);
-                            },
+                            theme: theme,
+                            expand: true,
                           ),
                         ],
+                        const SizedBox(height: 8),
+                        OsWhatsappSendFilledButton(
+                          purpose: OsWhatsappTemplatePurpose.invoice,
+                          expand: true,
+                          onSend: () async {
+                            await sendOsInvoiceViaWhatsapp(invoice);
+                            if (context.mounted) {
+                              Navigator.of(context).pop();
+                            }
+                          },
+                        ),
                       ],
                     )
                   : Row(
                       children: [
                         Expanded(
-                          child: _actionBtn(
-                            label: AppLocaleKeys.osInvoicesEmail.tr,
+                          child: OsDocumentActionFilledButton(
+                            style: OsButtonStyles.emailCompact(theme),
                             icon: Icons.mail_outline,
-                            color: theme.primaryText,
-                            fg: theme.pageBackground,
-                            onTap: () => sendOsInvoiceEmail(invoice),
+                            label: AppLocaleKeys.osInvoicesEmail.tr,
+                            onPressed: () => sendOsInvoiceEmail(invoice),
+                            expand: true,
                           ),
                         ),
                         if (!invoice.isPaid) ...[
                           const SizedBox(width: 8),
                           Expanded(
-                            child: _actionBtn(
-                              label: AppLocaleKeys.osInvoicesPaymentLink.tr,
+                            child: OsDocumentActionFilledButton(
+                              style: OsButtonStyles.primaryCompact(),
                               icon: Icons.link,
-                              color: AppColors.primary,
-                              fg: Colors.white,
-                              onTap: () => showOsInvoicePaymentLinkDialog(
-                                context,
-                                invoice,
-                              ),
+                              label: AppLocaleKeys.osInvoicesPaymentLink.tr,
+                              onPressed: () async {
+                                showOsInvoicePaymentLinkDialog(
+                                  context,
+                                  invoice,
+                                );
+                              },
+                              expand: true,
                             ),
                           ),
                           const SizedBox(width: 8),
                           Expanded(
                             child: OsInvoicePdfDownloadFilledButton(
                               invoice: invoice,
-                              backgroundColor: const Color(0xFFEA0038),
-                              foregroundColor: Colors.white,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: _actionBtn(
-                              label: AppLocaleKeys.osInvoicesWhatsapp.tr,
-                              icon: Icons.send_outlined,
-                              color: const Color(0xFF059669),
-                              fg: Colors.white,
-                              onTap: () {
-                                Navigator.of(context).pop();
-                                openOsMessagingHubForInvoice(invoice);
-                              },
+                              theme: theme,
+                              expand: true,
                             ),
                           ),
                         ],
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: OsWhatsappSendFilledButton(
+                            purpose: OsWhatsappTemplatePurpose.invoice,
+                            expand: true,
+                            onSend: () async {
+                              await sendOsInvoiceViaWhatsapp(invoice);
+                              if (context.mounted) {
+                                Navigator.of(context).pop();
+                              }
+                            },
+                          ),
+                        ),
                       ],
                     ),
             ),
@@ -396,24 +399,4 @@ class _OsInvoicePreviewDialog extends StatelessWidget {
     );
   }
 
-  Widget _actionBtn({
-    required String label,
-    required IconData icon,
-    required Color color,
-    required Color fg,
-    required VoidCallback onTap,
-  }) {
-    return FilledButton.icon(
-      onPressed: onTap,
-      style: FilledButton.styleFrom(
-        backgroundColor: color,
-        foregroundColor: fg,
-        padding: const EdgeInsets.symmetric(vertical: 14),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-        textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
-      ),
-      icon: Icon(icon, size: 16),
-      label: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis),
-    );
-  }
 }

@@ -1,4 +1,7 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:point/View/Os/os_form_dialog.dart';
 import 'package:get/get.dart';
 import 'package:point/Localization/AppLocaleKeys.dart';
@@ -6,6 +9,7 @@ import 'package:point/Services/os_stamp_settings.dart';
 import 'package:point/Utils/AppColors.dart';
 import 'package:point/Utils/app_theme_extension.dart';
 import 'package:point/View/Os/os_electronic_stamp.dart';
+import 'package:point/View/Os/os_snackbar.dart';
 
 /// Polished stamp settings card (text, color picker, enable, live preview).
 class OsStampSettingsPanel extends StatefulWidget {
@@ -16,6 +20,18 @@ class OsStampSettingsPanel extends StatefulWidget {
 
   @override
   State<OsStampSettingsPanel> createState() => _OsStampSettingsPanelState();
+}
+
+Widget _signaturePreview(String dataUri) {
+  final match =
+      RegExp(r'^data:image/[^;]+;base64,(.+)$').firstMatch(dataUri.trim());
+  if (match == null) return const SizedBox.shrink();
+  try {
+    final bytes = base64Decode(match.group(1)!);
+    return Image.memory(bytes, height: 56, fit: BoxFit.contain);
+  } catch (_) {
+    return const SizedBox.shrink();
+  }
 }
 
 class _OsStampSettingsPanelState extends State<OsStampSettingsPanel> {
@@ -48,6 +64,37 @@ class _OsStampSettingsPanelState extends State<OsStampSettingsPanel> {
     _textCtrl.dispose();
     _hexCtrl.dispose();
     super.dispose();
+  }
+
+  Future<void> _pickSignatureImage(OsStampSettingsController stamp) async {
+    final picked = await ImagePicker().pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 90,
+      maxWidth: 1600,
+    );
+    if (picked == null) return;
+    final bytes = await picked.readAsBytes();
+    if (bytes.isEmpty) return;
+    if (bytes.length > OsStampSettingsController.maxSignatureBytes) {
+      OsSnackbar.error(
+        AppLocaleKeys.osInvoicesStampSection.tr,
+        AppLocaleKeys.osInvoicesStampSignatureTooLarge.tr,
+      );
+      return;
+    }
+    final mime = picked.mimeType?.toLowerCase().contains('png') == true
+        ? 'image/png'
+        : 'image/jpeg';
+    final dataUri = 'data:$mime;base64,${base64Encode(bytes)}';
+    final ok = await stamp.setSignatureImageDataUri(dataUri);
+    if (!ok) {
+      OsSnackbar.error(
+        AppLocaleKeys.osInvoicesStampSection.tr,
+        AppLocaleKeys.osInvoicesStampSignatureTooLarge.tr,
+      );
+      return;
+    }
+    if (mounted) setState(() {});
   }
 
   Future<void> _openColorPicker(OsStampSettingsController stamp) async {
@@ -212,6 +259,7 @@ class _OsStampSettingsPanelState extends State<OsStampSettingsPanel> {
 
     return Obx(() {
       final enabled = stamp.stampEnabled.value;
+      final signatureUri = stamp.signatureImageDataUri.value.trim();
       final content = Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -226,6 +274,60 @@ class _OsStampSettingsPanelState extends State<OsStampSettingsPanel> {
             ),
             const SizedBox(height: 16),
           ],
+          Text(
+            AppLocaleKeys.osInvoicesStampSignatureImage.tr,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: theme.secondaryText,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            AppLocaleKeys.osInvoicesStampSignatureHint.tr,
+            style: TextStyle(
+              fontSize: 12,
+              height: 1.45,
+              color: theme.mutedText,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              OutlinedButton.icon(
+                onPressed: () => _pickSignatureImage(stamp),
+                icon: const Icon(Icons.upload_outlined, size: 18),
+                label: Text(AppLocaleKeys.osInvoicesStampSignatureUpload.tr),
+              ),
+              if (signatureUri.isNotEmpty)
+                OutlinedButton.icon(
+                  onPressed: () async {
+                    await stamp.clearSignatureImage();
+                    if (mounted) setState(() {});
+                  },
+                  icon: const Icon(Icons.delete_outline, size: 18),
+                  label: Text(AppLocaleKeys.osInvoicesStampSignatureRemove.tr),
+                ),
+            ],
+          ),
+          if (signatureUri.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: theme.border),
+                color: theme.pageBackground.withValues(alpha: 0.55),
+              ),
+              child: Center(
+                child: _signaturePreview(signatureUri),
+              ),
+            ),
+          ],
+          const SizedBox(height: 18),
           LayoutBuilder(
               builder: (context, constraints) {
                 final wide = constraints.maxWidth >= 820;

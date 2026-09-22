@@ -7,9 +7,36 @@ import 'package:point/Models/Os/OsVoucherModel.dart';
 import 'package:point/Models/Os/os_finance_enums.dart';
 import 'package:point/Services/firestore/firestore_query_limits.dart';
 import 'package:point/Services/firestore/firestore_stream_utils.dart';
+import 'package:point/Services/os_voucher_balance.dart';
 import 'package:point/Utils/app_log.dart';
 import 'package:point/View/Os/os_finance_format.dart';
 import 'package:uuid/uuid.dart';
+
+/// Paired transfer edit payload (required when editing a TRANSFER voucher).
+class OsTransferVoucherEdit {
+  const OsTransferVoucherEdit({
+    required this.sourceAccountId,
+    required this.destAccountId,
+    required this.amount,
+    required this.date,
+    required this.paymentDescription,
+    required this.receiptDescription,
+  });
+
+  final String sourceAccountId;
+  final String destAccountId;
+  final double amount;
+  final String date;
+  final String paymentDescription;
+  final String receiptDescription;
+}
+
+/// Outcome of [FirestoreOsFinanceApi.updateVoucher].
+class OsVoucherUpdateResult {
+  const OsVoucherUpdateResult({this.payrollRunIdToRefresh});
+
+  final String? payrollRunIdToRefresh;
+}
 
 class OsFinanceException implements Exception {
   OsFinanceException(this.messageKey);
@@ -28,6 +55,7 @@ class FirestoreOsFinanceApi {
   static const bankAccountsCollection = 'os_bank_accounts';
   static const vouchersCollection = 'os_vouchers';
   static const expensesCollection = 'os_expenses';
+  static const payslipsCollection = 'os_payslips';
   static const _uuid = Uuid();
 
   static String newId() => _uuid.v4();
@@ -336,6 +364,7 @@ class FirestoreOsFinanceApi {
         );
 
         final now = DateTime.now();
+        final payeePhone = current.clientPhone?.trim();
         final voucher = OsVoucherModel(
           id: voucherId,
           displayNumber: voucherDisplay,
@@ -343,6 +372,8 @@ class FirestoreOsFinanceApi {
           amount: current.total,
           date: formatDate(now),
           payeeOrPayer: current.clientName,
+          payeePhone:
+              payeePhone != null && payeePhone.isNotEmpty ? payeePhone : null,
           description: voucherDescription,
           bankAccountId: accountId,
           status: OsVoucherStatus.completed,
@@ -521,6 +552,446 @@ class FirestoreOsFinanceApi {
     } catch (e, st) {
       appLog('createVoucher failed: $e\n$st');
       return false;
+    }
+  }
+
+  /// Patch contact fields on an existing voucher (no balance changes).
+  static Future<bool> updateVoucherContact(OsVoucherModel voucher) async {
+    final id = voucher.id?.trim() ?? '';
+    if (id.isEmpty) return false;
+    try {
+      final data = <String, dynamic>{};
+      final phone = voucher.payeePhone?.trim();
+      if (phone != null && phone.isNotEmpty) {
+        data['payeePhone'] = phone;
+      }
+      if (data.isEmpty) return true;
+      await FirebaseFirestore.instance
+          .collection(vouchersCollection)
+          .doc(id)
+          .update(data);
+      return true;
+    } catch (e, st) {
+      appLog('updateVoucherContact failed: $e\n$st');
+      return false;
+    }
+  }
+
+  static Future<DocumentSnapshot<Map<String, dynamic>>?> _findUniqueTransferPairDoc(
+    OsVoucherModel voucher,
+  ) async {
+    final oppositeType = voucher.type == OsVoucherType.payment
+        ? OsVoucherType.receipt
+        : OsVoucherType.payment;
+    final candidates = await FirebaseFirestore.instance
+        .collection(vouchersCollection)
+        .where('source', isEqualTo: OsVoucherSource.transfer)
+        .where('date', isEqualTo: voucher.date)
+        .where('amount', isEqualTo: voucher.amount)
+        .limit(FirestoreQueryLimits.osVouchers)
+        .get();
+
+    final matches = <DocumentSnapshot<Map<String, dynamic>>>[];
+    for (final d in candidates.docs) {
+      if (d.id == voucher.id) continue;
+      final other = OsVoucherModel.fromJson(d.data(), d.id);
+      if (other.type == oppositeType) {
+        matches.add(d);
+      }
+    }
+    if (matches.isEmpty) return null;
+    if (matches.length > 1) {
+      throw OsFinanceException('os.vouchers.error.transfer_ambiguous');
+    }
+    return matches.first;
+  }
+
+  static OsVoucherModel _resolveTransferLegs({
+    required OsVoucherModel voucher,
+    required OsVoucherModel? pair,
+  }) {
+    if (voucher.type == OsVoucherType.payment) return voucher;
+    if (pair != null && pair.type == OsVoucherType.payment) return pair;
+    return voucher;
+  }
+
+  static OsVoucherModel _resolveTransferReceipt({
+    required OsVoucherModel voucher,
+    required OsVoucherModel? pair,
+  }) {
+    if (voucher.type == OsVoucherType.receipt) return voucher;
+    if (pair != null && pair.type == OsVoucherType.receipt) return pair;
+    return voucher;
+  }
+
+  /// Updates a posted voucher and applies the exact net balance delta in one
+  /// transaction. Syncs linked invoice, expense, payroll, or transfer pair.
+  static Future<OsVoucherUpdateResult> updateVoucher({
+    required OsVoucherModel updated,
+    OsTransferVoucherEdit? transfer,
+  }) async {
+    final voucherId = updated.id?.trim() ?? '';
+    if (voucherId.isEmpty) {
+      throw OsFinanceException('os.vouchers.error.missing_id');
+    }
+    if (updated.amount <= 0) {
+      throw OsFinanceException('os.vouchers.error.invalid_amount');
+    }
+
+    final firestore = FirebaseFirestore.instance;
+    final voucherRef = firestore.collection(vouchersCollection).doc(voucherId);
+    final snap = await voucherRef.get();
+    if (!snap.exists) {
+      throw OsFinanceException('os.vouchers.error.not_found');
+    }
+    final current = OsVoucherModel.fromJson(snap.data()!, snap.id);
+    final source = current.source?.trim() ?? '';
+
+    if (!osVoucherTypeChangeAllowed(current) &&
+        updated.type != current.type) {
+      throw OsFinanceException('os.vouchers.error.type_locked');
+    }
+
+    if (source == OsVoucherSource.transfer) {
+      if (transfer == null) {
+        throw OsFinanceException('os.vouchers.error.transfer_ambiguous');
+      }
+      if (transfer.sourceAccountId.trim().isEmpty ||
+          transfer.destAccountId.trim().isEmpty) {
+        throw OsFinanceException('os.vouchers.error.account_required');
+      }
+      if (transfer.sourceAccountId.trim() == transfer.destAccountId.trim()) {
+        throw OsFinanceException('os.accounts.transfer.error.same');
+      }
+      if (transfer.amount <= 0) {
+        throw OsFinanceException('os.vouchers.error.invalid_amount');
+      }
+    } else {
+      final accountId = updated.bankAccountId.trim();
+      if (accountId.isEmpty) {
+        throw OsFinanceException('os.vouchers.error.account_required');
+      }
+    }
+
+    DocumentSnapshot<Map<String, dynamic>>? pairDoc;
+    DocumentSnapshot<Map<String, dynamic>>? expenseDoc;
+    DocumentSnapshot<Map<String, dynamic>>? invoiceDoc;
+    DocumentSnapshot<Map<String, dynamic>>? payslipDoc;
+
+    if (source == OsVoucherSource.transfer) {
+      pairDoc = await _findUniqueTransferPairDoc(current);
+      if (pairDoc == null) {
+        throw OsFinanceException('os.vouchers.error.transfer_ambiguous');
+      }
+    } else if (source == OsVoucherSource.expense ||
+        source == OsVoucherSource.payroll) {
+      final expenseSnap = await firestore
+          .collection(expensesCollection)
+          .where('voucherId', isEqualTo: voucherId)
+          .limit(1)
+          .get();
+      if (expenseSnap.docs.isNotEmpty) {
+        expenseDoc = expenseSnap.docs.first;
+      }
+    } else if (source == OsVoucherSource.invoice ||
+        (current.invoiceId != null && current.invoiceId!.trim().isNotEmpty)) {
+      final invoiceId = current.invoiceId?.trim() ?? '';
+      if (invoiceId.isNotEmpty) {
+        final invoiceSnap =
+            await firestore.collection(invoicesCollection).doc(invoiceId).get();
+        if (invoiceSnap.exists) invoiceDoc = invoiceSnap;
+      }
+    }
+
+    if (source == OsVoucherSource.payroll) {
+      final payslipSnap = await firestore
+          .collection(payslipsCollection)
+          .where('voucherId', isEqualTo: voucherId)
+          .limit(1)
+          .get();
+      if (payslipSnap.docs.isNotEmpty) {
+        payslipDoc = payslipSnap.docs.first;
+      }
+    }
+
+    String? payrollRunIdToRefresh;
+
+    try {
+      await firestore.runTransaction((tx) async {
+        final freshSnap = await tx.get(voucherRef);
+        if (!freshSnap.exists) {
+          throw OsFinanceException('os.vouchers.error.not_found');
+        }
+        final fresh = OsVoucherModel.fromJson(freshSnap.data()!, freshSnap.id);
+
+        if (fresh.amount != current.amount ||
+            fresh.type != current.type ||
+            fresh.bankAccountId != current.bankAccountId ||
+            fresh.date != current.date) {
+          // Allow concurrent metadata edits; re-sync from fresh for balance math.
+        }
+
+        OsVoucherModel? freshPair;
+        if (source == OsVoucherSource.transfer) {
+          final lockedPairDoc = pairDoc;
+          if (lockedPairDoc == null) {
+            throw OsFinanceException('os.vouchers.error.transfer_ambiguous');
+          }
+          final pairRef = lockedPairDoc.reference;
+          final freshPairSnap = await tx.get(pairRef);
+          if (!freshPairSnap.exists) {
+            throw OsFinanceException('os.vouchers.error.transfer_ambiguous');
+          }
+          freshPair =
+              OsVoucherModel.fromJson(freshPairSnap.data()!, freshPairSnap.id);
+          final pair =
+              OsVoucherModel.fromJson(lockedPairDoc.data()!, lockedPairDoc.id);
+          if (freshPair.amount != pair.amount ||
+              freshPair.date != pair.date ||
+              freshPair.type != pair.type) {
+            throw OsFinanceException('os.vouchers.error.transfer_ambiguous');
+          }
+        }
+
+        final removeLegs = <OsVoucherBalanceLeg>[];
+        final applyLegs = <OsVoucherBalanceLeg>[];
+        final accountIdsToRead = <String>{};
+
+        if (source == OsVoucherSource.transfer && transfer != null) {
+          final oldPayment = _resolveTransferLegs(
+            voucher: fresh,
+            pair: freshPair,
+          );
+          final oldReceipt = _resolveTransferReceipt(
+            voucher: fresh,
+            pair: freshPair,
+          );
+          removeLegs.addAll([
+            OsVoucherBalanceLeg.fromVoucher(oldPayment),
+            OsVoucherBalanceLeg.fromVoucher(oldReceipt),
+          ]);
+          applyLegs.addAll([
+            OsVoucherBalanceLeg(
+              accountId: transfer.sourceAccountId,
+              type: OsVoucherType.payment,
+              amount: transfer.amount,
+            ),
+            OsVoucherBalanceLeg(
+              accountId: transfer.destAccountId,
+              type: OsVoucherType.receipt,
+              amount: transfer.amount,
+            ),
+          ]);
+          accountIdsToRead.addAll([
+            oldPayment.bankAccountId,
+            oldReceipt.bankAccountId,
+            transfer.sourceAccountId,
+            transfer.destAccountId,
+          ]);
+        } else {
+          removeLegs.add(OsVoucherBalanceLeg.fromVoucher(fresh));
+          var effectiveType = osVoucherTypeChangeAllowed(fresh)
+              ? updated.type
+              : fresh.type;
+          if (source == OsVoucherSource.invoice ||
+              (fresh.invoiceId != null && fresh.invoiceId!.trim().isNotEmpty)) {
+            effectiveType = OsVoucherType.receipt;
+          } else if (source == OsVoucherSource.expense ||
+              source == OsVoucherSource.payroll) {
+            effectiveType = OsVoucherType.payment;
+          }
+          applyLegs.add(
+            OsVoucherBalanceLeg(
+              accountId: updated.bankAccountId,
+              type: effectiveType,
+              amount: updated.amount,
+            ),
+          );
+          accountIdsToRead.add(fresh.bankAccountId);
+          accountIdsToRead.add(updated.bankAccountId);
+        }
+
+        final netDeltas = computeOsAccountNetDeltas(
+          removeLegs: removeLegs,
+          applyLegs: applyLegs,
+        );
+
+        final balances = <String, double>{};
+        for (final accountId in accountIdsToRead) {
+          final id = accountId.trim();
+          if (id.isEmpty || balances.containsKey(id)) continue;
+          final accountRef =
+              firestore.collection(bankAccountsCollection).doc(id);
+          final accountSnap = await tx.get(accountRef);
+          if (!accountSnap.exists) {
+            throw OsFinanceException('os.invoices.error.account_missing');
+          }
+          balances[id] = OsBankAccountModel.fromJson(
+            accountSnap.data()!,
+            accountSnap.id,
+          ).balance;
+        }
+
+        final blocked = findOsInsufficientBalanceAccount(
+          balancesByAccountId: balances,
+          netDeltasByAccountId: netDeltas,
+        );
+        if (blocked != null) {
+          throw OsFinanceException('os.accounts.transfer.error.insufficient');
+        }
+
+        for (final entry in netDeltas.entries) {
+          final accountRef =
+              firestore.collection(bankAccountsCollection).doc(entry.key);
+          final accountSnap = await tx.get(accountRef);
+          final account = OsBankAccountModel.fromJson(
+            accountSnap.data()!,
+            accountSnap.id,
+          );
+          tx.set(
+            accountRef,
+            account.copyWith(balance: account.balance + entry.value).toJson(),
+            SetOptions(merge: true),
+          );
+        }
+
+        if (source == OsVoucherSource.transfer && transfer != null) {
+          final oldPayment = _resolveTransferLegs(
+            voucher: fresh,
+            pair: freshPair,
+          );
+          final oldReceipt = _resolveTransferReceipt(
+            voucher: fresh,
+            pair: freshPair,
+          );
+
+          final sourceRef =
+              firestore.collection(bankAccountsCollection).doc(transfer.sourceAccountId);
+          final destRef =
+              firestore.collection(bankAccountsCollection).doc(transfer.destAccountId);
+          final sourceSnap = await tx.get(sourceRef);
+          final destSnap = await tx.get(destRef);
+          final sourceName = OsBankAccountModel.fromJson(
+            sourceSnap.data()!,
+            sourceSnap.id,
+          ).name;
+          final destName = OsBankAccountModel.fromJson(
+            destSnap.data()!,
+            destSnap.id,
+          ).name;
+
+          tx.set(
+            firestore.collection(vouchersCollection).doc(oldPayment.id),
+            oldPayment
+                .copyWith(
+                  amount: transfer.amount,
+                  date: transfer.date,
+                  bankAccountId: transfer.sourceAccountId,
+                  payeeOrPayer: destName,
+                  description: transfer.paymentDescription,
+                )
+                .toJson(),
+            SetOptions(merge: true),
+          );
+          tx.set(
+            firestore.collection(vouchersCollection).doc(oldReceipt.id),
+            oldReceipt
+                .copyWith(
+                  amount: transfer.amount,
+                  date: transfer.date,
+                  bankAccountId: transfer.destAccountId,
+                  payeeOrPayer: sourceName,
+                  description: transfer.receiptDescription,
+                )
+                .toJson(),
+            SetOptions(merge: true),
+          );
+        } else {
+          var effectiveType = osVoucherTypeChangeAllowed(fresh)
+              ? updated.type
+              : fresh.type;
+          if (source == OsVoucherSource.invoice ||
+              (fresh.invoiceId != null && fresh.invoiceId!.trim().isNotEmpty)) {
+            effectiveType = OsVoucherType.receipt;
+          } else if (source == OsVoucherSource.expense ||
+              source == OsVoucherSource.payroll) {
+            effectiveType = OsVoucherType.payment;
+          }
+          final toSave = fresh.copyWith(
+            type: effectiveType,
+            amount: updated.amount,
+            date: updated.date,
+            payeeOrPayer: updated.payeeOrPayer,
+            payeePhone: updated.payeePhone,
+            description: updated.description,
+            bankAccountId: updated.bankAccountId.trim(),
+          );
+          tx.set(voucherRef, toSave.toJson(), SetOptions(merge: true));
+
+          if (expenseDoc != null) {
+            final expense = OsDailyExpenseModel.fromJson(
+              expenseDoc.data()!,
+              expenseDoc.id,
+            );
+            final payee = updated.payeeOrPayer.trim();
+            final expensePayee = (expense.vendor?.trim().isNotEmpty ?? false)
+                ? expense.copyWith(vendor: payee)
+                : expense.copyWith(paidBy: payee);
+            tx.set(
+              expenseDoc.reference,
+              expensePayee
+                  .copyWith(
+                    amount: updated.amount,
+                    date: updated.date,
+                    bankAccountId: updated.bankAccountId.trim(),
+                  )
+                  .toJson(),
+              SetOptions(merge: true),
+            );
+          }
+
+          if (invoiceDoc != null) {
+            final invoice = OsInvoiceModel.fromJson(
+              invoiceDoc.data()!,
+              invoiceDoc.id,
+            );
+            final discount = invoice.discount < 0 ? 0.0 : invoice.discount;
+            final newTotal = updated.amount;
+            final newAmount = newTotal - invoice.vat + discount;
+            tx.set(
+              invoiceDoc.reference,
+              invoice
+                  .copyWith(
+                    total: newTotal,
+                    amount: newAmount,
+                    bankAccountId: updated.bankAccountId.trim(),
+                    clientName: updated.payeeOrPayer.trim(),
+                  )
+                  .toJson(),
+              SetOptions(merge: true),
+            );
+          }
+
+          if (payslipDoc != null) {
+            final payslipData = Map<String, dynamic>.from(payslipDoc.data()!);
+            payslipData['netPay'] = updated.amount;
+            tx.set(payslipDoc.reference, payslipData, SetOptions(merge: true));
+            payrollRunIdToRefresh = payslipData['runId'] as String?;
+          }
+        }
+      });
+
+      return OsVoucherUpdateResult(
+        payrollRunIdToRefresh: () {
+          final runId = payrollRunIdToRefresh?.trim() ?? '';
+          return runId.isEmpty ? null : runId;
+        }(),
+      );
+    } on OsFinanceException {
+      rethrow;
+    } catch (e, st) {
+      appLog('updateVoucher failed: $e\n$st');
+      throw OsFinanceException('os.common.save_failed');
     }
   }
 
@@ -868,16 +1339,51 @@ class FirestoreOsFinanceApi {
     }
   }
 
-  /// Updates expense fields only (no bank reverse — matches point_os).
-  static Future<bool> updateExpense(OsDailyExpenseModel expense) async {
+  /// Updates expense fields and syncs the linked payment voucher when present.
+  static Future<bool> updateExpense({
+    required OsDailyExpenseModel expense,
+    required String voucherDescription,
+  }) async {
     final id = expense.id?.trim();
     if (id == null || id.isEmpty) return false;
+
+    final firestore = FirebaseFirestore.instance;
+    final expenseRef = firestore.collection(expensesCollection).doc(id);
+
     try {
-      await FirebaseFirestore.instance
-          .collection(expensesCollection)
-          .doc(id)
-          .set(expense.toJson(), SetOptions(merge: true));
+      final existingSnap = await expenseRef.get();
+      if (!existingSnap.exists) return false;
+      final existing = OsDailyExpenseModel.fromJson(
+        existingSnap.data()!,
+        existingSnap.id,
+      );
+      final voucherId = existing.voucherId?.trim() ?? '';
+
+      if (voucherId.isNotEmpty) {
+        final voucherSnap =
+            await firestore.collection(vouchersCollection).doc(voucherId).get();
+        if (voucherSnap.exists) {
+          final voucher =
+              OsVoucherModel.fromJson(voucherSnap.data()!, voucherSnap.id);
+          final payee = (expense.vendor?.trim().isNotEmpty ?? false)
+              ? expense.vendor!.trim()
+              : expense.paidBy;
+          await updateVoucher(
+            updated: voucher.copyWith(
+              amount: expense.amount,
+              date: expense.date,
+              bankAccountId: expense.bankAccountId?.trim() ?? '',
+              payeeOrPayer: payee,
+              description: voucherDescription,
+            ),
+          );
+        }
+      }
+
+      await expenseRef.set(expense.toJson(), SetOptions(merge: true));
       return true;
+    } on OsFinanceException {
+      rethrow;
     } catch (e, st) {
       appLog('updateExpense failed: $e\n$st');
       return false;

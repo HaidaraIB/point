@@ -235,8 +235,7 @@ async function graphGet(
   const res = await fetch(url);
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
-    const err = data as { error?: { message?: string; code?: number } };
-    const msg = err.error?.message ?? JSON.stringify(data);
+    const msg = graphApiErrorMessage(data);
     throw new Error(`ERR_WHATSAPP_GRAPH:${msg}`);
   }
   return data;
@@ -255,8 +254,7 @@ async function graphPost(
   });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
-    const err = data as { error?: { message?: string } };
-    const msg = err.error?.message ?? JSON.stringify(data);
+    const msg = graphApiErrorMessage(data);
     throw new Error(`ERR_WHATSAPP_GRAPH:${msg}`);
   }
   return data;
@@ -355,12 +353,23 @@ export async function listApprovedWhatsappTemplates(
   return all.filter((t) => t.name.length > 0);
 }
 
+export type WhatsappTextParameter = {
+  text: string;
+  token?: string;
+};
+
+export type WhatsappButtonParameterGroup = {
+  index: number;
+  parameters: WhatsappTextParameter[];
+};
+
 export type SendTemplateInput = {
   toPhone: string;
   templateName: string;
   languageCode: string;
-  bodyParameters?: string[];
-  headerParameters?: string[];
+  bodyParameters?: WhatsappTextParameter[];
+  headerParameters?: WhatsappTextParameter[];
+  buttonParameters?: WhatsappButtonParameterGroup[];
   referenceId?: string;
   recipientName?: string;
   category?: string;
@@ -368,6 +377,84 @@ export type SendTemplateInput = {
   documentFilename?: string;
   templateHasDocumentHeader?: boolean;
 };
+
+const WHATSAPP_TEMPLATE_MAP_JSON_FIELD = "whatsappTemplateMapJson";
+
+export type WhatsappTemplateMapConfig = {
+  templates: Array<Record<string, unknown>>;
+};
+
+export async function loadWhatsappTemplateMap(
+  accessToken: string,
+  projectId: string,
+): Promise<WhatsappTemplateMapConfig> {
+  const fields = await getFirestoreDoc(accessToken, projectId, OS_SETTINGS_DOC);
+  if (!fields) return { templates: [] };
+  const parsed = parseFirestoreFields(fields);
+  const raw = parsed[WHATSAPP_TEMPLATE_MAP_JSON_FIELD];
+  if (typeof raw !== "string" || raw.trim().length === 0) {
+    return { templates: [] };
+  }
+  try {
+    const json = JSON.parse(raw) as { templates?: unknown[] };
+    const templates = Array.isArray(json.templates)
+      ? json.templates.filter((t) => t && typeof t === "object")
+      : [];
+    return { templates: templates as Array<Record<string, unknown>> };
+  } catch {
+    return { templates: [] };
+  }
+}
+
+export async function saveWhatsappTemplateMap(
+  config: WhatsappTemplateMapConfig,
+  accessToken: string,
+  projectId: string,
+  uid: string,
+): Promise<WhatsappTemplateMapConfig> {
+  const now = new Date().toISOString();
+  const json = JSON.stringify({
+    templates: config.templates ?? [],
+  });
+  await setFirestoreDoc(
+    accessToken,
+    projectId,
+    OS_SETTINGS_DOC,
+    {
+      [WHATSAPP_TEMPLATE_MAP_JSON_FIELD]: toFirestoreString(json),
+      whatsappTemplateMapUpdatedAt: toFirestoreString(now),
+      whatsappTemplateMapUpdatedBy: toFirestoreString(uid),
+    },
+    [
+      WHATSAPP_TEMPLATE_MAP_JSON_FIELD,
+      "whatsappTemplateMapUpdatedAt",
+      "whatsappTemplateMapUpdatedBy",
+    ],
+  );
+  return await loadWhatsappTemplateMap(accessToken, projectId);
+}
+
+function textParamToGraph(p: WhatsappTextParameter): Record<string, unknown> {
+  const text = (p.text ?? "").trim();
+  const token = (p.token ?? "").trim();
+  const isNamed = token.length > 0 && !/^\d+$/.test(token);
+  const out: Record<string, unknown> = { type: "text", text };
+  if (isNamed) out.parameter_name = token;
+  return out;
+}
+
+function graphApiErrorMessage(data: unknown): string {
+  const err = data as {
+    error?: {
+      message?: string;
+      error_data?: { details?: string };
+    };
+  };
+  const details = err.error?.error_data?.details?.trim();
+  const message = err.error?.message?.trim();
+  if (details && message) return `${message}: ${details}`;
+  return details || message || JSON.stringify(data);
+}
 
 export type SendTemplateResult = {
   success: boolean;
@@ -416,8 +503,7 @@ export async function uploadWhatsappMedia(
   const res = await fetch(url, { method: "POST", body: form });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
-    const err = data as { error?: { message?: string } };
-    const msg = err.error?.message ?? JSON.stringify(data);
+    const msg = graphApiErrorMessage(data);
     throw new Error(`ERR_WHATSAPP_GRAPH:${msg}`);
   }
   const id = (data as { id?: string }).id?.trim() ?? "";
@@ -568,8 +654,9 @@ export async function sendWhatsappSession(
 }
 
 function buildTemplateComponents(
-  bodyParameters: string[],
-  headerTextParameters: string[],
+  bodyParameters: WhatsappTextParameter[],
+  headerTextParameters: WhatsappTextParameter[],
+  buttonParameters: WhatsappButtonParameterGroup[],
   documentHeader?: { mediaId: string; filename: string },
 ): Array<Record<string, unknown>> {
   const components: Array<Record<string, unknown>> = [];
@@ -587,22 +674,68 @@ function buildTemplateComponents(
   } else if (headerTextParameters.length > 0) {
     components.push({
       type: "header",
-      parameters: headerTextParameters.map((text) => ({
-        type: "text",
-        text,
-      })),
+      parameters: headerTextParameters.map((p) => textParamToGraph(p)),
     });
   }
   if (bodyParameters.length > 0) {
     components.push({
       type: "body",
-      parameters: bodyParameters.map((text) => ({
-        type: "text",
-        text,
-      })),
+      parameters: bodyParameters.map((p) => textParamToGraph(p)),
+    });
+  }
+  for (const group of buttonParameters) {
+    if (!group.parameters.length) continue;
+    components.push({
+      type: "button",
+      sub_type: "url",
+      index: String(group.index),
+      parameters: group.parameters.map((p) => textParamToGraph(p)),
     });
   }
   return components;
+}
+
+function normalizeTextParameters(
+  raw: unknown,
+): WhatsappTextParameter[] {
+  if (!Array.isArray(raw)) return [];
+  const out: WhatsappTextParameter[] = [];
+  for (const item of raw) {
+    if (typeof item === "string") {
+      out.push({ text: item });
+      continue;
+    }
+    if (item && typeof item === "object") {
+      const map = item as {
+        text?: string;
+        token?: string;
+        parameter_name?: string;
+      };
+      const tokenRaw = map.token ?? map.parameter_name;
+      out.push({
+        text: String(map.text ?? ""),
+        token: tokenRaw !== undefined ? String(tokenRaw) : undefined,
+      });
+    }
+  }
+  return out;
+}
+
+function normalizeButtonParameters(
+  raw: unknown,
+): WhatsappButtonParameterGroup[] {
+  if (!Array.isArray(raw)) return [];
+  const out: WhatsappButtonParameterGroup[] = [];
+  for (const item of raw) {
+    if (!item || typeof item !== "object") continue;
+    const map = item as { index?: number; parameters?: unknown };
+    const index = typeof map.index === "number" ? map.index : 0;
+    out.push({
+      index,
+      parameters: normalizeTextParameters(map.parameters),
+    });
+  }
+  return out;
 }
 
 export async function sendWhatsappTemplate(
@@ -639,9 +772,14 @@ export async function sendWhatsappTemplate(
     input.templateHasDocumentHeader && mediaId,
   );
 
+  const bodyParams = normalizeTextParameters(input.bodyParameters);
+  const headerParams = normalizeTextParameters(input.headerParameters);
+  const buttonParams = normalizeButtonParameters(input.buttonParameters);
+
   const components = buildTemplateComponents(
-    input.bodyParameters ?? [],
-    useDocumentHeader ? [] : (input.headerParameters ?? []),
+    bodyParams,
+    useDocumentHeader ? [] : headerParams,
+    buttonParams,
     useDocumentHeader && mediaId
       ? { mediaId, filename: documentFilename }
       : undefined,
@@ -664,19 +802,13 @@ export async function sendWhatsappTemplate(
       settings.accessToken,
       payload,
     ) as { messages?: Array<{ id?: string }> };
-    let wamid = data.messages?.[0]?.id?.trim() ?? "";
+    const wamid = data.messages?.[0]?.id?.trim() ?? "";
 
-    if (mediaId && !useDocumentHeader) {
-      const docResult = await sendWhatsappDocumentMessage(
-        settings,
-        input.toPhone,
-        mediaId,
-        documentFilename,
-      );
-      if (!docResult.success) {
-        return docResult;
-      }
-      if (!wamid && docResult.wamid) wamid = docResult.wamid;
+    if (mediaId && !useDocumentHeader && attachInvoicePdf) {
+      return {
+        success: false,
+        errorMessage: "ERR_WHATSAPP_DOCUMENT_HEADER_REQUIRED",
+      };
     }
 
     return { success: true, wamid };

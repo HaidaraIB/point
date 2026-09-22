@@ -2,6 +2,7 @@ import 'package:get/get.dart';
 import 'package:point/Localization/AppLocaleKeys.dart';
 import 'package:point/View/Os/Print/os_print_assets.dart';
 import 'package:point/View/Os/Print/os_print_contact.dart';
+import 'package:point/View/Os/Print/os_print_signature.dart';
 import 'package:point/View/Os/os_finance_format.dart';
 import 'package:point/View/Os/os_print_a4.dart';
 
@@ -384,6 +385,18 @@ table.items.quote col.col-total { width: 25%; }
   color: var(--navy);
   font-weight: 600;
 }
+.print-signature-img {
+  display: block;
+  max-width: 150px;
+  max-height: 52px;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  margin: 0 auto 6px;
+}
+.voucher-sign .print-signature-img {
+  margin-bottom: 4px;
+}
 .seal-wrap {
   display: flex;
   align-items: center;
@@ -582,6 +595,7 @@ table.items.quote col.col-total { width: 25%; }
       <div class="sign-block">
         <div class="sign-agency">${escapeHtml(AppLocaleKeys.osPrintThanks.tr)}</div>
         <div class="sign-agency sign-agency-name">${escapeHtml(AppLocaleKeys.osPrintAgencyAr.tr)}</div>
+        ${osPrintSignatureImageHtml()}
         <div class="sign-line"></div>
         <div class="sign-label">${escapeHtml(AppLocaleKeys.osPrintSignature.tr)}</div>
       </div>
@@ -611,6 +625,7 @@ table.items.quote col.col-total { width: 25%; }
     <div class="sign-block">
       <div class="sign-agency">${escapeHtml(AppLocaleKeys.osPrintThanks.tr)}</div>
       <div class="sign-agency" style="margin-bottom:14px;font-weight:700;font-size:9px">${escapeHtml(AppLocaleKeys.osPrintAgencyAr.tr)}</div>
+      ${osPrintSignatureImageHtml()}
       <div class="sign-line"></div>
       <div class="sign-label">${escapeHtml(AppLocaleKeys.osPrintSignature.tr)}</div>
     </div>
@@ -637,6 +652,7 @@ table.items.quote col.col-total { width: 25%; }
 <div class="brand-footer no-split">
   <div class="voucher-footer-top">
     <div class="voucher-sign">
+      ${osPrintSignatureImageHtml()}
       <div class="voucher-sign-line"></div>
       <div class="voucher-sign-lbl">${escapeHtml(AppLocaleKeys.osPrintEmployeeSign.tr)}</div>
     </div>

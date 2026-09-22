@@ -5,8 +5,10 @@ import 'package:point/Models/Os/OsQuotationModel.dart';
 import 'package:point/Services/os_quote_template_settings.dart';
 import 'package:point/Utils/AppColors.dart';
 import 'package:point/Utils/app_theme_extension.dart';
+import 'package:point/View/Os/Quotations/os_quotation_pdf_download_action.dart';
 import 'package:point/View/Os/Quotations/os_quotation_print.dart';
 import 'package:point/View/Os/os_button_styles.dart';
+import 'package:point/View/Os/os_document_action_button.dart';
 import 'package:point/View/Os/os_finance_format.dart';
 import 'package:point/View/Os/os_line_items_table.dart';
 
@@ -97,11 +99,16 @@ class _OsQuotationPreviewDialog extends StatelessWidget {
                       ),
                     ),
                   ),
-                  FilledButton.icon(
-                    onPressed: () => printOsQuotation(quote),
-                    style: OsButtonStyles.secondaryCompact(theme),
-                    icon: const Icon(Icons.print_outlined, size: 18),
-                    label: Text(AppLocaleKeys.osQuotationsPrint.tr),
+                  OsDocumentActionFilledButton(
+                    style: OsButtonStyles.printCompact(theme),
+                    icon: Icons.print_outlined,
+                    label: AppLocaleKeys.osQuotationsPrint.tr,
+                    onPressed: () async => printOsQuotation(quote),
+                  ),
+                  const SizedBox(width: 8),
+                  OsQuotationPdfDownloadFilledButton(
+                    quote: quote,
+                    theme: theme,
                   ),
                   IconButton(
                     onPressed: () => Navigator.pop(context),

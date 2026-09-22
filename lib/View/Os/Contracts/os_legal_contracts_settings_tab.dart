@@ -7,6 +7,7 @@ import 'package:point/Utils/app_theme_extension.dart';
 import 'package:point/View/Os/os_button_styles.dart';
 import 'package:point/View/Os/os_form_dialog.dart';
 import 'package:point/View/Os/os_snackbar.dart';
+import 'package:point/View/Shared/whatsapp_phone_field.dart';
 
 class OsLegalContractsSettingsTab extends StatefulWidget {
   const OsLegalContractsSettingsTab({super.key, this.embedded = false});
@@ -211,11 +212,20 @@ class _OsLegalContractsSettingsTabState
               _signatoryTitleCtrl,
               (v) => _local = _local.copyWith(agencySignatoryTitle: v),
             ),
-            _field(
-              AppLocaleKeys.osLegalContractSettingsPhone.tr,
-              _phoneCtrl,
-              (v) => _local = _local.copyWith(agencyPhone: v),
-              keyboardType: TextInputType.phone,
+            Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: WhatsappPhoneField(
+                initialNormalized: _phoneCtrl.text.trim().isEmpty
+                    ? null
+                    : _phoneCtrl.text.trim(),
+                decoration: osDialogFieldDecoration(context).copyWith(
+                  labelText: AppLocaleKeys.osLegalContractSettingsPhone.tr,
+                ),
+                onChanged: (v) {
+                  _phoneCtrl.text = v ?? '';
+                  _local = _local.copyWith(agencyPhone: v ?? '');
+                },
+              ),
             ),
             _field(
               AppLocaleKeys.osLegalContractSettingsEmail.tr,

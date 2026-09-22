@@ -12,9 +12,14 @@ import 'package:point/Services/firestore/firestore_os_payroll_api.dart';
 import 'package:point/Utils/AppColors.dart';
 import 'package:point/Utils/OsPermissions.dart';
 import 'package:point/Utils/app_theme_extension.dart';
+import 'package:point/Models/Os/os_whatsapp_template_map.dart';
+import 'package:point/View/Os/Messaging/os_whatsapp_quick_send.dart';
+import 'package:point/View/Os/Messaging/os_whatsapp_send_filled_button.dart';
 import 'package:point/View/Os/Payroll/os_payslip_print.dart';
+import 'package:point/View/Os/os_print_pdf_button.dart';
 import 'package:point/View/Os/Payroll/os_payslip_print_text.dart';
 import 'package:point/View/Os/os_button_styles.dart';
+import 'package:point/View/Os/os_document_action_button.dart';
 import 'package:point/View/Os/os_finance_format.dart';
 import 'package:point/View/Os/os_form_dialog.dart';
 import 'package:point/View/Os/os_snackbar.dart';
@@ -250,11 +255,19 @@ class _OsPayslipsTabState extends State<OsPayslipsTab> {
             ),
             actions: [
               if (slip != null) ...[
-                FilledButton.icon(
-                  style: OsButtonStyles.primaryCompact(),
-                  onPressed: () => printOsPayslip(slip),
-                  icon: const Icon(Icons.print_outlined, size: 18),
-                  label: Text(AppLocaleKeys.osPayslipsPrint.tr),
+                OsDocumentActionFilledButton(
+                  style: OsButtonStyles.printCompact(theme),
+                  icon: Icons.print_outlined,
+                  label: AppLocaleKeys.osPayslipsPrint.tr,
+                  onPressed: () async => printOsPayslip(slip),
+                ),
+                OsWhatsappSendFilledButton(
+                  purpose: OsWhatsappTemplatePurpose.payslip,
+                  onSend: () => sendOsPayslipViaWhatsapp(slip),
+                ),
+                OsPrintPdfFilledCompactButton(
+                  theme: theme,
+                  onDownload: () => downloadOsPayslipPdf(slip),
                 ),
                 FilledButton.icon(
                   style: OsButtonStyles.secondaryCompact(
@@ -440,11 +453,15 @@ class _OsPayslipsTabState extends State<OsPayslipsTab> {
                     spacing: 8,
                     runSpacing: 8,
                     children: [
-                      FilledButton.icon(
-                        style: OsButtonStyles.primaryCompact(),
-                        onPressed: () => printOsPayslip(slip),
-                        icon: const Icon(Icons.print_outlined, size: 18),
-                        label: Text(AppLocaleKeys.osPayslipsPrint.tr),
+                      OsDocumentActionFilledButton(
+                        style: OsButtonStyles.printCompact(theme),
+                        icon: Icons.print_outlined,
+                        label: AppLocaleKeys.osPayslipsPrint.tr,
+                        onPressed: () async => printOsPayslip(slip),
+                      ),
+                      OsWhatsappSendFilledButton(
+                        purpose: OsWhatsappTemplatePurpose.payslip,
+                        onSend: () => sendOsPayslipViaWhatsapp(slip),
                       ),
                       FilledButton.icon(
                         style: OsButtonStyles.secondaryCompact(

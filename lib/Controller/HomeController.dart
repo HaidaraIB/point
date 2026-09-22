@@ -36,6 +36,7 @@ import 'package:point/Services/fcm_token_cache.dart';
 import 'package:point/Services/NotificationService.dart';
 import 'package:point/Services/notification_email_fields.dart';
 import 'package:point/Services/task_client_name_resolver.dart';
+import 'package:point/View/Os/os_client_contact_fields.dart';
 import 'package:point/Services/notification_navigation/notification_destination.dart';
 import 'package:point/Services/push_permissions_helper.dart';
 import 'package:point/Services/r2_storage_upload.dart';
@@ -1479,6 +1480,57 @@ class HomeController extends GetxController {
             newPassword: newPassword,
           );
     isLoading.value = false;
+    return result;
+  }
+
+  /// Writes [draft] onto [client] only for empty contact fields.
+  /// Uses direct Firestore update so email can be set from agency forms.
+  Future<bool> fillEmptyClientContact({
+    required ClientModel client,
+    required OsClientContactDraft draft,
+    required Iterable<OsClientContactField> fields,
+  }) async {
+    final merged = osClientMergeEmptyContactFields(
+      client,
+      draft,
+      fields: fields,
+    );
+    final changed = fields.any((field) {
+      final before = osClientContactFieldValue(client, field);
+      final after = osClientContactFieldValue(merged, field);
+      return !osClientContactValuePresent(before) &&
+          osClientContactValuePresent(after);
+    });
+    if (!changed) return true;
+
+    final newEmail = (merged.email ?? '').trim();
+    if (newEmail.isNotEmpty && !osClientContactValuePresent(client.email)) {
+      final emailUsed = await _service.isEmailUsedAcrossUsers(
+        newEmail.toLowerCase(),
+        excludeClientId: client.id,
+      );
+      if (emailUsed) {
+        FunHelper.showSnackbar(
+          'error'.tr,
+          'client.errors.email_in_use_cross'.tr,
+          snackPosition: SnackPosition.TOP,
+          backgroundColor: Colors.red,
+          colorText: Colors.white,
+        );
+        return false;
+      }
+    }
+
+    isLoading.value = true;
+    final result = await _service.updateClient(merged);
+    isLoading.value = false;
+    if (result) {
+      final idx = clients.indexWhere((c) => c.id == client.id);
+      if (idx >= 0) {
+        clients[idx] = merged;
+        update();
+      }
+    }
     return result;
   }
 

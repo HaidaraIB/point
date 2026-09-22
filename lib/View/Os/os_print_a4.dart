@@ -133,6 +133,23 @@ String osPrintTwoCopies({
       '${page(AppLocaleKeys.osPrintCopyClient.tr)}';
 }
 
+/// Single A4 sheet with no copy watermark (for PDF / digital delivery).
+String osPrintSingleSheet({
+  String sheetClass = '',
+  required String innerHtml,
+}) {
+  final classes = [
+    'sheet',
+    if (sheetClass.isNotEmpty) sheetClass,
+  ].join(' ');
+  return '''
+<div class="a4">
+  <div class="$classes">
+    $innerHtml
+  </div>
+</div>''';
+}
+
 /// Single A4 sheet with a copy watermark (e.g. client copy only).
 String osPrintSingleCopy({
   String sheetClass = '',

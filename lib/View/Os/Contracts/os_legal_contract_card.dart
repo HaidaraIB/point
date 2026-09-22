@@ -8,6 +8,9 @@ import 'package:point/Utils/OsPermissions.dart';
 import 'package:point/Utils/app_theme_extension.dart';
 import 'package:point/View/Os/Contracts/os_legal_contract_labels.dart';
 import 'package:point/View/Os/Contracts/os_legal_contract_print.dart';
+import 'package:point/Models/Os/os_whatsapp_template_map.dart';
+import 'package:point/View/Os/Messaging/os_whatsapp_quick_send.dart';
+import 'package:point/View/Os/Messaging/os_whatsapp_send_icon_button.dart';
 import 'package:point/View/Os/os_button_styles.dart';
 
 /// Grid card for the legal contracts registry (Point OS style).
@@ -55,7 +58,6 @@ class OsLegalContractCard extends StatelessWidget {
                     child: Text(
                       contract.contractNumber,
                       style: TextStyle(
-                        fontFamily: 'monospace',
                         fontSize: 11,
                         fontWeight: FontWeight.w800,
                         color: theme.mutedText,
@@ -216,6 +218,11 @@ class OsLegalContractCard extends StatelessWidget {
                       icon: const Icon(Icons.visibility_outlined, size: 16),
                       label: Text(AppLocaleKeys.osLegalContractPreviewPrint.tr),
                     ),
+                  ),
+                  OsWhatsappSendIconButton(
+                    purpose: OsWhatsappTemplatePurpose.contract,
+                    onSend: () => sendOsContractViaWhatsapp(contract),
+                    color: theme.secondaryText,
                   ),
                   IconButton(
                     tooltip: AppLocaleKeys.osLegalContractEdit.tr,

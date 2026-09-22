@@ -1,60 +1,82 @@
+import 'dart:async';
 import 'dart:convert';
-import 'dart:typed_data';
-
-import 'package:intl/intl.dart';
+import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:point/Controller/HomeController.dart';
 import 'package:point/Controller/OsCrmController.dart';
 import 'package:point/Controller/OsFinanceController.dart';
+import 'package:point/Controller/OsLegalContractsController.dart';
+import 'package:point/Controller/OsPayrollController.dart';
 import 'package:point/Localization/AppLocaleKeys.dart';
 import 'package:point/Models/ClientModel.dart';
 import 'package:point/Models/Os/OsInvoiceModel.dart';
+import 'package:point/Models/Os/OsLegalContractModel.dart';
+import 'package:point/Models/Os/OsPayslipModel.dart';
+import 'package:point/Models/Os/OsQuotationModel.dart';
+import 'package:point/Models/Os/OsVoucherModel.dart';
 import 'package:point/Models/Os/OsWhatsappLogModel.dart';
 import 'package:point/Models/Os/os_crm_activity.dart';
+import 'package:point/Models/Os/os_finance_enums.dart';
+import 'package:point/Models/Os/os_whatsapp_enums.dart';
+import 'package:point/Models/Os/os_whatsapp_template_map.dart';
 import 'package:point/Services/firestore/firestore_os_whatsapp_api.dart';
 import 'package:point/Services/os_whatsapp_service.dart';
+import 'package:point/Utils/chat_attachment_save.dart';
 import 'package:point/Utils/OsPermissions.dart';
 import 'package:point/Utils/os_module_ids.dart';
 import 'package:point/Utils/os_stream_binding.dart';
-import 'package:point/Models/Os/os_whatsapp_enums.dart';
+import 'package:point/Utils/os_whatsapp_field_values.dart';
+import 'package:point/Utils/os_whatsapp_pdf_builder.dart';
+import 'package:point/Utils/os_whatsapp_template_vars.dart';
 import 'package:point/View/Os/Invoices/os_invoice_print.dart';
+import 'package:point/View/Os/Contracts/os_legal_contract_print.dart';
+import 'package:point/View/Os/Finance/os_voucher_print.dart';
+import 'package:point/View/Os/Payroll/os_payslip_print.dart';
+import 'package:point/View/Os/Quotations/os_quotation_print.dart';
 import 'package:point/View/Os/Invoices/os_invoice_share.dart';
 import 'package:point/View/Os/Messaging/os_whatsapp_log_display.dart';
 import 'package:point/View/Os/os_finance_format.dart';
 import 'package:point/View/Os/os_snackbar.dart';
 
+class OsWhatsappHubPurposeOption {
+  const OsWhatsappHubPurposeOption({
+    required this.purpose,
+    required this.mapEntry,
+    required this.label,
+  });
+
+  final String purpose;
+  final OsWhatsappTemplateMapEntry mapEntry;
+  final String label;
+}
+
 class OsWhatsappHubController extends GetxController {
   final logs = <OsWhatsappLogModel>[].obs;
   final templates = <OsWhatsappTemplateModel>[].obs;
+  final templateMap = const OsWhatsappTemplateMapConfig().obs;
   final isSending = false.obs;
   final isLoadingTemplates = false.obs;
 
   final selectedClientId = RxnString();
   final recipientPhone = ''.obs;
   final recipientName = ''.obs;
-  final selectedTemplateName = RxnString();
-  final bodyParameters = <String>[].obs;
-  final headerParameters = <String>[].obs;
+
+  final selectedPurpose = RxnString();
+  final selectedMapKey = RxnString();
 
   final selectedInvoiceId = RxnString();
+  final selectedQuotationId = RxnString();
+  final selectedVoucherId = RxnString();
+  final selectedContractId = RxnString();
+  final selectedPayslipId = RxnString();
 
-  /// Template vs free-form session message (Send tab).
-  final crmSendMode = OsWhatsappHubSendMode.template.obs;
-
-  /// Template vs session for invoice PDF (Invoices tab).
-  final invoiceSendMode = OsWhatsappHubSendMode.template.obs;
-
-  final sessionMessageText = ''.obs;
-
-  final isCheckingSessionWindow = false.obs;
-  final sessionWindowOpen = false.obs;
-  final sessionWindowTracked = false.obs;
-  final sessionWindowExpiresAt = Rxn<DateTime>();
-
-  Worker? _sessionPhoneWorker;
+  final manualParameterValues = <String, String>{}.obs;
+  final resolvedParameterValues = <String, String>{}.obs;
 
   OsFinanceController? _finance;
   OsCrmController? _crm;
+  OsLegalContractsController? _legal;
+  OsPayrollController? _payroll;
 
   @override
   void onInit() {
@@ -62,72 +84,6 @@ class OsWhatsappHubController extends GetxController {
     _bindStreams();
     _loadTemplates();
     _applyInitialArguments();
-    _sessionPhoneWorker = debounce(
-      recipientPhone,
-      (_) => refreshSessionWindow(),
-      time: const Duration(milliseconds: 600),
-    );
-  }
-
-  @override
-  void onClose() {
-    _sessionPhoneWorker?.dispose();
-    super.onClose();
-  }
-
-  Future<void> refreshSessionWindow() async {
-    final phone = recipientPhone.value.trim();
-    if (phone.isEmpty) {
-      sessionWindowOpen.value = false;
-      sessionWindowTracked.value = false;
-      sessionWindowExpiresAt.value = null;
-      return;
-    }
-    isCheckingSessionWindow.value = true;
-    try {
-      final status =
-          await OsWhatsappService.instance.checkSessionWindow(phone);
-      if (status == null) {
-        sessionWindowOpen.value = false;
-        sessionWindowTracked.value = false;
-        sessionWindowExpiresAt.value = null;
-        return;
-      }
-      sessionWindowOpen.value = status.open;
-      sessionWindowTracked.value = status.tracked;
-      sessionWindowExpiresAt.value = status.expiresAt;
-    } finally {
-      isCheckingSessionWindow.value = false;
-    }
-  }
-
-  bool isSessionSendBlocked(String mode) {
-    if (mode != OsWhatsappHubSendMode.session) return false;
-    if (recipientPhone.value.trim().isEmpty) return true;
-    if (isCheckingSessionWindow.value) return true;
-    return !sessionWindowOpen.value;
-  }
-
-  String buildSessionWindowHintText() {
-    if (recipientPhone.value.trim().isEmpty) {
-      return AppLocaleKeys.osMessagingHubSessionHint.tr;
-    }
-    if (isCheckingSessionWindow.value) {
-      return AppLocaleKeys.osMessagingHubSessionHint.tr;
-    }
-    if (!sessionWindowTracked.value) {
-      return AppLocaleKeys.osMessagingHubSessionNotTracked.tr;
-    }
-    if (sessionWindowOpen.value) {
-      final exp = sessionWindowExpiresAt.value;
-      if (exp != null) {
-        return AppLocaleKeys.osMessagingHubSessionOpenUntil.trParams({
-          'time': DateFormat('yyyy-MM-dd HH:mm').format(exp.toLocal()),
-        });
-      }
-      return AppLocaleKeys.osMessagingHubSessionHint.tr;
-    }
-    return AppLocaleKeys.osMessagingHubSessionBlocked.tr;
   }
 
   void applyNavigationArguments([Object? args]) {
@@ -140,6 +96,7 @@ class OsWhatsappHubController extends GetxController {
     final invoiceId = map['invoiceId']?.toString().trim();
     if (invoiceId != null && invoiceId.isNotEmpty) {
       selectedInvoiceId.value = invoiceId;
+      selectPurpose(OsWhatsappTemplatePurpose.invoice);
       _prefillFromInvoice(invoiceId);
     }
   }
@@ -160,30 +117,21 @@ class OsWhatsappHubController extends GetxController {
     if (Get.isRegistered<OsCrmController>()) {
       _crm = Get.find<OsCrmController>();
     }
+    if (Get.isRegistered<OsLegalContractsController>()) {
+      _legal = Get.find<OsLegalContractsController>();
+    }
+    if (Get.isRegistered<OsPayrollController>()) {
+      _payroll = Get.find<OsPayrollController>();
+    }
   }
 
   Future<void> _loadTemplates() async {
     isLoadingTemplates.value = true;
     try {
-      final list = await OsWhatsappService.instance.listTemplates();
-      templates.assignAll(list);
-      if (list.isEmpty) {
-        crmSendMode.value = OsWhatsappHubSendMode.session;
-      } else if (selectedTemplateName.value == null) {
-        final safe = crmSafeTemplates;
-        if (safe.isNotEmpty) {
-          selectTemplate(safe.first.name);
-        } else {
-          crmSendMode.value = OsWhatsappHubSendMode.session;
-        }
-      } else if (selectedTemplate?.hasCallPermissionRequest == true) {
-        final safe = crmSafeTemplates;
-        selectTemplate(safe.isNotEmpty ? safe.first.name : null);
-      }
-      if (selectedInvoiceId.value != null &&
-          selectedInvoiceId.value!.trim().isNotEmpty) {
-        ensureInvoiceDocumentTemplate();
-      }
+      final result = await OsWhatsappService.instance.listTemplatesWithMap();
+      templates.assignAll(result.templates);
+      templateMap.value = result.map;
+      _ensureDefaultPurpose();
     } finally {
       isLoadingTemplates.value = false;
     }
@@ -191,109 +139,206 @@ class OsWhatsappHubController extends GetxController {
 
   Future<void> refreshTemplates() => _loadTemplates();
 
+  void _ensureDefaultPurpose() {
+    if (selectedPurpose.value != null) return;
+    final options = purposeOptions;
+    if (options.isEmpty) return;
+    selectPurposeOption(options.first);
+  }
+
   List<ClientModel> get clients {
     if (!Get.isRegistered<HomeController>()) return const [];
     return Get.find<HomeController>().clients;
   }
 
-  /// Templates allowed on the Send tab (excludes call-permission).
-  List<OsWhatsappTemplateModel> get crmSafeTemplates {
-    return templates
-        .where((t) => !t.hasCallPermissionRequest)
-        .toList(growable: false);
+  List<OsWhatsappHubPurposeOption> get purposeOptions {
+    final out = <OsWhatsappHubPurposeOption>[];
+    for (final entry in templateMap.value.entries) {
+      if (!entry.enabled || entry.purpose == OsWhatsappTemplatePurpose.unused) {
+        continue;
+      }
+      out.add(
+        OsWhatsappHubPurposeOption(
+          purpose: entry.purpose,
+          mapEntry: entry,
+          label: _purposeLabel(entry),
+        ),
+      );
+    }
+    out.sort(
+      (a, b) => OsWhatsappTemplatePurpose.sortIndex(a.purpose)
+          .compareTo(OsWhatsappTemplatePurpose.sortIndex(b.purpose)),
+    );
+    return out;
   }
+
+  String _purposeLabel(OsWhatsappTemplateMapEntry entry) {
+    if (entry.purpose == OsWhatsappTemplatePurpose.custom &&
+        entry.customLabel.trim().isNotEmpty) {
+      return entry.customLabel.trim();
+    }
+    switch (entry.purpose) {
+      case OsWhatsappTemplatePurpose.invoice:
+        return AppLocaleKeys.osWhatsappPurposeInvoice.tr;
+      case OsWhatsappTemplatePurpose.quotation:
+        return AppLocaleKeys.osWhatsappPurposeQuotation.tr;
+      case OsWhatsappTemplatePurpose.paymentConfirmation:
+        return AppLocaleKeys.osWhatsappPurposePaymentConfirmation.tr;
+      case OsWhatsappTemplatePurpose.paymentReceipt:
+        return AppLocaleKeys.osWhatsappPurposePaymentReceipt.tr;
+      case OsWhatsappTemplatePurpose.contract:
+        return AppLocaleKeys.osWhatsappPurposeContract.tr;
+      case OsWhatsappTemplatePurpose.payslip:
+        return AppLocaleKeys.osWhatsappPurposePayslip.tr;
+      default:
+        return entry.templateName;
+    }
+  }
+
+  OsWhatsappTemplateMapEntry? get activeMapEntry {
+    final key = selectedMapKey.value;
+    if (key != null) {
+      for (final e in templateMap.value.entries) {
+        if (e.mapKey() == key) return e;
+      }
+    }
+    final purpose = selectedPurpose.value;
+    if (purpose == null) return null;
+    return templateMap.value.primaryForPurpose(purpose);
+  }
+
+  OsWhatsappTemplateModel? templateForEntry(OsWhatsappTemplateMapEntry? entry) {
+    if (entry == null) return null;
+    for (final t in templates) {
+      if (t.name == entry.templateName && t.language == entry.languageCode) {
+        return t;
+      }
+    }
+    return null;
+  }
+
+  OsWhatsappTemplateModel? get activeTemplate =>
+      templateForEntry(activeMapEntry);
 
   List<OsInvoiceModel> get unpaidInvoices {
     final all = _finance?.invoices.toList() ?? const <OsInvoiceModel>[];
     return all.where((i) => !i.isPaid).toList(growable: false);
   }
 
-  /// Approved templates with document header, no call-permission buttons.
-  List<OsWhatsappTemplateModel> get invoiceTemplates {
-    return templates
-        .where((t) => t.isEligibleForInvoiceSend)
+  List<OsInvoiceModel> get paidInvoices {
+    final all = _finance?.invoices.toList() ?? const <OsInvoiceModel>[];
+    return all.where((i) => i.isPaid).toList(growable: false);
+  }
+
+  List<OsQuotationModel> get quotations {
+    return _finance?.quotations.toList() ?? const <OsQuotationModel>[];
+  }
+
+  List<OsVoucherModel> get vouchers {
+    return _finance?.vouchers.toList() ?? const <OsVoucherModel>[];
+  }
+
+  List<OsVoucherModel> get receiptVouchers {
+    return vouchers
+        .where((v) => v.type == OsVoucherType.receipt)
         .toList(growable: false);
   }
 
-  /// Any approved template safe to pair with an invoice PDF (no call-permission).
-  List<OsWhatsappTemplateModel> get invoiceSafeTemplates {
-    return templates
-        .where((t) => !t.hasCallPermissionRequest)
+  List<OsVoucherModel> get paymentVouchers {
+    return vouchers
+        .where((v) => v.type == OsVoucherType.payment)
         .toList(growable: false);
   }
 
-  bool get canUseInvoiceTemplateMode => invoiceSafeTemplates.isNotEmpty;
-
-  OsWhatsappTemplateModel? get selectedInvoiceSafeTemplate {
-    final t = selectedTemplate;
-    if (t != null && !t.hasCallPermissionRequest) return t;
-    return null;
+  List<OsVoucherModel> voucherListForPurpose(String? purpose) {
+    if (purpose == OsWhatsappTemplatePurpose.paymentConfirmation) {
+      return paymentVouchers;
+    }
+    if (purpose == OsWhatsappTemplatePurpose.paymentReceipt) {
+      return receiptVouchers;
+    }
+    return vouchers;
   }
 
-  OsWhatsappTemplateModel? get selectedInvoiceTemplate {
-    final t = selectedTemplate;
-    if (t != null && t.isEligibleForInvoiceSend) return t;
-    return null;
+  List<OsVoucherModel> voucherListForAttachment(String attachment) {
+    final normalized =
+        OsWhatsappTemplateDocumentAttachment.normalizeAttachment(attachment);
+    if (normalized == OsWhatsappTemplateDocumentAttachment.paymentPdf) {
+      return paymentVouchers;
+    }
+    if (normalized == OsWhatsappTemplateDocumentAttachment.receiptPdf ||
+        normalized == OsWhatsappTemplateDocumentAttachment.voucherPdf) {
+      return receiptVouchers;
+    }
+    return vouchers;
   }
 
-  /// Pick a document-capable template when sending invoices (template mode).
-  void ensureInvoiceDocumentTemplate() {
-    if (!canUseInvoiceTemplateMode) {
-      invoiceSendMode.value = OsWhatsappHubSendMode.session;
-      selectedTemplateName.value = null;
-      bodyParameters.clear();
-      headerParameters.clear();
-      return;
-    }
-    if (invoiceSendMode.value == OsWhatsappHubSendMode.session) return;
-    final list = invoiceSafeTemplates;
-    if (list.isEmpty) return;
-    final current = selectedTemplate;
-    if (current != null && !current.hasCallPermissionRequest) return;
-    selectTemplate(list.first.name);
+  List<OsLegalContractModel> get contracts {
+    return _legal?.contracts.toList() ?? const <OsLegalContractModel>[];
   }
 
-  void setCrmSendMode(String mode) {
-    crmSendMode.value = mode;
-    if (mode == OsWhatsappHubSendMode.session) {
-      refreshSessionWindow();
-    }
-  }
-
-  void setInvoiceSendMode(String mode) {
-    if (mode == OsWhatsappHubSendMode.template && !canUseInvoiceTemplateMode) {
-      invoiceSendMode.value = OsWhatsappHubSendMode.session;
-      return;
-    }
-    invoiceSendMode.value = mode;
-    if (mode == OsWhatsappHubSendMode.session) {
-      _prefillInvoiceSessionMessage();
-      refreshSessionWindow();
-    } else {
-      ensureInvoiceDocumentTemplate();
-    }
-  }
-
-  OsWhatsappTemplateModel? get selectedTemplate {
-    final name = selectedTemplateName.value;
-    if (name == null) return null;
-    for (final t in templates) {
-      if (t.name == name) return t;
-    }
-    return null;
+  List<OsPayslipModel> get payslips {
+    return _payroll?.payslips.toList() ?? const <OsPayslipModel>[];
   }
 
   OsInvoiceModel? get selectedInvoice {
     final id = selectedInvoiceId.value;
-    if (id == null) {
-      final list = unpaidInvoices;
-      return list.isNotEmpty ? list.first : null;
-    }
-    for (final inv in unpaidInvoices) {
+    final list = _invoiceListForPurpose();
+    if (id == null) return list.isNotEmpty ? list.first : null;
+    for (final inv in list) {
       if (inv.id == id) return inv;
     }
-    final list = unpaidInvoices;
     return list.isNotEmpty ? list.first : null;
+  }
+
+  OsQuotationModel? get selectedQuotation {
+    final id = selectedQuotationId.value;
+    final list = quotations;
+    if (id == null) return list.isNotEmpty ? list.first : null;
+    for (final q in list) {
+      if (q.id == id) return q;
+    }
+    return list.isNotEmpty ? list.first : null;
+  }
+
+  OsVoucherModel? get selectedVoucher {
+    final id = selectedVoucherId.value;
+    final purpose = selectedPurpose.value ?? activeMapEntry?.purpose;
+    final list = purpose == OsWhatsappTemplatePurpose.custom
+        ? voucherListForAttachment(
+            activeMapEntry?.effectiveDocumentAttachment() ??
+                OsWhatsappTemplateDocumentAttachment.none,
+          )
+        : voucherListForPurpose(purpose);
+    if (id == null) return list.isNotEmpty ? list.first : null;
+    for (final v in list) {
+      if (v.id == id) return v;
+    }
+    return list.isNotEmpty ? list.first : null;
+  }
+
+  OsLegalContractModel? get selectedContract {
+    final id = selectedContractId.value;
+    final list = contracts;
+    if (id == null) return list.isNotEmpty ? list.first : null;
+    for (final c in list) {
+      if (c.id == id) return c;
+    }
+    return list.isNotEmpty ? list.first : null;
+  }
+
+  OsPayslipModel? get selectedPayslip {
+    final id = selectedPayslipId.value;
+    final list = payslips;
+    if (id == null) return list.isNotEmpty ? list.first : null;
+    for (final p in list) {
+      if (p.id == id) return p;
+    }
+    return list.isNotEmpty ? list.first : null;
+  }
+
+  List<OsInvoiceModel> _invoiceListForPurpose() {
+    return unpaidInvoices;
   }
 
   ClientModel? clientById(String? id) {
@@ -309,31 +354,56 @@ class OsWhatsappHubController extends GetxController {
     return '$ref · ${OsFinanceFormat.money(inv.total)}';
   }
 
+  String quotationListLabel(OsQuotationModel q) {
+    final ref = OsFinanceFormat.quotationRef(q);
+    return '$ref · ${OsFinanceFormat.money(q.total)}';
+  }
+
+  String voucherListLabel(OsVoucherModel v) {
+    final ref = OsFinanceFormat.voucherRef(v);
+    return '$ref · ${OsFinanceFormat.money(v.amount)}';
+  }
+
+  String contractListLabel(OsLegalContractModel contract) {
+    final number = contract.contractNumber.trim();
+    final title = contract.title.trim();
+    if (number.isEmpty) return title;
+    if (title.isEmpty) return number;
+    return '$number — $title';
+  }
+
+  String payslipListLabel(OsPayslipModel slip) {
+    return '${slip.employeeName} · ${slip.period} · '
+        '${OsFinanceFormat.money(slip.netPay)}';
+  }
+
+  String voucherAccountName(OsVoucherModel voucher) {
+    return _finance?.accountById(voucher.bankAccountId)?.name ?? '';
+  }
+
+  void selectPurpose(String purpose, {String? mapKey}) {
+    selectedPurpose.value = purpose;
+    if (mapKey != null) {
+      selectedMapKey.value = mapKey;
+    } else {
+      final entry = templateMap.value.primaryForPurpose(purpose);
+      selectedMapKey.value = entry?.mapKey();
+    }
+    manualParameterValues.clear();
+    unawaited(_refreshParameterValues());
+  }
+
+  void selectPurposeOption(OsWhatsappHubPurposeOption option) {
+    selectPurpose(option.purpose, mapKey: option.mapEntry.mapKey());
+  }
+
   void selectClient(String? id) {
     selectedClientId.value = id;
     final client = clientById(id);
     if (client == null) return;
     recipientName.value = client.name?.trim() ?? '';
     recipientPhone.value = client.phone?.trim() ?? '';
-    refreshSessionWindow();
-  }
-
-  void selectTemplate(String? name) {
-    selectedTemplateName.value = name;
-    final t = selectedTemplate;
-    if (t == null) {
-      bodyParameters.clear();
-      headerParameters.clear();
-      return;
-    }
-    if (t.hasCallPermissionRequest) {
-      selectedTemplateName.value = null;
-      bodyParameters.clear();
-      headerParameters.clear();
-      return;
-    }
-    bodyParameters.assignAll(List.filled(t.bodyPlaceholderCount, ''));
-    headerParameters.assignAll(List.filled(t.headerTextPlaceholderCount, ''));
+    _refreshParameterValues();
   }
 
   void selectInvoice(String? id) {
@@ -341,123 +411,430 @@ class OsWhatsappHubController extends GetxController {
     if (id != null) _prefillFromInvoice(id);
   }
 
-  Future<void> _prefillInvoiceSessionMessage() async {
-    final inv = selectedInvoice;
-    if (inv == null) return;
-    var link = '';
-    final paymentLink = await resolveOsInvoicePaymentLink(inv);
-    if (paymentLink != null && paymentLink.isNotEmpty) link = paymentLink;
-    final ref = OsFinanceFormat.invoiceRef(inv);
-    final amount = OsFinanceFormat.money(inv.total);
-    sessionMessageText.value = AppLocaleKeys.osInvoicesWhatsappBody.trParams({
-      'ref': ref,
-      'amount': amount,
-      'link': link,
-    });
+  void selectVoucher(String? id) {
+    selectedVoucherId.value = id;
+    if (id != null) {
+      final voucher = selectedVoucher;
+      if (voucher != null) {
+        final linkedInvoice = osWhatsappInvoiceForVoucher(
+          voucher,
+          _finance?.invoices.toList() ?? const [],
+        );
+        final client =
+            clientById(linkedInvoice?.clientId) ?? clientById(selectedClientId.value);
+        final phone = osWhatsappRecipientPhoneForVoucher(
+          voucher,
+          linkedInvoice: linkedInvoice,
+          client: client,
+        );
+        if (phone.isNotEmpty) {
+          recipientPhone.value = phone;
+        }
+        if (client != null) {
+          selectedClientId.value = client.id;
+          recipientName.value = client.name?.trim() ?? voucher.payeeOrPayer.trim();
+        } else if (linkedInvoice != null) {
+          recipientName.value = linkedInvoice.clientName.trim();
+        } else {
+          recipientName.value = voucher.payeeOrPayer.trim();
+        }
+      }
+    }
+    _refreshParameterValues();
+  }
+
+  void selectContract(String? id) {
+    selectedContractId.value = id;
+    _refreshParameterValues();
+  }
+
+  void selectPayslip(String? id) {
+    selectedPayslipId.value = id;
+    _refreshParameterValues();
+  }
+
+  void selectQuotation(String? id) {
+    selectedQuotationId.value = id;
+    if (id == null) return;
+    OsQuotationModel? quote;
+    for (final q in quotations) {
+      if (q.id == id) {
+        quote = q;
+        break;
+      }
+    }
+    if (quote == null) return;
+    ClientModel? client;
+    for (final c in clients) {
+      if (c.id == quote.clientId) {
+        client = c;
+        break;
+      }
+    }
+    if (client != null) {
+      selectClient(client.id);
+    } else {
+      recipientName.value = quote.clientName;
+      recipientPhone.value = quote.clientPhone?.trim() ?? '';
+    }
+    _refreshParameterValues();
   }
 
   Future<void> _prefillFromInvoice(String invoiceId) async {
     OsInvoiceModel? inv;
-    for (final item in unpaidInvoices) {
+    for (final item in _invoiceListForPurpose()) {
       if (item.id == invoiceId) {
         inv = item;
         break;
       }
     }
+    if (inv == null) {
+      for (final item in unpaidInvoices) {
+        if (item.id == invoiceId) {
+          inv = item;
+          break;
+        }
+      }
+    }
     if (inv == null) return;
-
-    if (!canUseInvoiceTemplateMode) {
-      invoiceSendMode.value = OsWhatsappHubSendMode.session;
-    } else {
-      ensureInvoiceDocumentTemplate();
-    }
-
-    if (invoiceSendMode.value == OsWhatsappHubSendMode.session) {
-      await _prefillInvoiceSessionMessage();
-    }
 
     final client = osInvoiceClient(inv);
     if (client != null) {
       selectClient(client.id);
+    } else {
+      recipientName.value = inv.clientName;
+      recipientPhone.value = inv.clientPhone?.trim() ?? '';
+    }
+    await _refreshParameterValues();
+  }
+
+  Future<void> _refreshParameterValues() async {
+    final entry = activeMapEntry;
+    final template = activeTemplate;
+    if (entry == null || template == null) {
+      resolvedParameterValues.clear();
+      return;
     }
 
-    final ref = OsFinanceFormat.invoiceRef(inv);
-    final amount = OsFinanceFormat.money(inv.total);
-    var link = '';
-    final paymentLink = await resolveOsInvoicePaymentLink(inv);
-    if (paymentLink != null) link = paymentLink;
+    final purpose = entry.purpose;
+    final ctx = await _buildSendContextForPurpose(purpose, entry);
+    if (ctx == null) {
+      resolvedParameterValues.clear();
+      return;
+    }
 
-    _autoFillParams(
-      clientName: client?.name ?? '',
-      company: client?.company ?? '',
-      invoiceRef: ref,
-      amount: amount,
-      paymentLink: link,
+    final values = osWhatsappValuesFromMap(
+      entry.placeholderFields,
+      ctx,
+      manualByToken: manualParameterValues,
+    );
+    resolvedParameterValues.assignAll(values);
+    resolvedParameterValues.refresh();
+  }
+
+  Map<String, String> get effectiveParameterValues {
+    final merged = <String, String>{...resolvedParameterValues};
+    for (final e in manualParameterValues.entries) {
+      merged[e.key] = e.value;
+    }
+    return merged;
+  }
+
+  void setManualParameter(String token, String value) {
+    manualParameterValues[token] = value;
+    manualParameterValues.refresh();
+    resolvedParameterValues[token] = value;
+    resolvedParameterValues.refresh();
+  }
+
+  List<OsWhatsappTemplatePlaceholder> get activePlaceholders {
+    final t = activeTemplate;
+    if (t == null) return const [];
+    return osWhatsappExtractPlaceholders(t);
+  }
+
+  bool get hasEmptyRequiredParameter {
+    final entry = activeMapEntry;
+    if (entry == null) return true;
+    for (final token in entry.placeholderFields.keys) {
+      if ((effectiveParameterValues[token] ?? '').trim().isEmpty) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  bool get canSend {
+    if (!isApiReady) return false;
+    if (recipientPhone.value.trim().isEmpty) return false;
+    if (activeMapEntry == null || activeTemplate == null) return false;
+    if (hasEmptyRequiredParameter) return false;
+    final entry = activeMapEntry!;
+    final template = activeTemplate!;
+    if (!_hasRequiredRecord(entry, template)) return false;
+    final attachment = entry.effectiveDocumentAttachment();
+    if (OsWhatsappTemplateDocumentAttachment.isPdfAttachment(attachment) &&
+        template.hasDocumentHeader &&
+        !_hasRecordForPdfAttachment(attachment)) {
+      return false;
+    }
+    return true;
+  }
+
+  Future<OsWhatsappSendContext?> _buildSendContextForPurpose(
+    String purpose,
+    OsWhatsappTemplateMapEntry entry,
+  ) async {
+    switch (purpose) {
+      case OsWhatsappTemplatePurpose.quotation:
+        final q = selectedQuotation;
+        if (q == null) return null;
+        return osWhatsappContextForQuotation(
+          q,
+          clientById(selectedClientId.value),
+        );
+      case OsWhatsappTemplatePurpose.paymentConfirmation:
+      case OsWhatsappTemplatePurpose.paymentReceipt:
+        final voucher = selectedVoucher;
+        if (voucher == null) return null;
+        final linkedInvoice = osWhatsappInvoiceForVoucher(
+          voucher,
+          _finance?.invoices.toList() ?? const [],
+        );
+        return osWhatsappContextForVoucher(
+          voucher,
+          linkedInvoice: linkedInvoice,
+          client: clientById(selectedClientId.value),
+        );
+      case OsWhatsappTemplatePurpose.contract:
+        final contract = selectedContract;
+        if (contract == null) return null;
+        return osWhatsappContextForContract(contract);
+      case OsWhatsappTemplatePurpose.payslip:
+        final slip = selectedPayslip;
+        if (slip == null) return null;
+        return osWhatsappContextForPayslip(slip);
+      case OsWhatsappTemplatePurpose.invoice:
+        final inv = selectedInvoice;
+        if (inv == null) return null;
+        return await osWhatsappContextForInvoice(inv);
+      case OsWhatsappTemplatePurpose.custom:
+        return _buildCustomSendContext(entry);
+      default:
+        final client = clientById(selectedClientId.value);
+        return OsWhatsappSendContext(client: client);
+    }
+  }
+
+  Future<OsWhatsappSendContext?> _buildCustomSendContext(
+    OsWhatsappTemplateMapEntry entry,
+  ) async {
+    final attachment = entry.effectiveDocumentAttachment();
+    switch (attachment) {
+      case OsWhatsappTemplateDocumentAttachment.invoicePdf:
+        final inv = selectedInvoice;
+        if (inv == null) return null;
+        return await osWhatsappContextForInvoice(inv);
+      case OsWhatsappTemplateDocumentAttachment.quotationPdf:
+        final q = selectedQuotation;
+        if (q == null) return null;
+        return osWhatsappContextForQuotation(
+          q,
+          clientById(selectedClientId.value),
+        );
+      case OsWhatsappTemplateDocumentAttachment.voucherPdf:
+      case OsWhatsappTemplateDocumentAttachment.receiptPdf:
+      case OsWhatsappTemplateDocumentAttachment.paymentPdf:
+        final voucher = selectedVoucher;
+        if (voucher == null) return null;
+        final linkedInvoice = osWhatsappInvoiceForVoucher(
+          voucher,
+          _finance?.invoices.toList() ?? const [],
+        );
+        return osWhatsappContextForVoucher(
+          voucher,
+          linkedInvoice: linkedInvoice,
+          client: clientById(selectedClientId.value),
+        );
+      case OsWhatsappTemplateDocumentAttachment.contractPdf:
+        final contract = selectedContract;
+        if (contract == null) return null;
+        return osWhatsappContextForContract(contract);
+      case OsWhatsappTemplateDocumentAttachment.payslipPdf:
+        final slip = selectedPayslip;
+        if (slip == null) return null;
+        return osWhatsappContextForPayslip(slip);
+      default:
+        final client = clientById(selectedClientId.value);
+        return OsWhatsappSendContext(client: client);
+    }
+  }
+
+  bool _hasRequiredRecord(
+    OsWhatsappTemplateMapEntry entry,
+    OsWhatsappTemplateModel template,
+  ) {
+    switch (entry.purpose) {
+      case OsWhatsappTemplatePurpose.invoice:
+        return selectedInvoice != null;
+      case OsWhatsappTemplatePurpose.quotation:
+        return selectedQuotation != null;
+      case OsWhatsappTemplatePurpose.paymentConfirmation:
+      case OsWhatsappTemplatePurpose.paymentReceipt:
+        return selectedVoucher != null;
+      case OsWhatsappTemplatePurpose.contract:
+        return selectedContract != null;
+      case OsWhatsappTemplatePurpose.payslip:
+        return selectedPayslip != null;
+      case OsWhatsappTemplatePurpose.custom:
+        final attachment = entry.effectiveDocumentAttachment();
+        if (!OsWhatsappTemplateDocumentAttachment.isPdfAttachment(attachment)) {
+          return true;
+        }
+        return _hasRecordForPdfAttachment(attachment);
+      default:
+        return true;
+    }
+  }
+
+  bool _hasRecordForPdfAttachment(String attachment) {
+    switch (attachment) {
+      case OsWhatsappTemplateDocumentAttachment.invoicePdf:
+        return selectedInvoice != null;
+      case OsWhatsappTemplateDocumentAttachment.quotationPdf:
+        return selectedQuotation != null;
+      case OsWhatsappTemplateDocumentAttachment.voucherPdf:
+      case OsWhatsappTemplateDocumentAttachment.receiptPdf:
+      case OsWhatsappTemplateDocumentAttachment.paymentPdf:
+        return selectedVoucher != null;
+      case OsWhatsappTemplateDocumentAttachment.contractPdf:
+        return selectedContract != null;
+      case OsWhatsappTemplateDocumentAttachment.payslipPdf:
+        return selectedPayslip != null;
+      default:
+        return true;
+    }
+  }
+
+  String _missingPdfRecordMessage(String attachment) {
+    switch (attachment) {
+      case OsWhatsappTemplateDocumentAttachment.quotationPdf:
+        return AppLocaleKeys.osMessagingHubSelectQuotation.tr;
+      case OsWhatsappTemplateDocumentAttachment.voucherPdf:
+      case OsWhatsappTemplateDocumentAttachment.receiptPdf:
+        return AppLocaleKeys.osMessagingHubSelectVoucher.tr;
+      case OsWhatsappTemplateDocumentAttachment.paymentPdf:
+        return AppLocaleKeys.osMessagingHubSelectPaidInvoice.tr;
+      case OsWhatsappTemplateDocumentAttachment.contractPdf:
+        return AppLocaleKeys.osMessagingHubSelectContract.tr;
+      case OsWhatsappTemplateDocumentAttachment.payslipPdf:
+        return AppLocaleKeys.osMessagingHubSelectPayslip.tr;
+      default:
+        return AppLocaleKeys.osMessagingHubSelectInvoice.tr;
+    }
+  }
+
+  String? get previewDocumentFilename {
+    final entry = activeMapEntry;
+    final template = activeTemplate;
+    if (entry == null || template == null) return null;
+    final attachment = entry.effectiveDocumentAttachment();
+    if (!OsWhatsappTemplateDocumentAttachment.isPdfAttachment(attachment)) {
+      return null;
+    }
+    if (!template.hasDocumentHeader) return null;
+    switch (attachment) {
+      case OsWhatsappTemplateDocumentAttachment.invoicePdf:
+        final inv = selectedInvoice;
+        return inv == null ? null : osInvoicePdfFilename(inv);
+      case OsWhatsappTemplateDocumentAttachment.quotationPdf:
+        final q = selectedQuotation;
+        return q == null ? null : osQuotationPdfFilename(q);
+      case OsWhatsappTemplateDocumentAttachment.voucherPdf:
+      case OsWhatsappTemplateDocumentAttachment.receiptPdf:
+      case OsWhatsappTemplateDocumentAttachment.paymentPdf:
+        final v = selectedVoucher;
+        return v == null ? null : osVoucherPdfFilename(v);
+      case OsWhatsappTemplateDocumentAttachment.contractPdf:
+        final c = selectedContract;
+        return c == null ? null : osLegalContractPdfFilename(c);
+      case OsWhatsappTemplateDocumentAttachment.payslipPdf:
+        final p = selectedPayslip;
+        return p == null ? null : osPayslipPdfFilename(p);
+      default:
+        return null;
+    }
+  }
+
+  bool get canDownloadDocumentPdf =>
+      kIsWeb && (previewDocumentFilename?.isNotEmpty ?? false);
+
+  Future<void> downloadActiveDocumentPdf() async {
+    final title = AppLocaleKeys.osMessagingHubTitle.tr;
+    isSending.value = true;
+    try {
+      final built = await _buildDocumentPdfBytes();
+      if (built == null) {
+        OsSnackbar.error(
+          title,
+          AppLocaleKeys.osMessagingHubDocumentPdfFailed.tr,
+        );
+        return;
+      }
+      final result = await saveChatAttachmentBytes(
+        bytes: built.bytes,
+        fileName: built.filename,
+      );
+      if (result.ok) {
+        OsSnackbar.success(
+          title,
+          AppLocaleKeys.osMessagingHubDocumentPdfDone.tr,
+        );
+      } else {
+        OsSnackbar.error(
+          title,
+          AppLocaleKeys.osMessagingHubDocumentPdfFailed.tr,
+        );
+      }
+    } finally {
+      isSending.value = false;
+    }
+  }
+
+  Future<({Uint8List bytes, String filename, String? referenceId})?>
+      _buildDocumentPdfBytes() async {
+    final entry = activeMapEntry;
+    final template = activeTemplate;
+    if (entry == null || template == null) return null;
+    final attachment = entry.effectiveDocumentAttachment();
+    if (!OsWhatsappTemplateDocumentAttachment.isPdfAttachment(attachment)) {
+      return null;
+    }
+    if (!template.hasDocumentHeader) return null;
+
+    final built = await buildOsWhatsappDocumentPdf(
+      attachment: attachment,
+      invoice: selectedInvoice,
+      quotation: selectedQuotation,
+      voucher: selectedVoucher,
+      contract: selectedContract,
+      payslip: selectedPayslip,
+    );
+    if (built == null) return null;
+    return (
+      bytes: built.bytes,
+      filename: built.filename,
+      referenceId: built.referenceId,
     );
   }
 
-  void _autoFillParams({
-    String clientName = '',
-    String company = '',
-    String invoiceRef = '',
-    String amount = '',
-    String paymentLink = '',
-  }) {
-    final filled = <String>[
-      if (clientName.isNotEmpty) clientName,
-      if (company.isNotEmpty) company,
-      if (invoiceRef.isNotEmpty) invoiceRef,
-      if (amount.isNotEmpty) amount,
-      if (paymentLink.isNotEmpty) paymentLink,
-    ];
-    if (bodyParameters.isEmpty) return;
-    for (var i = 0; i < bodyParameters.length && i < filled.length; i++) {
-      bodyParameters[i] = filled[i];
-    }
-    bodyParameters.refresh();
-  }
-
-  /// PDF name shown in the WhatsApp-style preview when sending an invoice.
-  String? get previewDocumentFilename {
-    final inv = selectedInvoice;
-    if (inv != null && selectedInvoiceId.value != null) {
-      return osInvoicePdfFilename(inv);
-    }
-    final t = selectedTemplate;
-    if (t == null || !t.hasDocumentHeader) return null;
-    if (inv != null) return osInvoicePdfFilename(inv);
-    return null;
-  }
-
-  bool get previewShowsFollowUpInvoicePdf {
-    final inv = selectedInvoice;
-    if (inv == null || selectedInvoiceId.value == null) return false;
-    final t = selectedTemplate;
-    if (t == null) return true;
-    return !t.hasDocumentHeader;
-  }
-
-  String? get sessionPreviewDocumentFilename {
-    final inv = selectedInvoice;
-    if (inv != null && invoiceSendMode.value == OsWhatsappHubSendMode.session) {
-      return osInvoicePdfFilename(inv);
-    }
-    return null;
-  }
-
   String buildPreviewText() {
-    final t = selectedTemplate;
+    final t = activeTemplate;
     if (t == null) return '';
-    var text = t.previewBodyText();
-    for (var i = 0; i < bodyParameters.length; i++) {
-      final idx = i + 1;
-      text = text.replaceAll('{{$idx}}', bodyParameters[i]);
-    }
-    for (var i = 0; i < headerParameters.length; i++) {
-      final idx = i + 1;
-      text = text.replaceAll('{{$idx}}', headerParameters[i]);
-    }
-    return text;
+    return osWhatsappSubstitutePlaceholders(
+      t.previewBodyText(),
+      effectiveParameterValues,
+    );
   }
 
   bool get isApiReady {
@@ -465,18 +842,33 @@ class OsWhatsappHubController extends GetxController {
     return status?.isReadyForSend ?? false;
   }
 
-  Future<bool> sendCurrent({
-    required String category,
-    String? referenceId,
-    String? documentBase64,
-    String? documentFilename,
-  }) async {
+  bool get hasMappedPurposes => purposeOptions.isNotEmpty;
+
+  Future<void> sendActive() async {
+    await _sendMapped(purpose: selectedPurpose.value);
+  }
+
+  Future<void> sendFromSendTab() async {
+    await _sendMapped(purpose: selectedPurpose.value);
+  }
+
+  Future<void> _sendMapped({String? purpose}) async {
     if (!isApiReady) {
       OsSnackbar.error(
         AppLocaleKeys.osMessagingHubTitle.tr,
         AppLocaleKeys.osMessagingHubNotConfigured.tr,
       );
-      return false;
+      return;
+    }
+
+    final entry = activeMapEntry;
+    final template = activeTemplate;
+    if (entry == null || template == null) {
+      OsSnackbar.error(
+        AppLocaleKeys.osMessagingHubTitle.tr,
+        AppLocaleKeys.osMessagingHubNoMappedTemplates.tr,
+      );
+      return;
     }
 
     final phone = recipientPhone.value.trim();
@@ -485,25 +877,65 @@ class OsWhatsappHubController extends GetxController {
         AppLocaleKeys.osMessagingHubTitle.tr,
         AppLocaleKeys.osMessagingHubRecipientPhone.tr,
       );
-      return false;
+      return;
     }
 
-    final template = selectedTemplate;
-    if (template == null || template.name.isEmpty) {
+    if (hasEmptyRequiredParameter) {
       OsSnackbar.error(
         AppLocaleKeys.osMessagingHubTitle.tr,
-        AppLocaleKeys.osMessagingHubSelectTemplate.tr,
+        AppLocaleKeys.osMessagingHubTemplateParamsIncomplete.tr,
       );
-      return false;
+      return;
     }
 
-    if (category == OsWhatsappCategory.invoice &&
-        template.hasCallPermissionRequest) {
+    if (template.hasCallPermissionRequest) {
       OsSnackbar.error(
         AppLocaleKeys.osMessagingHubTitle.tr,
         AppLocaleKeys.osMessagingHubErrorCallPermission.tr,
       );
-      return false;
+      return;
+    }
+
+    await _refreshParameterValues();
+
+    final built = osWhatsappBuildGraphParameters(
+      template,
+      effectiveParameterValues,
+    );
+
+    String? documentBase64;
+    String? documentFilename;
+    final category = _categoryForPurpose(entry.purpose);
+    String? referenceId;
+
+    final attachment = entry.effectiveDocumentAttachment();
+    final needsPdf = template.hasDocumentHeader &&
+        OsWhatsappTemplateDocumentAttachment.isPdfAttachment(attachment);
+    if (needsPdf) {
+      if (!template.hasDocumentHeader) {
+        OsSnackbar.error(
+          AppLocaleKeys.osMessagingHubTitle.tr,
+          AppLocaleKeys.osMessagingHubInvoiceTemplateDocumentRequired.tr,
+        );
+        return;
+      }
+      isSending.value = true;
+      ({Uint8List bytes, String filename, String? referenceId})? pdf;
+      try {
+        pdf = await _buildDocumentPdfBytes();
+      } finally {
+        isSending.value = false;
+      }
+      if (pdf == null) {
+        OsSnackbar.error(
+          AppLocaleKeys.osMessagingHubTitle.tr,
+          _missingPdfRecordMessage(attachment),
+        );
+        return;
+      }
+      referenceId = pdf.referenceId;
+      documentBase64 = base64Encode(pdf.bytes);
+      documentFilename = pdf.filename;
     }
 
     isSending.value = true;
@@ -513,24 +945,25 @@ class OsWhatsappHubController extends GetxController {
         toPhone: phone,
         templateName: template.name,
         languageCode: template.language.isEmpty ? 'ar' : template.language,
-        bodyParameters: bodyParameters.toList(),
-        headerParameters: headerParameters.toList(),
+        bodyParameters: built.body,
+        headerParameters: built.header,
+        buttonParameters: built.buttonUrlByIndex,
         referenceId: referenceId,
         recipientName: recipientName.value,
         category: category,
         preview: preview.isEmpty ? template.name : preview,
         documentBase64: documentBase64,
         documentFilename: documentFilename,
-        templateHasDocumentHeader: template.hasDocumentHeader,
+        templateHasDocumentHeader:
+            needsPdf && template.hasDocumentHeader,
       );
 
       if (!result.success) {
-        final detail = _formatWhatsappSendError(result);
         OsSnackbar.error(
           AppLocaleKeys.osMessagingHubTitle.tr,
-          detail,
+          whatsappLogErrorForUi(result.errorMessage),
         );
-        return false;
+        return;
       }
 
       final clientId = selectedClientId.value;
@@ -544,178 +977,32 @@ class OsWhatsappHubController extends GetxController {
           preview.isEmpty ? template.name : preview,
         );
       }
+
+      OsSnackbar.success(
+        AppLocaleKeys.osMessagingHubTitle.tr,
+        AppLocaleKeys.osMessagingHubSentSuccess.tr,
+      );
     } finally {
       isSending.value = false;
     }
-
-    OsSnackbar.success(
-      AppLocaleKeys.osMessagingHubTitle.tr,
-      AppLocaleKeys.osMessagingHubSentSuccess.tr,
-    );
-    return true;
   }
 
-  String _formatWhatsappSendError(OsWhatsappSendResult result) {
-    return whatsappLogErrorForUi(result.errorMessage);
+  String _categoryForPurpose(String purpose) {
+    switch (purpose) {
+      case OsWhatsappTemplatePurpose.invoice:
+        return OsWhatsappCategory.invoice;
+      case OsWhatsappTemplatePurpose.quotation:
+      case OsWhatsappTemplatePurpose.paymentConfirmation:
+      case OsWhatsappTemplatePurpose.paymentReceipt:
+      case OsWhatsappTemplatePurpose.contract:
+      case OsWhatsappTemplatePurpose.payslip:
+        return OsWhatsappCategory.crm;
+      default:
+        return OsWhatsappCategory.custom;
+    }
   }
 
-  Future<bool> _sendSession({
-    required String category,
-    String? referenceId,
-    String? documentBase64,
-    String? documentFilename,
-  }) async {
-    if (!isApiReady) {
-      OsSnackbar.error(
-        AppLocaleKeys.osMessagingHubTitle.tr,
-        AppLocaleKeys.osMessagingHubNotConfigured.tr,
-      );
-      return false;
-    }
-
-    final phone = recipientPhone.value.trim();
-    if (phone.isEmpty) {
-      OsSnackbar.error(
-        AppLocaleKeys.osMessagingHubTitle.tr,
-        AppLocaleKeys.osMessagingHubRecipientPhone.tr,
-      );
-      return false;
-    }
-
-    final text = sessionMessageText.value.trim();
-    final hasDoc =
-        documentBase64 != null && documentBase64.isNotEmpty;
-    if (text.isEmpty && !hasDoc) {
-      OsSnackbar.error(
-        AppLocaleKeys.osMessagingHubTitle.tr,
-        AppLocaleKeys.osMessagingHubSessionMessageRequired.tr,
-      );
-      return false;
-    }
-
-    await refreshSessionWindow();
-    if (isSessionSendBlocked(OsWhatsappHubSendMode.session)) {
-      OsSnackbar.error(
-        AppLocaleKeys.osMessagingHubTitle.tr,
-        buildSessionWindowHintText(),
-      );
-      return false;
-    }
-
-    isSending.value = true;
-    try {
-      final preview = text.isNotEmpty
-          ? text
-          : (documentFilename ?? AppLocaleKeys.osMessagingHubPreviewDocument.tr);
-      final result = await OsWhatsappService.instance.sendSession(
-        toPhone: phone,
-        text: text.isEmpty ? null : text,
-        referenceId: referenceId,
-        recipientName: recipientName.value,
-        category: category,
-        preview: preview,
-        documentBase64: documentBase64,
-        documentFilename: documentFilename,
-      );
-
-      if (!result.success) {
-        OsSnackbar.error(
-          AppLocaleKeys.osMessagingHubTitle.tr,
-          _formatWhatsappSendError(result),
-        );
-        return false;
-      }
-
-      final clientId = selectedClientId.value;
-      if (clientId != null &&
-          clientId.isNotEmpty &&
-          _crm != null &&
-          Get.isRegistered<OsCrmController>()) {
-        await _crm!.logActivity(
-          clientId,
-          OsCrmActivityType.whatsapp,
-          preview,
-        );
-      }
-    } finally {
-      isSending.value = false;
-    }
-
-    OsSnackbar.success(
-      AppLocaleKeys.osMessagingHubTitle.tr,
-      AppLocaleKeys.osMessagingHubSentSuccess.tr,
-    );
-    return true;
-  }
-
-  Future<void> sendFromSendTab() async {
-    if (crmSendMode.value == OsWhatsappHubSendMode.session ||
-        crmSafeTemplates.isEmpty) {
-      await _sendSession(category: OsWhatsappCategory.crm);
-      return;
-    }
-    await sendCurrent(category: OsWhatsappCategory.crm);
-  }
-
-  Future<void> sendFromInvoiceTab() async {
-    final inv = selectedInvoice;
-    if (inv == null) return;
-
-    if (invoiceSendMode.value == OsWhatsappHubSendMode.session ||
-        !canUseInvoiceTemplateMode) {
-      isSending.value = true;
-      Uint8List? pdfBytes;
-      try {
-        pdfBytes = await generateOsInvoiceClientCopyPdfBytes(inv);
-      } finally {
-        isSending.value = false;
-      }
-      if (pdfBytes == null || pdfBytes.isEmpty) {
-        OsSnackbar.error(
-          AppLocaleKeys.osMessagingHubTitle.tr,
-          AppLocaleKeys.osMessagingHubInvoicePdfFailed.tr,
-        );
-        return;
-      }
-      if (sessionMessageText.value.trim().isEmpty) {
-        await _prefillInvoiceSessionMessage();
-      }
-      await _sendSession(
-        category: OsWhatsappCategory.invoice,
-        referenceId: inv.id,
-        documentBase64: base64Encode(pdfBytes),
-        documentFilename: osInvoicePdfFilename(inv),
-      );
-      return;
-    }
-
-    if (selectedInvoiceSafeTemplate == null) {
-      OsSnackbar.error(
-        AppLocaleKeys.osMessagingHubTitle.tr,
-        AppLocaleKeys.osMessagingHubSelectTemplate.tr,
-      );
-      return;
-    }
-
-    isSending.value = true;
-    Uint8List? pdfBytes;
-    try {
-      pdfBytes = await generateOsInvoiceClientCopyPdfBytes(inv);
-    } finally {
-      isSending.value = false;
-    }
-    if (pdfBytes == null || pdfBytes.isEmpty) {
-      OsSnackbar.error(
-        AppLocaleKeys.osMessagingHubTitle.tr,
-        AppLocaleKeys.osMessagingHubInvoicePdfFailed.tr,
-      );
-      return;
-    }
-    await sendCurrent(
-      category: OsWhatsappCategory.invoice,
-      referenceId: inv.id,
-      documentBase64: base64Encode(pdfBytes),
-      documentFilename: osInvoicePdfFilename(inv),
-    );
+  void ensureInvoicePurposeSelected() {
+    selectPurpose(OsWhatsappTemplatePurpose.invoice);
   }
 }

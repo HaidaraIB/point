@@ -8,6 +8,10 @@ import 'package:point/Controller/OsLegalContractsController.dart';
 import 'package:point/Localization/AppLocaleKeys.dart';
 import 'package:point/Models/Os/OsAiSettingsStatus.dart';
 import 'package:point/Services/os_ai_service.dart';
+import 'package:point/Services/os_paytabs_service.dart';
+import 'package:point/Services/os_settings_tab_persistence.dart';
+import 'package:point/Services/os_whatsapp_service.dart';
+import 'package:point/Utils/AppColors.dart';
 import 'package:point/Utils/OsPermissions.dart';
 import 'package:point/Utils/app_theme_extension.dart';
 import 'package:point/Utils/os_currency.dart';
@@ -21,6 +25,7 @@ import 'package:point/View/Os/os_quote_template_settings_panel.dart';
 import 'package:point/View/Os/os_snackbar.dart';
 import 'package:point/View/Os/os_paytabs_settings_panel.dart';
 import 'package:point/View/Os/os_whatsapp_settings_panel.dart';
+import 'package:point/View/Os/os_whatsapp_template_settings_panel.dart';
 import 'package:point/View/Os/os_stamp_settings_panel.dart';
 import 'package:point/View/Shared/ResponsiveScaffold.dart';
 
@@ -31,24 +36,73 @@ class OsSettingsPage extends StatefulWidget {
   State<OsSettingsPage> createState() => _OsSettingsPageState();
 }
 
-class _OsSettingsPageState extends State<OsSettingsPage> {
+class _OsSettingsPageState extends State<OsSettingsPage>
+    with SingleTickerProviderStateMixin {
   final _apiKeyCtrl = TextEditingController();
   var _loading = true;
   var _saving = false;
   var _obscureKey = true;
   OsAiSettingsStatus _status = OsAiSettingsStatus.empty();
+  late final TabController _tabController;
+  var _integrationsPrefetched = false;
+  var _restoringPrefs = false;
 
   @override
   void initState() {
     super.initState();
+    final initial = OsSettingsTabPersistence.indexFromRoute();
+    _tabController = TabController(
+      length: 4,
+      vsync: this,
+      initialIndex: initial,
+    );
+    _tabController.addListener(_onTabChanged);
+    if (!OsSettingsTabPersistence.hasRouteTab()) {
+      _restoreSavedTab();
+    } else {
+      OsSettingsTabPersistence.saveIndex(initial);
+    }
+    if (initial == 1) {
+      _prefetchIntegrations();
+    }
     Get.find<OsGeneralSettingsController>();
     Get.find<OsEmailHubController>();
     Get.find<OsLegalContractsController>();
     _load();
   }
 
+  Future<void> _restoreSavedTab() async {
+    final saved = await OsSettingsTabPersistence.loadSavedIndex();
+    if (!mounted || saved == _tabController.index) return;
+    _restoringPrefs = true;
+    _tabController.index = saved;
+    _restoringPrefs = false;
+    if (saved == 1) {
+      _prefetchIntegrations();
+    }
+  }
+
+  void _onTabChanged() {
+    if (_tabController.indexIsChanging || _restoringPrefs) return;
+    OsSettingsTabPersistence.saveIndex(_tabController.index);
+    if (_tabController.index == 1) {
+      _prefetchIntegrations();
+    }
+  }
+
+  Future<void> _prefetchIntegrations() async {
+    if (_integrationsPrefetched) return;
+    _integrationsPrefetched = true;
+    await Future.wait([
+      OsPaytabsService.instance.loadSettings(),
+      OsWhatsappService.instance.loadSettings(),
+    ]);
+  }
+
   @override
   void dispose() {
+    _tabController.removeListener(_onTabChanged);
+    _tabController.dispose();
     _apiKeyCtrl.dispose();
     super.dispose();
   }
@@ -146,16 +200,35 @@ class _OsSettingsPageState extends State<OsSettingsPage> {
             subtitle: AppLocaleKeys.osSettingsSubtitle.tr,
             currentRoute: '/os/settings',
           ),
+          if (!_loading)
+            TabBar(
+              controller: _tabController,
+              isScrollable: true,
+              tabAlignment: TabAlignment.start,
+              labelColor: theme.accentText,
+              unselectedLabelColor: theme.mutedText,
+              indicatorColor: AppColors.primary,
+              labelPadding: const EdgeInsets.symmetric(horizontal: 18),
+              tabs: [
+                Tab(text: AppLocaleKeys.osSettingsTabGeneral.tr),
+                Tab(text: AppLocaleKeys.osSettingsTabIntegrations.tr),
+                Tab(text: AppLocaleKeys.osSettingsTabPrintBrand.tr),
+                Tab(text: AppLocaleKeys.osSettingsTabLegal.tr),
+              ],
+            ),
           Expanded(
             child: _loading
                 ? const Center(child: CircularProgressIndicator())
-                : ListView(
-                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+                : TabBarView(
+                    controller: _tabController,
                     children: [
-                      _SettingsCard(
-                        icon: Icons.auto_awesome,
-                        title: AppLocaleKeys.osSettingsAiSection.tr,
-                        child: Column(
+                      ListView(
+                        padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+                        children: [
+                          _SettingsCard(
+                            icon: Icons.auto_awesome,
+                            title: AppLocaleKeys.osSettingsAiSection.tr,
+                            child: Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
                             Text(
@@ -274,51 +347,75 @@ class _OsSettingsPageState extends State<OsSettingsPage> {
                               ),
                             ),
                           ],
-                        ),
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          const _OsFinanceSettingsSection(),
+                        ],
                       ),
-                      const SizedBox(height: 16),
-                      const _OsFinanceSettingsSection(),
-                      const SizedBox(height: 16),
-                      _SettingsCard(
-                        icon: Icons.mail_outline,
-                        title: AppLocaleKeys.osSettingsEmailSection.tr,
-                        child: const OsEmailSettingsPanel(),
+                      ListView(
+                        padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+                        children: [
+                          _SettingsCard(
+                            icon: Icons.mail_outline,
+                            title: AppLocaleKeys.osSettingsEmailSection.tr,
+                            child: const OsEmailSettingsPanel(),
+                          ),
+                          const SizedBox(height: 16),
+                          _SettingsCard(
+                            icon: Icons.credit_card_outlined,
+                            title: AppLocaleKeys.osSettingsPaytabsSection.tr,
+                            child: const OsPaytabsSettingsPanel(embedded: true),
+                          ),
+                          const SizedBox(height: 16),
+                          _SettingsCard(
+                            icon: Icons.chat_outlined,
+                            title: AppLocaleKeys.osSettingsWhatsappSection.tr,
+                            child: const OsWhatsappSettingsPanel(),
+                          ),
+                          const SizedBox(height: 16),
+                          _SettingsCard(
+                            icon: Icons.view_list_outlined,
+                            title:
+                                AppLocaleKeys.osSettingsWhatsappTemplatesSection.tr,
+                            child: const OsWhatsappTemplateSettingsPanel(),
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: 16),
-                      _SettingsCard(
-                        icon: Icons.credit_card_outlined,
-                        title: AppLocaleKeys.osSettingsPaytabsSection.tr,
-                        child: const OsPaytabsSettingsPanel(embedded: true),
+                      ListView(
+                        padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+                        children: [
+                          _SettingsCard(
+                            icon: Icons.contact_phone_outlined,
+                            title: AppLocaleKeys.osSettingsPrintContactSection.tr,
+                            child: const OsPrintContactSettingsPanel(),
+                          ),
+                          const SizedBox(height: 16),
+                          _SettingsCard(
+                            icon: Icons.tune,
+                            title:
+                                AppLocaleKeys.osSettingsQuotationTemplateSection.tr,
+                            child: const OsQuoteTemplateSettingsPanel(),
+                          ),
+                          const SizedBox(height: 16),
+                          _SettingsCard(
+                            icon: Icons.verified_outlined,
+                            title: AppLocaleKeys.osInvoicesStampSection.tr,
+                            child: const OsStampSettingsPanel(embedded: true),
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: 16),
-                      _SettingsCard(
-                        icon: Icons.chat_outlined,
-                        title: AppLocaleKeys.osSettingsWhatsappSection.tr,
-                        child: const OsWhatsappSettingsPanel(),
-                      ),
-                      const SizedBox(height: 16),
-                      _SettingsCard(
-                        icon: Icons.contact_phone_outlined,
-                        title: AppLocaleKeys.osSettingsPrintContactSection.tr,
-                        child: const OsPrintContactSettingsPanel(),
-                      ),
-                      const SizedBox(height: 16),
-                      _SettingsCard(
-                        icon: Icons.tune,
-                        title: AppLocaleKeys.osSettingsQuotationTemplateSection.tr,
-                        child: const OsQuoteTemplateSettingsPanel(),
-                      ),
-                      const SizedBox(height: 16),
-                      _SettingsCard(
-                        icon: Icons.verified_outlined,
-                        title: AppLocaleKeys.osInvoicesStampSection.tr,
-                        child: const OsStampSettingsPanel(embedded: true),
-                      ),
-                      const SizedBox(height: 16),
-                      _SettingsCard(
-                        icon: Icons.gavel_outlined,
-                        title: AppLocaleKeys.osLegalContractTabSettings.tr,
-                        child: const OsLegalContractsSettingsTab(embedded: true),
+                      ListView(
+                        padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+                        children: [
+                          _SettingsCard(
+                            icon: Icons.gavel_outlined,
+                            title: AppLocaleKeys.osLegalContractTabSettings.tr,
+                            child: const OsLegalContractsSettingsTab(
+                              embedded: true,
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),

@@ -22,7 +22,10 @@ import 'package:point/View/Os/os_finance_status_widgets.dart';
 import 'package:point/Utils/text_input_bidi.dart';
 import 'package:point/View/Os/os_ai_generate_button.dart';
 import 'package:point/View/Os/os_form_dialog.dart';
+import 'package:point/Utils/whatsapp_phone.dart';
 import 'package:point/View/Os/os_snackbar.dart';
+import 'package:point/View/Os/os_client_contact_fields.dart';
+import 'package:point/View/Shared/whatsapp_phone_field.dart';
 
 Future<void> showOsLegalContractFormDialog(
   BuildContext context, {
@@ -95,6 +98,7 @@ class _OsLegalContractDrafterDialogState
   var _saving = false;
   var _loadingNumber = false;
   String? _loadingAiKey;
+  Set<OsClientContactField>? _clientHadAtEdit;
 
   List<ClientModel> get _clients => Get.find<HomeController>()
       .clients
@@ -107,6 +111,112 @@ class _OsLegalContractDrafterDialogState
       .toList();
 
   OsContractSettings get _settings => _ctrl.settings.value;
+
+  ClientModel? _selectedClient() {
+    if (_partyTwoSourceId == null) return null;
+    for (final c in _clients) {
+      if (c.id == _partyTwoSourceId) return c;
+    }
+    return null;
+  }
+
+  void _initContactControllersForEdit(
+    OsLegalContractModel e,
+    ClientModel client,
+  ) {
+    _clientHadAtEdit = osClientContactFieldsPresent(
+      client,
+      fields: kOsLegalContractClientContactFields,
+    );
+    final missing = osClientMissingContactFields(
+      client,
+      fields: kOsLegalContractClientContactFields,
+    );
+    _partyTwoNameCtrl.text = missing.contains(OsClientContactField.name)
+        ? e.targetName
+        : '';
+    _partyTwoCompanyCtrl.text = missing.contains(OsClientContactField.company)
+        ? e.partyTwoCompany
+        : '';
+    _partyTwoPhoneCtrl.text = missing.contains(OsClientContactField.phone)
+        ? e.partyTwoPhone
+        : '';
+    _partyTwoEmailCtrl.text = missing.contains(OsClientContactField.email)
+        ? e.partyTwoEmail
+        : '';
+    _partyTwoAddressCtrl.text = missing.contains(OsClientContactField.address)
+        ? e.partyTwoAddress
+        : '';
+  }
+
+  OsClientContactDraft _contactDraftFromControllers(ClientModel? client) {
+    final missing = client == null
+        ? kOsLegalContractClientContactFields
+        : osClientMissingContactFields(
+            client,
+            fields: kOsLegalContractClientContactFields,
+          );
+    return OsClientContactDraft(
+      name: missing.contains(OsClientContactField.name)
+          ? _partyTwoNameCtrl.text.trim()
+          : null,
+      company: missing.contains(OsClientContactField.company)
+          ? _partyTwoCompanyCtrl.text.trim()
+          : null,
+      phone: missing.contains(OsClientContactField.phone)
+          ? _partyTwoPhoneCtrl.text.trim()
+          : null,
+      email: missing.contains(OsClientContactField.email)
+          ? _partyTwoEmailCtrl.text.trim()
+          : null,
+      address: missing.contains(OsClientContactField.address)
+          ? _partyTwoAddressCtrl.text.trim()
+          : null,
+    );
+  }
+
+  OsClientContactDraft _resolvePartyTwoContact() {
+    if (_targetType == OsLegalContractTargetType.employee) {
+      return OsClientContactDraft(
+        name: _partyTwoNameCtrl.text.trim(),
+        phone: _partyTwoPhoneCtrl.text.trim(),
+        email: _partyTwoEmailCtrl.text.trim(),
+        address: _partyTwoAddressCtrl.text.trim(),
+      );
+    }
+
+    final client = _selectedClient();
+    if (client == null) {
+      return OsClientContactDraft(
+        name: _partyTwoNameCtrl.text.trim(),
+        company: _partyTwoCompanyCtrl.text.trim(),
+        phone: _partyTwoPhoneCtrl.text.trim(),
+        email: _partyTwoEmailCtrl.text.trim(),
+        address: _partyTwoAddressCtrl.text.trim(),
+      );
+    }
+
+    final draft = _contactDraftFromControllers(client);
+    var resolved = osResolveDocumentContact(
+      client: client,
+      draft: draft,
+      fields: kOsLegalContractClientContactFields,
+    );
+    if (widget.existing != null && _clientHadAtEdit != null) {
+      resolved = osPreserveExistingDocumentContact(
+        existingDocument: OsClientContactDraft(
+          name: widget.existing!.targetName,
+          company: widget.existing!.partyTwoCompany,
+          phone: widget.existing!.partyTwoPhone,
+          email: widget.existing!.partyTwoEmail,
+          address: widget.existing!.partyTwoAddress,
+        ),
+        resolved: resolved,
+        clientHadAtEdit: _clientHadAtEdit!,
+      );
+    }
+    return resolved;
+  }
 
   @override
   void initState() {
@@ -239,6 +349,14 @@ class _OsLegalContractDrafterDialogState
         }
       });
     }
+    if (e != null &&
+        _targetType == OsLegalContractTargetType.client &&
+        _partyTwoSourceId != null) {
+      final client = _selectedClient();
+      if (client != null) {
+        _initContactControllersForEdit(e, client);
+      }
+    }
   }
 
   @override
@@ -275,21 +393,32 @@ class _OsLegalContractDrafterDialogState
   }
 
   void _applyClient(String? clientId) {
-    if (clientId == null) return;
+    if (clientId == null) {
+      setState(() => _clientHadAtEdit = null);
+      return;
+    }
     final client = _clients.cast<ClientModel?>().firstWhere(
           (c) => c?.id == clientId,
           orElse: () => null,
         );
     if (client == null) return;
-    _partyTwoNameCtrl.text = (client.name ?? '').trim();
-    _partyTwoCompanyCtrl.text = (client.company ?? '').trim();
-    _partyTwoPhoneCtrl.text = (client.phone ?? '').trim();
-    _partyTwoEmailCtrl.text = (client.email ?? '').trim();
-    _partyTwoAddressCtrl.text =
-        (client.address ?? '').trim().isNotEmpty
-            ? client.address!.trim()
-            : _partyTwoAddressCtrl.text;
-    _partyTwoNationalIdCtrl.text = client.id ?? '';
+    final missing = osClientMissingContactFields(
+      client,
+      fields: kOsLegalContractClientContactFields,
+    );
+    setState(() {
+      _clientHadAtEdit = null;
+      _partyTwoNameCtrl.text =
+          missing.contains(OsClientContactField.name) ? '' : '';
+      _partyTwoCompanyCtrl.text =
+          missing.contains(OsClientContactField.company) ? '' : '';
+      _partyTwoPhoneCtrl.text =
+          missing.contains(OsClientContactField.phone) ? '' : '';
+      _partyTwoEmailCtrl.text =
+          missing.contains(OsClientContactField.email) ? '' : '';
+      _partyTwoAddressCtrl.text =
+          missing.contains(OsClientContactField.address) ? '' : '';
+    });
   }
 
   void _applyEmployee(String? employeeId) {
@@ -562,12 +691,21 @@ class _OsLegalContractDrafterDialogState
       return false;
     }
     if (step == 2) {
+      final resolved = _resolvePartyTwoContact();
       if (_titleCtrl.text.trim().isEmpty ||
           _numberCtrl.text.trim().isEmpty ||
-          _partyTwoNameCtrl.text.trim().isEmpty) {
+          (resolved.name ?? '').trim().isEmpty) {
         OsSnackbar.error(
           AppLocaleKeys.osLegalContractTitle.tr,
           AppLocaleKeys.osLegalContractErrorRequired.tr,
+        );
+        return false;
+      }
+      final phone = normalizeWhatsappPhone(resolved.phone?.trim() ?? '');
+      if (phone == null || phone.isEmpty) {
+        OsSnackbar.error(
+          AppLocaleKeys.osLegalContractTitle.tr,
+          AppLocaleKeys.commonPhoneInvalid.tr,
         );
         return false;
       }
@@ -596,9 +734,24 @@ class _OsLegalContractDrafterDialogState
         ? (existing?.signedAt ?? DateTime.now())
         : existing?.signedAt;
     final emp = Get.find<HomeController>().effectiveEmployee;
+    final resolvedParty = _resolvePartyTwoContact();
+    final partyPhone =
+        normalizeWhatsappPhone(resolvedParty.phone?.trim() ?? '') ?? '';
 
     setState(() => _saving = true);
     try {
+      if (_targetType == OsLegalContractTargetType.client) {
+        final linkedClient = _selectedClient();
+        if (linkedClient != null) {
+          final fillOk = await Get.find<HomeController>().fillEmptyClientContact(
+            client: linkedClient,
+            draft: _contactDraftFromControllers(linkedClient),
+            fields: kOsLegalContractClientContactFields,
+          );
+          if (!fillOk) return;
+        }
+      }
+
       final ok = await _ctrl.saveContract(
         OsLegalContractModel(
           id: existing?.id ?? '',
@@ -606,7 +759,7 @@ class _OsLegalContractDrafterDialogState
           title: _titleCtrl.text.trim(),
           targetType: _targetType,
           targetId: _partyTwoSourceId ?? '',
-          targetName: _partyTwoNameCtrl.text.trim(),
+          targetName: (resolvedParty.name ?? '').trim(),
           status: _status,
           startDate: _startDate,
           endDate: _endDate,
@@ -623,11 +776,11 @@ class _OsLegalContractDrafterDialogState
           partyOnePhone: settings.agencyPhone,
           partyOneEmail: settings.agencyEmail,
           partyOneRegistrationNo: settings.agencyCommercialReg,
-          partyTwoCompany: _partyTwoCompanyCtrl.text.trim(),
+          partyTwoCompany: (resolvedParty.company ?? '').trim(),
           partyTwoNationalId: _partyTwoNationalIdCtrl.text.trim(),
-          partyTwoAddress: _partyTwoAddressCtrl.text.trim(),
-          partyTwoPhone: _partyTwoPhoneCtrl.text.trim(),
-          partyTwoEmail: _partyTwoEmailCtrl.text.trim(),
+          partyTwoAddress: (resolvedParty.address ?? '').trim(),
+          partyTwoPhone: partyPhone,
+          partyTwoEmail: (resolvedParty.email ?? '').trim(),
           partyTwoJobTitle: _partyTwoJobTitleCtrl.text.trim(),
           probationPeriodDays: int.tryParse(_probationCtrl.text.trim()),
           noticePeriodDays: int.tryParse(_noticeCtrl.text.trim()),
@@ -784,7 +937,6 @@ class _OsLegalContractDrafterDialogState
       }),
       style: TextStyle(
         fontSize: 11,
-        fontFamily: 'monospace',
         color: theme.mutedText,
       ),
     );
@@ -1337,6 +1489,7 @@ class _OsLegalContractDrafterDialogState
 
   Widget _partyTwoForm(AppThemeExtension theme) {
     final isEmployee = _targetType == OsLegalContractTargetType.employee;
+    final linkedClient = isEmployee ? null : _selectedClient();
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
@@ -1411,53 +1564,115 @@ class _OsLegalContractDrafterDialogState
             ),
             const SizedBox(height: 10),
           ],
-          _label('${AppLocaleKeys.osLegalContractPartyName.tr} *'),
-          osTypedTextField(
-            controller: _partyTwoNameCtrl,
-            decoration: osDialogFieldDecoration(context),
-          ),
-          const SizedBox(height: 10),
-          _label(AppLocaleKeys.osLegalContractPartyCompany.tr),
-          osTypedTextField(
-            controller: _partyTwoCompanyCtrl,
-            decoration: osDialogFieldDecoration(context),
-          ),
-          const SizedBox(height: 10),
-          Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    _label(AppLocaleKeys.osLegalContractPartyNationalId.tr),
-                    osTypedTextField(
-                      controller: _partyTwoNationalIdCtrl,
-                      decoration: osDialogFieldDecoration(context),
-                    ),
-                  ],
-                ),
+          if (isEmployee ||
+              osShowClientContactField(
+                client: linkedClient,
+                field: OsClientContactField.name,
+                fields: kOsLegalContractClientContactFields,
+              )) ...[
+            _label('${AppLocaleKeys.osLegalContractPartyName.tr} *'),
+            osTypedTextField(
+              controller: _partyTwoNameCtrl,
+              decoration: osClientContactFieldDecoration(
+                osDialogFieldDecoration(context),
+                savesToClient: linkedClient != null,
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    _label(AppLocaleKeys.osLegalContractPartyPhone.tr),
-                    osPhoneTextField(
-                      controller: _partyTwoPhoneCtrl,
-                      decoration: osDialogFieldDecoration(context),
-                    ),
-                  ],
+            ),
+            const SizedBox(height: 10),
+          ],
+          if (isEmployee ||
+              osShowClientContactField(
+                client: linkedClient,
+                field: OsClientContactField.company,
+                fields: kOsLegalContractClientContactFields,
+              )) ...[
+            _label(AppLocaleKeys.osLegalContractPartyCompany.tr),
+            osTypedTextField(
+              controller: _partyTwoCompanyCtrl,
+              decoration: osClientContactFieldDecoration(
+                osDialogFieldDecoration(context),
+                savesToClient: linkedClient != null,
+              ),
+            ),
+            const SizedBox(height: 10),
+          ],
+          if (isEmployee) ...[
+            Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      _label(AppLocaleKeys.osLegalContractPartyNationalId.tr),
+                      osTypedTextField(
+                        controller: _partyTwoNationalIdCtrl,
+                        decoration: osDialogFieldDecoration(context),
+                      ),
+                    ],
+                  ),
                 ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      _label(AppLocaleKeys.osLegalContractPartyPhone.tr),
+                      WhatsappPhoneField(
+                        initialNormalized: _partyTwoPhoneCtrl.text.trim().isEmpty
+                            ? null
+                            : _partyTwoPhoneCtrl.text.trim(),
+                        decoration: osDialogFieldDecoration(context),
+                        onChanged: (v) => _partyTwoPhoneCtrl.text = v ?? '',
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ] else ...[
+            _label(AppLocaleKeys.osLegalContractPartyNationalId.tr),
+            osTypedTextField(
+              controller: _partyTwoNationalIdCtrl,
+              decoration: osDialogFieldDecoration(context),
+            ),
+            if (osShowClientContactField(
+              client: linkedClient,
+              field: OsClientContactField.phone,
+              fields: kOsLegalContractClientContactFields,
+            )) ...[
+              const SizedBox(height: 10),
+              _label(AppLocaleKeys.osLegalContractPartyPhone.tr),
+              WhatsappPhoneField(
+                key: ValueKey(
+                  'contract-phone-${_partyTwoSourceId ?? 'custom'}-${_partyTwoPhoneCtrl.text}',
+                ),
+                initialNormalized: _partyTwoPhoneCtrl.text.trim().isEmpty
+                    ? null
+                    : _partyTwoPhoneCtrl.text.trim(),
+                decoration: osClientContactFieldDecoration(
+                  osDialogFieldDecoration(context),
+                  savesToClient: linkedClient != null,
+                ),
+                onChanged: (v) => _partyTwoPhoneCtrl.text = v ?? '',
               ),
             ],
-          ),
-          const SizedBox(height: 10),
-          _label(AppLocaleKeys.osLegalContractPartyEmail.tr),
-          osTypedTextField(
-            controller: _partyTwoEmailCtrl,
-            decoration: osDialogFieldDecoration(context),
-          ),
+          ],
+          if (isEmployee ||
+              osShowClientContactField(
+                client: linkedClient,
+                field: OsClientContactField.email,
+                fields: kOsLegalContractClientContactFields,
+              )) ...[
+            const SizedBox(height: 10),
+            _label(AppLocaleKeys.osLegalContractPartyEmail.tr),
+            osTypedTextField(
+              controller: _partyTwoEmailCtrl,
+              decoration: osClientContactFieldDecoration(
+                osDialogFieldDecoration(context),
+                savesToClient: linkedClient != null,
+              ),
+            ),
+          ],
           const SizedBox(height: 10),
           if (isEmployee) ...[
             _label(AppLocaleKeys.osLegalContractPartyJobTitle.tr),
@@ -1467,12 +1682,22 @@ class _OsLegalContractDrafterDialogState
             ),
             const SizedBox(height: 10),
           ],
-          _label(AppLocaleKeys.osLegalContractPartyAddress.tr),
-          osTypedTextField(
-            controller: _partyTwoAddressCtrl,
-            maxLines: 2,
-            decoration: osDialogFieldDecoration(context),
-          ),
+          if (isEmployee ||
+              osShowClientContactField(
+                client: linkedClient,
+                field: OsClientContactField.address,
+                fields: kOsLegalContractClientContactFields,
+              )) ...[
+            _label(AppLocaleKeys.osLegalContractPartyAddress.tr),
+            osTypedTextField(
+              controller: _partyTwoAddressCtrl,
+              maxLines: 2,
+              decoration: osClientContactFieldDecoration(
+                osDialogFieldDecoration(context),
+                savesToClient: linkedClient != null,
+              ),
+            ),
+          ],
         ],
       ),
     );

@@ -5,7 +5,9 @@ import 'package:point/Models/Os/OsLegalContractModel.dart';
 import 'package:point/Services/firestore/firestore_os_finance_api.dart';
 import 'package:point/Services/os_stamp_settings.dart';
 import 'package:point/View/Os/Contracts/os_legal_contract_labels.dart';
+import 'package:point/Utils/whatsapp_phone.dart';
 import 'package:point/View/Os/Print/os_brand_print.dart';
+import 'package:point/View/Os/Print/os_print_signature.dart';
 import 'package:point/View/Os/os_print_a4.dart';
 
 String _partyOneName(OsLegalContractModel contract, OsContractSettings settings) {
@@ -69,7 +71,7 @@ String buildOsLegalContractPlainText(
     buf.writeln(contract.partyTwoAddress);
   }
   if (contract.partyTwoPhone.isNotEmpty) {
-    buf.writeln(contract.partyTwoPhone);
+    buf.writeln(formatWhatsappPhoneDisplay(contract.partyTwoPhone));
   }
   if (contract.partyTwoEmail.isNotEmpty) {
     buf.writeln(contract.partyTwoEmail);
@@ -134,8 +136,9 @@ String buildOsLegalContractPlainText(
 
 String buildOsLegalContractPrintHtml(
   OsLegalContractModel contract,
-  OsContractSettings settings,
-) {
+  OsContractSettings settings, {
+  bool forPdf = false,
+}) {
   final start = FirestoreOsFinanceApi.formatDate(contract.startDate);
   final end = contract.endDate == null
       ? AppLocaleKeys.osCommonNa.tr
@@ -227,13 +230,14 @@ String buildOsLegalContractPrintHtml(
       escapeHtml(contract.partyTwoJobTitle),
     if (contract.partyTwoAddress.isNotEmpty)
       escapeHtml(contract.partyTwoAddress),
-    if (contract.partyTwoPhone.isNotEmpty) escapeHtml(contract.partyTwoPhone),
+    if (contract.partyTwoPhone.isNotEmpty)
+      escapeHtml(formatWhatsappPhoneDisplay(contract.partyTwoPhone)),
     if (contract.partyTwoEmail.isNotEmpty) escapeHtml(contract.partyTwoEmail),
   ].join('<br/>');
 
   final inner = '''
 ${OsBrandPrint.headerHtml()}
-${OsBrandPrint.watermarkHtml()}
+${forPdf ? '' : OsBrandPrint.watermarkHtml()}
 <div class="content-layer">
 <div class="contract-head no-split">
   <h1>${escapeHtml(AppLocaleKeys.osPrintContractTitle.tr)}</h1>
@@ -268,6 +272,7 @@ $customBlock
 $notesBlock
 <div class="signatures no-split">
   <div class="sig">
+    ${osPrintSignatureImageHtml()}
     <div class="sig-line"></div>
     <div>${escapeHtml(_partyOneRep(contract, settings))}</div>
     <div class="sig-caption">${escapeHtml(AppLocaleKeys.osLegalContractPreviewPartyOne.tr)}</div>
@@ -360,7 +365,7 @@ table.payments th { background: var(--lavender); font-weight: 800; }
 </style>
 </head>
 <body>
-${osPrintTwoCopies(sheetClass: 'contract-print', innerHtml: inner)}
+${forPdf ? osPrintSingleSheet(sheetClass: 'contract-print', innerHtml: inner) : osPrintTwoCopies(sheetClass: 'contract-print', innerHtml: inner)}
 </body>
 </html>''';
 }

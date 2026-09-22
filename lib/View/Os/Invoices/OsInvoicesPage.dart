@@ -14,8 +14,11 @@ import 'package:point/View/Os/Invoices/os_invoice_form_dialog.dart';
 import 'package:point/View/Os/Invoices/os_invoice_pdf_download_action.dart';
 import 'package:point/View/Os/Invoices/os_invoice_preview_dialog.dart';
 import 'package:point/View/Os/Invoices/os_invoice_share.dart';
-import 'package:point/View/Os/Messaging/os_messaging_hub_navigation.dart';
+import 'package:point/Models/Os/os_whatsapp_template_map.dart';
+import 'package:point/View/Os/Messaging/os_whatsapp_quick_send.dart';
+import 'package:point/View/Os/Messaging/os_whatsapp_send_icon_button.dart';
 import 'package:point/View/Os/os_button_styles.dart';
+import 'package:point/View/Os/os_document_action_button.dart';
 import 'package:point/View/Os/os_finance_format.dart';
 import 'package:point/View/Os/os_finance_status_widgets.dart';
 import 'package:point/View/Os/os_list_filters.dart';
@@ -59,7 +62,7 @@ class OsInvoicesPage extends StatelessWidget {
             onPreview: (inv) => showOsInvoicePreviewDialog(context, inv),
             onPaymentLink: (inv) =>
                 showOsInvoicePaymentLinkDialog(context, inv),
-            onWhatsApp: openOsMessagingHubForInvoice,
+            onWhatsApp: sendOsInvoiceViaWhatsapp,
             onEmail: sendOsInvoiceEmail,
             onLinkAccount: (inv) {
               if (inv.isPaid) return;
@@ -80,7 +83,7 @@ class OsInvoicesPage extends StatelessWidget {
             onPreview: (inv) => showOsInvoicePreviewDialog(context, inv),
             onPaymentLink: (inv) =>
                 showOsInvoicePaymentLinkDialog(context, inv),
-            onWhatsApp: openOsMessagingHubForInvoice,
+            onWhatsApp: sendOsInvoiceViaWhatsapp,
             onEmail: sendOsInvoiceEmail,
             onLinkAccount: (inv) {
               if (inv.isPaid) return;
@@ -210,7 +213,7 @@ class _DesktopInvoicesBody extends StatefulWidget {
   final void Function(OsInvoiceModel, String) onStatusChange;
   final ValueChanged<OsInvoiceModel> onPreview;
   final ValueChanged<OsInvoiceModel> onPaymentLink;
-  final ValueChanged<OsInvoiceModel> onWhatsApp;
+  final Future<void> Function(OsInvoiceModel) onWhatsApp;
   final ValueChanged<OsInvoiceModel> onEmail;
   final ValueChanged<OsInvoiceModel> onLinkAccount;
 
@@ -401,7 +404,7 @@ class _InvoicesTable extends StatelessWidget {
   final void Function(OsInvoiceModel, String) onStatusChange;
   final ValueChanged<OsInvoiceModel> onPreview;
   final ValueChanged<OsInvoiceModel> onPaymentLink;
-  final ValueChanged<OsInvoiceModel> onWhatsApp;
+  final Future<void> Function(OsInvoiceModel) onWhatsApp;
   final ValueChanged<OsInvoiceModel> onEmail;
   final ValueChanged<OsInvoiceModel> onLinkAccount;
 
@@ -541,17 +544,17 @@ class _InvoicesTable extends StatelessWidget {
                         icon: Icons.link,
                         onPressed: () => onPaymentLink(inv),
                       ),
-                    if (!inv.isPaid)
-                      _ActionIcon(
-                        tooltip: AppLocaleKeys.osInvoicesWhatsapp.tr,
-                        icon: Icons.send_outlined,
-                        onPressed: () => onWhatsApp(inv),
-                      ),
+                    OsWhatsappSendIconButton(
+                      purpose: OsWhatsappTemplatePurpose.invoice,
+                      onSend: () => onWhatsApp(inv),
+                      constraints:
+                          const BoxConstraints(minWidth: 36, minHeight: 36),
+                    ),
                     OsInvoicePdfDownloadIconButton(invoice: inv),
-                    _ActionIcon(
+                    OsDocumentActionIconButton(
                       tooltip: AppLocaleKeys.osInvoicesEmail.tr,
                       icon: Icons.mail_outline,
-                      onPressed: () => onEmail(inv),
+                      onPressed: () async => onEmail(inv),
                     ),
                     if (!inv.isPaid) ...[
                       _ActionIcon(

@@ -84,8 +84,8 @@
           }
           const ready =
             doc.readyState === 'complete' || doc.readyState === 'interactive';
-          const sheet = doc.querySelector('.a4');
-          if (!ready || !sheet) {
+          const sheets = doc.querySelectorAll('.a4');
+          if (!ready || !sheets.length) {
             requestAnimationFrame(tick);
             return;
           }
@@ -123,18 +123,10 @@
       doc.close();
       await waitForIframeReady(iframe);
 
-      const sheet = doc.querySelector('.a4');
-      if (!sheet) {
+      const sheets = doc.querySelectorAll('.a4');
+      if (!sheets.length) {
         throw new Error('no_sheet');
       }
-
-      const dataUrl = await htmlToImage.toJpeg(sheet, {
-        quality: 0.94,
-        pixelRatio: 2,
-        cacheBust: true,
-        backgroundColor: '#ffffff',
-        skipFonts: false,
-      });
 
       const pdf = new jsPDF({
         unit: 'mm',
@@ -142,7 +134,21 @@
         orientation: 'portrait',
         compress: true,
       });
-      pdf.addImage(dataUrl, 'JPEG', 0, 0, 210, 297);
+
+      for (let i = 0; i < sheets.length; i++) {
+        const sheet = sheets[i];
+        const dataUrl = await htmlToImage.toJpeg(sheet, {
+          quality: 0.94,
+          pixelRatio: 2,
+          cacheBust: true,
+          backgroundColor: '#ffffff',
+          skipFonts: false,
+        });
+        if (i > 0) {
+          pdf.addPage();
+        }
+        pdf.addImage(dataUrl, 'JPEG', 0, 0, 210, 297);
+      }
       return pdf.output('arraybuffer');
     } finally {
       iframe.remove();

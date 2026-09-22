@@ -102,6 +102,22 @@ class OsButtonStyles {
     );
   }
 
+  /// Compact outlined action for toolbars (matches [secondaryCompact] height).
+  static ButtonStyle outlinedCompact(AppThemeExtension theme) {
+    return OutlinedButton.styleFrom(
+      foregroundColor: theme.primaryText,
+      disabledForegroundColor: theme.mutedText,
+      side: BorderSide(color: theme.border),
+      minimumSize: compactMinSize,
+      padding: compactPadding,
+      textStyle: compactTextStyle,
+      visualDensity: VisualDensity.standard,
+      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      iconSize: 18,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+    );
+  }
+
   /// Compact primary so toolbar pairs share the same height.
   static ButtonStyle primaryCompact() {
     return primary(
@@ -152,6 +168,33 @@ class OsButtonStyles {
   /// Standard print action for OS preview / detail toolbars.
   static ButtonStyle printCompact(AppThemeExtension theme) =>
       secondaryCompact(theme);
+
+  /// Email / share-by-mail — same geometry as [printCompact].
+  static ButtonStyle emailCompact(AppThemeExtension theme) =>
+      secondaryCompact(theme);
+
+  /// Client-copy PDF download — same geometry as [printCompact].
+  static ButtonStyle pdfCompact(AppThemeExtension theme) =>
+      secondaryCompact(theme);
+
+  static const whatsappActionGreen = Color(0xFF059669);
+
+  /// WhatsApp send — compact green fill, recognizable purpose color.
+  static ButtonStyle whatsappCompact() {
+    return FilledButton.styleFrom(
+      backgroundColor: whatsappActionGreen,
+      foregroundColor: Colors.white,
+      disabledForegroundColor: Colors.white70,
+      disabledBackgroundColor: whatsappActionGreen.withValues(alpha: 0.45),
+      minimumSize: compactMinSize,
+      padding: compactPadding,
+      textStyle: compactTextStyle.copyWith(color: Colors.white),
+      visualDensity: VisualDensity.standard,
+      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      iconSize: 18,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+    );
+  }
 
   /// Compact filled CTA that matches [inline] height.
   static ButtonStyle inlinePrimary({Color? backgroundColor}) {

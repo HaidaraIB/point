@@ -150,7 +150,8 @@ class _OsModuleNavState extends State<OsModuleNav> {
       height: stripHeight,
       child: OsHorizontalScrollView(
         controller: _scrollController,
-        clipBehavior: Clip.none,
+        // Clip so scrolled pills cannot paint over the app sidebar.
+        clipBehavior: Clip.hardEdge,
         padding: EdgeInsetsDirectional.only(
           start: 4,
           end: 4,
@@ -163,6 +164,7 @@ class _OsModuleNavState extends State<OsModuleNav> {
     return Padding(
       padding: const EdgeInsets.fromLTRB(12, 0, 12, 10),
       child: Stack(
+        clipBehavior: Clip.hardEdge,
         children: [
           pillRow,
           if (mobile) ...[

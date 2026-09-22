@@ -7,7 +7,9 @@ import 'package:point/Models/ClientModel.dart';
 import 'package:point/Models/Os/os_crm_enums.dart';
 import 'package:point/View/Os/Crm/os_crm_labels.dart';
 import 'package:point/View/Os/os_form_dialog.dart';
+import 'package:point/Utils/whatsapp_phone.dart';
 import 'package:point/View/Os/os_snackbar.dart';
+import 'package:point/View/Shared/whatsapp_phone_field.dart';
 import 'package:point/View/Shared/responsive.dart';
 
 Widget _crmFormFieldPair({
@@ -133,12 +135,14 @@ Future<void> showOsCrmClientFormDialog(
           const SizedBox(height: 14),
           _crmFormFieldPair(
             stack: stack,
-            first: osPhoneTextField(
-              controller: phoneCtrl,
-              style: const TextStyle(fontSize: 16),
+            first: WhatsappPhoneField(
+              initialNormalized: phoneCtrl.text.trim().isEmpty
+                  ? null
+                  : phoneCtrl.text.trim(),
               decoration: osFinanceFieldDecoration(
                 AppLocaleKeys.osCrmPhone.tr,
               ),
+              onChanged: (v) => phoneCtrl.text = v ?? '',
             ),
             second: osTypedTextField(
               controller: emailCtrl,
@@ -191,12 +195,20 @@ Future<void> showOsCrmClientFormDialog(
 
   final company = companyCtrl.text.trim();
   final contactName = nameCtrl.text.trim();
-  final phone = phoneCtrl.text.trim();
+  final normalizedPhone = normalizeWhatsappPhone(phoneCtrl.text.trim());
   final email = emailCtrl.text.trim();
   companyCtrl.dispose();
   nameCtrl.dispose();
   phoneCtrl.dispose();
   emailCtrl.dispose();
+
+  if (normalizedPhone == null || normalizedPhone.isEmpty) {
+    OsSnackbar.error(
+      AppLocaleKeys.osCommonSaveFailed.tr,
+      AppLocaleKeys.commonPhoneInvalid.tr,
+    );
+    return;
+  }
 
   if (company.isEmpty) {
     OsSnackbar.error(
@@ -222,7 +234,7 @@ Future<void> showOsCrmClientFormDialog(
       existing.copyWith(
         company: company,
         name: contactName,
-        phone: phone.isEmpty ? null : phone,
+        phone: normalizedPhone,
         email: email.isEmpty ? null : email,
         crmStage: stage,
         leadSource: leadSource,
@@ -244,7 +256,7 @@ Future<void> showOsCrmClientFormDialog(
   final ok = await crm.addCrmClient(
     company: company,
     contactName: contactName,
-    phone: phone.isEmpty ? null : phone,
+    phone: normalizedPhone,
     email: email.isEmpty ? null : email,
     crmStage: stage,
     leadSource: leadSource,

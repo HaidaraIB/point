@@ -4,150 +4,167 @@ import 'package:point/Controller/OsWhatsappHubController.dart';
 import 'package:point/Localization/AppLocaleKeys.dart';
 import 'package:point/Models/ClientModel.dart';
 import 'package:point/Models/Os/OsInvoiceModel.dart';
+import 'package:point/Models/Os/OsLegalContractModel.dart';
+import 'package:point/Models/Os/OsPayslipModel.dart';
+import 'package:point/Models/Os/OsQuotationModel.dart';
+import 'package:point/Models/Os/OsVoucherModel.dart';
 import 'package:point/Models/Os/OsWhatsappLogModel.dart';
 import 'package:point/Models/Os/os_whatsapp_enums.dart';
+import 'package:point/Models/Os/os_whatsapp_template_map.dart';
 import 'package:point/Utils/app_theme_extension.dart';
 import 'package:point/View/Os/EmailHub/OsEmailHubPage.dart';
 import 'package:point/View/Os/EmailHub/os_email_hub_form_widgets.dart';
 import 'package:point/View/Os/Messaging/os_whatsapp_log_display.dart';
 import 'package:point/View/Os/Messaging/os_whatsapp_message_preview.dart';
+import 'package:point/View/Os/os_form_dialog.dart';
+import 'package:point/View/Os/os_button_styles.dart';
+import 'package:point/View/Os/os_document_action_button.dart';
 import 'package:point/View/Shared/phone_number_text.dart';
 import 'package:point/View/Shared/responsive.dart';
+import 'package:point/View/Shared/whatsapp_phone_field.dart';
 
-List<Widget> osMessagingHubTemplateFields(
-  BuildContext context,
-  OsWhatsappHubController hub,
-) {
-  final t = hub.selectedTemplate;
-  if (t == null) return const [];
-  final widgets = <Widget>[];
-  if (hub.headerParameters.isNotEmpty || hub.bodyParameters.isNotEmpty) {
-    widgets.add(
-      Text(
-        AppLocaleKeys.osMessagingHubTemplateParams.tr,
-        style: TextStyle(
-          fontWeight: FontWeight.w700,
-          color: context.appTheme.secondaryText,
-          fontSize: 12,
-        ),
-      ),
-    );
-    widgets.add(const SizedBox(height: 8));
+String osWhatsappFieldLabel(String fieldKey) {
+  switch (fieldKey) {
+    case OsWhatsappTemplateFieldKey.clientName:
+      return AppLocaleKeys.osWhatsappFieldClientName.tr;
+    case OsWhatsappTemplateFieldKey.company:
+      return AppLocaleKeys.osWhatsappFieldCompany.tr;
+    case OsWhatsappTemplateFieldKey.phone:
+      return AppLocaleKeys.osWhatsappFieldPhone.tr;
+    case OsWhatsappTemplateFieldKey.invoiceRef:
+      return AppLocaleKeys.osWhatsappFieldInvoiceRef.tr;
+    case OsWhatsappTemplateFieldKey.quoteRef:
+      return AppLocaleKeys.osWhatsappFieldQuoteRef.tr;
+    case OsWhatsappTemplateFieldKey.amount:
+      return AppLocaleKeys.osWhatsappFieldAmount.tr;
+    case OsWhatsappTemplateFieldKey.total:
+      return AppLocaleKeys.osWhatsappFieldTotal.tr;
+    case OsWhatsappTemplateFieldKey.issueDate:
+      return AppLocaleKeys.osWhatsappFieldIssueDate.tr;
+    case OsWhatsappTemplateFieldKey.dueDate:
+      return AppLocaleKeys.osWhatsappFieldDueDate.tr;
+    case OsWhatsappTemplateFieldKey.expiryDate:
+      return AppLocaleKeys.osWhatsappFieldExpiryDate.tr;
+    case OsWhatsappTemplateFieldKey.paymentLink:
+      return AppLocaleKeys.osWhatsappFieldPaymentLink.tr;
+    case OsWhatsappTemplateFieldKey.invoiceStatus:
+      return AppLocaleKeys.osWhatsappFieldInvoiceStatus.tr;
+    case OsWhatsappTemplateFieldKey.voucherRef:
+      return AppLocaleKeys.osWhatsappFieldVoucherRef.tr;
+    case OsWhatsappTemplateFieldKey.voucherPayee:
+      return AppLocaleKeys.osWhatsappFieldVoucherPayee.tr;
+    case OsWhatsappTemplateFieldKey.voucherDate:
+      return AppLocaleKeys.osWhatsappFieldVoucherDate.tr;
+    case OsWhatsappTemplateFieldKey.contractNumber:
+      return AppLocaleKeys.osWhatsappFieldContractNumber.tr;
+    case OsWhatsappTemplateFieldKey.contractTitle:
+      return AppLocaleKeys.osWhatsappFieldContractTitle.tr;
+    case OsWhatsappTemplateFieldKey.contractPartyName:
+      return AppLocaleKeys.osWhatsappFieldContractPartyName.tr;
+    case OsWhatsappTemplateFieldKey.contractStartDate:
+      return AppLocaleKeys.osWhatsappFieldContractStartDate.tr;
+    case OsWhatsappTemplateFieldKey.contractEndDate:
+      return AppLocaleKeys.osWhatsappFieldContractEndDate.tr;
+    case OsWhatsappTemplateFieldKey.contractTotalValue:
+      return AppLocaleKeys.osWhatsappFieldContractTotalValue.tr;
+    case OsWhatsappTemplateFieldKey.payslipEmployeeName:
+      return AppLocaleKeys.osWhatsappFieldPayslipEmployeeName.tr;
+    case OsWhatsappTemplateFieldKey.payslipPeriod:
+      return AppLocaleKeys.osWhatsappFieldPayslipPeriod.tr;
+    case OsWhatsappTemplateFieldKey.payslipRef:
+      return AppLocaleKeys.osWhatsappFieldPayslipRef.tr;
+    case OsWhatsappTemplateFieldKey.payslipNetPay:
+      return AppLocaleKeys.osWhatsappFieldPayslipNetPay.tr;
+    case OsWhatsappTemplateFieldKey.manual:
+      return AppLocaleKeys.osWhatsappFieldManual.tr;
+    default:
+      return fieldKey;
   }
-  for (var i = 0; i < hub.headerParameters.length; i++) {
-    final index = i;
-    widgets.add(
-      Padding(
-        padding: const EdgeInsets.only(bottom: 12),
-        child: osEmailHubTextField(
-          context,
-          label: AppLocaleKeys.osMessagingHubHeaderParam.trParams({
-            'index': '${index + 1}',
-          }),
-          value: hub.headerParameters[index],
-          onChanged: (v) {
-            hub.headerParameters[index] = v;
-            hub.headerParameters.refresh();
-          },
-        ),
-      ),
-    );
-  }
-  for (var i = 0; i < hub.bodyParameters.length; i++) {
-    final index = i;
-    widgets.add(
-      Padding(
-        padding: const EdgeInsets.only(bottom: 12),
-        child: osEmailHubTextField(
-          context,
-          label: AppLocaleKeys.osMessagingHubBodyParam.trParams({
-            'index': '${index + 1}',
-          }),
-          value: hub.bodyParameters[index],
-          onChanged: (v) {
-            hub.bodyParameters[index] = v;
-            hub.bodyParameters.refresh();
-          },
-        ),
-      ),
-    );
-  }
-  return widgets;
 }
 
-Widget osMessagingHubSessionHintBanner(
+/// Preview sample for a mapped field key in template settings.
+String osWhatsappSampleValueForField(String fieldKey) {
+  switch (fieldKey) {
+    case OsWhatsappTemplateFieldKey.clientName:
+      return 'Sample client';
+    case OsWhatsappTemplateFieldKey.company:
+      return 'Sample Co.';
+    case OsWhatsappTemplateFieldKey.phone:
+      return '+964 770 000 0000';
+    case OsWhatsappTemplateFieldKey.invoiceRef:
+      return 'INV-001';
+    case OsWhatsappTemplateFieldKey.quoteRef:
+      return 'QUO-001';
+    case OsWhatsappTemplateFieldKey.amount:
+      return '900 IQD';
+    case OsWhatsappTemplateFieldKey.total:
+      return '1,000 IQD';
+    case OsWhatsappTemplateFieldKey.issueDate:
+      return '2026-01-01';
+    case OsWhatsappTemplateFieldKey.dueDate:
+      return '2026-01-15';
+    case OsWhatsappTemplateFieldKey.expiryDate:
+      return '2026-02-01';
+    case OsWhatsappTemplateFieldKey.paymentLink:
+      return 'https://pay.example/inv-001';
+    case OsWhatsappTemplateFieldKey.invoiceStatus:
+      return 'Sent';
+    case OsWhatsappTemplateFieldKey.voucherRef:
+      return 'RCP-001';
+    case OsWhatsappTemplateFieldKey.voucherPayee:
+      return 'Sample client';
+    case OsWhatsappTemplateFieldKey.voucherDate:
+      return '2026-01-10';
+    case OsWhatsappTemplateFieldKey.contractNumber:
+      return 'CTR-001';
+    case OsWhatsappTemplateFieldKey.contractTitle:
+      return 'Service agreement';
+    case OsWhatsappTemplateFieldKey.contractPartyName:
+      return 'Sample client';
+    case OsWhatsappTemplateFieldKey.contractStartDate:
+      return '2026-01-01';
+    case OsWhatsappTemplateFieldKey.contractEndDate:
+      return '2026-12-31';
+    case OsWhatsappTemplateFieldKey.contractTotalValue:
+      return '5,000 IQD';
+    case OsWhatsappTemplateFieldKey.payslipEmployeeName:
+      return 'Sample employee';
+    case OsWhatsappTemplateFieldKey.payslipPeriod:
+      return '2026-01';
+    case OsWhatsappTemplateFieldKey.payslipRef:
+      return 'SLIP-001';
+    case OsWhatsappTemplateFieldKey.payslipNetPay:
+      return '750 IQD';
+    case OsWhatsappTemplateFieldKey.manual:
+      return '…';
+    default:
+      return '…';
+  }
+}
+
+Widget osMessagingHubDocumentPdfDownloadAction(
   BuildContext context,
   OsWhatsappHubController hub,
 ) {
-  final theme = context.appTheme;
   return Obx(() {
-    final blocked = hub.isSessionSendBlocked(OsWhatsappHubSendMode.session);
-    final checking = hub.isCheckingSessionWindow.value;
-    final open = hub.sessionWindowOpen.value;
-    final color = checking
-        ? theme.secondaryText
-        : (open
-            ? const Color(0xFF059669)
-            : (blocked ? const Color(0xFFE11D48) : theme.secondaryText));
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: theme.border),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(Icons.info_outline_rounded, size: 18, color: color),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              hub.buildSessionWindowHintText(),
-              style: TextStyle(
-                fontSize: 12,
-                height: 1.45,
-                color: theme.secondaryText,
-              ),
-            ),
-          ),
-        ],
+    if (!hub.canDownloadDocumentPdf) return const SizedBox.shrink();
+    final theme = context.appTheme;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Align(
+        alignment: AlignmentDirectional.centerEnd,
+        child: OsDocumentActionOutlinedButton(
+          style: OsButtonStyles.outlinedCompact(theme),
+          icon: Icons.picture_as_pdf_outlined,
+          label: AppLocaleKeys.osMessagingHubDownloadDocumentPdf.tr,
+          onPressed: hub.downloadActiveDocumentPdf,
+        ),
       ),
     );
   });
 }
 
-Widget osMessagingHubSendModeChips({
-  required BuildContext context,
-  required String selectedMode,
-  required ValueChanged<String> onModeChanged,
-  required bool templateEnabled,
-}) {
-  final theme = context.appTheme;
-  return Wrap(
-    spacing: 8,
-    runSpacing: 8,
-    children: [
-      ChoiceChip(
-        label: Text(AppLocaleKeys.osMessagingHubSendModeTemplate.tr),
-        selected: selectedMode == OsWhatsappHubSendMode.template,
-        onSelected: templateEnabled
-            ? (_) => onModeChanged(OsWhatsappHubSendMode.template)
-            : null,
-        selectedColor: theme.accentText.withValues(alpha: 0.18),
-      ),
-      ChoiceChip(
-        label: Text(AppLocaleKeys.osMessagingHubSendModeSession.tr),
-        selected: selectedMode == OsWhatsappHubSendMode.session,
-        onSelected: (_) => onModeChanged(OsWhatsappHubSendMode.session),
-        selectedColor: theme.accentText.withValues(alpha: 0.18),
-      ),
-    ],
-  );
-}
-
-Widget osMessagingHubPreviewBox(
+Widget osMessagingHubPreviewPanel(
   BuildContext context,
   OsWhatsappHubController hub,
 ) {
@@ -165,37 +182,92 @@ Widget osMessagingHubPreviewBox(
       ),
       const SizedBox(height: 6),
       Obx(
-        () {
-          final t = hub.selectedTemplate;
-          final doc = hub.previewDocumentFilename;
-          final docInHeader = t?.hasDocumentHeader == true;
-          final main = osMessagingHubWhatsappPreview(
-            context,
-            t,
-            headerParameters: hub.headerParameters.toList(),
-            bodyParameters: hub.bodyParameters.toList(),
-            documentFilename: docInHeader ? doc : null,
-          );
-          if (hub.previewShowsFollowUpInvoicePdf &&
-              doc != null &&
-              doc.isNotEmpty) {
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                main,
-                const SizedBox(height: 8),
-                osWhatsappSessionHubPreview(
-                  context,
-                  text: '',
-                  documentFilename: doc,
-                ),
-              ],
-            );
-          }
-          return main;
-        },
+        () => osMessagingHubWhatsappPreview(
+          context,
+          hub.activeTemplate,
+          valueByToken: hub.effectiveParameterValues,
+          documentFilename: hub.previewDocumentFilename,
+        ),
       ),
     ],
+  );
+}
+
+List<Widget> osMessagingHubParameterSummary(
+  BuildContext context,
+  OsWhatsappHubController hub,
+) {
+  final entry = hub.activeMapEntry;
+  if (entry == null) return const [];
+  final widgets = <Widget>[];
+  for (final p in hub.activePlaceholders) {
+    final fieldKey = entry.placeholderFields[p.token] ?? '';
+    if (fieldKey.isEmpty) continue;
+    final isManual = fieldKey == OsWhatsappTemplateFieldKey.manual;
+    final value = hub.effectiveParameterValues[p.token] ?? '';
+    if (isManual) {
+      widgets.add(
+        Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: osEmailHubTextField(
+            context,
+            label: '{{${p.token}}}',
+            value: value,
+            onChanged: (v) => hub.setManualParameter(p.token, v),
+          ),
+        ),
+      );
+    } else if (value.trim().isNotEmpty) {
+      widgets.add(
+        Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                flex: 2,
+                child: Text(
+                  osWhatsappFieldLabel(fieldKey),
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: context.appTheme.secondaryText,
+                  ),
+                ),
+              ),
+              Expanded(
+                flex: 3,
+                child: Text(
+                  value,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: context.appTheme.primaryText,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+  }
+  return widgets;
+}
+
+Widget _noMappedTemplatesMessage(BuildContext context) {
+  return Center(
+    child: Padding(
+      padding: const EdgeInsets.all(24),
+      child: Text(
+        AppLocaleKeys.osMessagingHubNoMappedTemplates.tr,
+        textAlign: TextAlign.center,
+        style: TextStyle(
+          color: context.appTheme.secondaryText,
+          fontSize: 15,
+          height: 1.45,
+        ),
+      ),
+    ),
   );
 }
 
@@ -207,235 +279,351 @@ class OsMessagingHubSendTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Obx(() {
-      if (hub.isLoadingTemplates.value &&
-          hub.templates.isEmpty &&
-          !hub.isApiReady) {
+      if (hub.isLoadingTemplates.value && hub.templates.isEmpty) {
         return const Center(child: CircularProgressIndicator());
       }
+      if (!hub.hasMappedPurposes) {
+        return _noMappedTemplatesMessage(context);
+      }
 
-      final sessionOnly = hub.crmSafeTemplates.isEmpty;
-      final crmMode = sessionOnly
-          ? OsWhatsappHubSendMode.session
-          : hub.crmSendMode.value;
+      final options = hub.purposeOptions;
+      final purpose = hub.selectedPurpose.value;
+      final compact = Responsive.isMobile(context);
+
+      final formChildren = <Widget>[
+        Text(
+          AppLocaleKeys.osMessagingHubSelectPurpose.tr,
+          style: TextStyle(
+            fontWeight: FontWeight.w700,
+            fontSize: 12,
+            color: context.appTheme.secondaryText,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: options.map((opt) {
+            final selected = opt.mapEntry.mapKey() == hub.selectedMapKey.value;
+            return ChoiceChip(
+              label: Text(opt.label),
+              selected: selected,
+              onSelected: (_) => hub.selectPurposeOption(opt),
+              selectedColor:
+                  context.appTheme.accentText.withValues(alpha: 0.18),
+            );
+          }).toList(),
+        ),
+        const SizedBox(height: 16),
+        ..._recordPickers(context, hub, purpose),
+        const SizedBox(height: 12),
+        if (hub.clients.isNotEmpty)
+          osEmailHubDocumentDropdown<ClientModel>(
+            context: context,
+            label: AppLocaleKeys.osMessagingHubSelectClient.tr,
+            value: hub.clientById(hub.selectedClientId.value),
+            items: hub.clients,
+            itemLabel: (c) => c.name?.trim().isNotEmpty == true
+                ? c.name!.trim()
+                : (c.company?.trim() ?? c.id ?? ''),
+            onChanged: (c) => hub.selectClient(c?.id),
+          ),
+        if (hub.clients.isNotEmpty) const SizedBox(height: 12),
+        WhatsappPhoneField(
+          initialNormalized: hub.recipientPhone.value.trim().isEmpty
+              ? null
+              : hub.recipientPhone.value.trim(),
+          decoration: osDialogFieldDecoration(context).copyWith(
+            labelText: AppLocaleKeys.osMessagingHubRecipientPhone.tr,
+          ),
+          onChanged: (v) => hub.recipientPhone.value = v ?? '',
+        ),
+        const SizedBox(height: 12),
+        ...osMessagingHubParameterSummary(context, hub),
+        osMessagingHubDocumentPdfDownloadAction(context, hub),
+        if (!compact) ...[
+          const SizedBox(height: 12),
+          osMessagingHubPreviewPanel(context, hub),
+        ],
+      ];
 
       return OsEmailHubDispatchPanel(
         icon: Icons.chat_outlined,
         title: AppLocaleKeys.osMessagingHubTabSend.tr,
         subtitle: AppLocaleKeys.osMessagingHubSubtitle.tr,
         isSending: hub.isSending.value,
-        sendEnabled: !hub.isSessionSendBlocked(crmMode),
+        sendEnabled: hub.canSend,
         onSend: hub.sendFromSendTab,
         sendLabel: AppLocaleKeys.osMessagingHubSend.tr,
-        children: _formFields(
-          context,
-          sessionOnly: sessionOnly,
-          crmMode: crmMode,
-        ),
+        preview: compact ? osMessagingHubPreviewPanel(context, hub) : null,
+        children: formChildren,
       );
     });
   }
 
-  List<Widget> _formFields(
-    BuildContext context, {
-    required bool sessionOnly,
-    required String crmMode,
-  }) {
-    final clients = hub.clients;
-    ClientModel? selectedClient;
-    final cid = hub.selectedClientId.value;
-    if (cid != null) {
-      selectedClient = hub.clientById(cid);
-    }
-
-    return [
-      if (clients.isNotEmpty)
-        osEmailHubDocumentDropdown<ClientModel>(
-          context: context,
-          label: AppLocaleKeys.osMessagingHubSelectClient.tr,
-          value: selectedClient,
-          items: clients,
-          itemLabel: (c) => c.name?.trim().isNotEmpty == true
-              ? c.name!.trim()
-              : (c.company?.trim() ?? c.id ?? ''),
-          onChanged: (c) => hub.selectClient(c?.id),
-        ),
-      const SizedBox(height: 12),
-      osEmailHubTextField(
-        context,
-        label: AppLocaleKeys.osMessagingHubRecipientPhone.tr,
-        value: hub.recipientPhone.value,
-        onChanged: (v) => hub.recipientPhone.value = v,
-        keyboardType: TextInputType.phone,
-      ),
-      const SizedBox(height: 12),
-      if (!sessionOnly) ...[
-        osMessagingHubSendModeChips(
-          context: context,
-          selectedMode: hub.crmSendMode.value,
-          onModeChanged: hub.setCrmSendMode,
-          templateEnabled: hub.crmSafeTemplates.isNotEmpty,
-        ),
-        const SizedBox(height: 12),
-      ],
-      if (crmMode == OsWhatsappHubSendMode.session) ...[
-        osMessagingHubSessionHintBanner(context, hub),
-        const SizedBox(height: 12),
-        osEmailHubTextField(
+  List<Widget> _recordPickers(
+    BuildContext context,
+    OsWhatsappHubController hub,
+    String? purpose,
+  ) {
+    if (purpose == OsWhatsappTemplatePurpose.custom) {
+      final attachment = hub.activeMapEntry?.effectiveDocumentAttachment();
+      if (OsWhatsappTemplateDocumentAttachment.isPdfAttachment(attachment)) {
+        return _pdfAttachmentRecordPickers(
           context,
-          label: AppLocaleKeys.osMessagingHubSessionMessage.tr,
-          value: hub.sessionMessageText.value,
-          onChanged: (v) => hub.sessionMessageText.value = v,
-          maxLines: 5,
-        ),
-        const SizedBox(height: 12),
-        Text(
-          AppLocaleKeys.osMessagingHubPreview.tr,
-          style: TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w700,
-            color: context.appTheme.secondaryText,
-          ),
-        ),
-        const SizedBox(height: 6),
-        osWhatsappSessionHubPreview(
-          context,
-          text: hub.sessionMessageText.value,
-        ),
-      ] else ...[
-        if (hub.crmSafeTemplates.isEmpty)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 12),
-            child: Text(
-              AppLocaleKeys.osMessagingHubNoTemplates.tr,
-              style: TextStyle(color: context.appTheme.secondaryText),
-            ),
-          )
-        else ...[
-          osEmailHubDocumentDropdown<OsWhatsappTemplateModel>(
-            context: context,
-            label: AppLocaleKeys.osMessagingHubSelectTemplate.tr,
-            value: hub.selectedTemplate,
-            items: hub.crmSafeTemplates,
-            itemLabel: (t) => '${t.name} (${t.language})',
-            onChanged: (t) => hub.selectTemplate(t?.name),
-          ),
-          const SizedBox(height: 12),
-          ...osMessagingHubTemplateFields(context, hub),
-          const SizedBox(height: 12),
-          osMessagingHubPreviewBox(context, hub),
-        ],
-      ],
-    ];
-  }
-}
-
-class OsMessagingHubInvoicesTab extends StatelessWidget {
-  const OsMessagingHubInvoicesTab({super.key, required this.hub});
-
-  final OsWhatsappHubController hub;
-
-  @override
-  Widget build(BuildContext context) {
-    return Obx(() {
-      if (hub.isLoadingTemplates.value && hub.templates.isEmpty) {
-        return const Center(child: CircularProgressIndicator());
-      }
-      final invoices = hub.unpaidInvoices;
-      if (invoices.isEmpty) {
-        return OsEmailHubDispatchPanel(
-          icon: Icons.receipt_long_outlined,
-          title: AppLocaleKeys.osMessagingHubTabInvoices.tr,
-          subtitle: AppLocaleKeys.osMessagingHubInvoiceSubtitle.tr,
-          isSending: hub.isSending.value,
-          onSend: () async {},
-          emptyMessage: AppLocaleKeys.osMessagingHubNoInvoices.tr,
-          children: const [],
+          hub,
+          attachment!,
+          purpose,
         );
       }
+      return const [];
+    }
 
-      final sessionOnly = !hub.canUseInvoiceTemplateMode;
-      final invoiceMode = sessionOnly
-          ? OsWhatsappHubSendMode.session
-          : hub.invoiceSendMode.value;
-
-      final inv = hub.selectedInvoice;
-      return OsEmailHubDispatchPanel(
-        icon: Icons.receipt_long_outlined,
-        title: AppLocaleKeys.osMessagingHubTabInvoices.tr,
-        subtitle: AppLocaleKeys.osMessagingHubInvoiceSubtitle.tr,
-        isSending: hub.isSending.value,
-        sendEnabled: !hub.isSessionSendBlocked(invoiceMode),
-        onSend: hub.sendFromInvoiceTab,
-        sendLabel: AppLocaleKeys.osMessagingHubSend.tr,
-        children: [
-          if (!sessionOnly) ...[
-            osMessagingHubSendModeChips(
-              context: context,
-              selectedMode: hub.invoiceSendMode.value,
-              onModeChanged: hub.setInvoiceSendMode,
-              templateEnabled: true,
+    switch (purpose) {
+      case OsWhatsappTemplatePurpose.invoice:
+        final invoices = hub.unpaidInvoices;
+        if (invoices.isEmpty) {
+          return [
+            Text(
+              AppLocaleKeys.osMessagingHubNoInvoices.tr,
+              style: TextStyle(color: context.appTheme.secondaryText),
             ),
-            const SizedBox(height: 12),
-          ],
+          ];
+        }
+        return [
           osEmailHubDocumentDropdown<OsInvoiceModel>(
             context: context,
             label: AppLocaleKeys.osMessagingHubSelectInvoice.tr,
-            value: inv,
+            value: hub.selectedInvoice,
             items: invoices,
             itemLabel: hub.invoiceListLabel,
             onChanged: (v) => hub.selectInvoice(v?.id),
           ),
           const SizedBox(height: 12),
-          osEmailHubTextField(
-            context,
-            label: AppLocaleKeys.osMessagingHubRecipientPhone.tr,
-            value: hub.recipientPhone.value,
-            onChanged: (v) => hub.recipientPhone.value = v,
-            keyboardType: TextInputType.phone,
+        ];
+      case OsWhatsappTemplatePurpose.quotation:
+        final quotes = hub.quotations;
+        if (quotes.isEmpty) {
+          return [
+            Text(
+              AppLocaleKeys.osMessagingHubNoQuotations.tr,
+              style: TextStyle(color: context.appTheme.secondaryText),
+            ),
+          ];
+        }
+        return [
+          osEmailHubDocumentDropdown<OsQuotationModel>(
+            context: context,
+            label: AppLocaleKeys.osMessagingHubSelectQuotation.tr,
+            value: hub.selectedQuotation,
+            items: quotes,
+            itemLabel: hub.quotationListLabel,
+            onChanged: (v) => hub.selectQuotation(v?.id),
           ),
           const SizedBox(height: 12),
-          if (invoiceMode == OsWhatsappHubSendMode.session) ...[
-            osMessagingHubSessionHintBanner(context, hub),
-            const SizedBox(height: 12),
-            osEmailHubTextField(
-              context,
-              label: AppLocaleKeys.osMessagingHubSessionMessage.tr,
-              value: hub.sessionMessageText.value,
-              onChanged: (v) => hub.sessionMessageText.value = v,
-              maxLines: 5,
-            ),
-            const SizedBox(height: 12),
+        ];
+      case OsWhatsappTemplatePurpose.paymentConfirmation:
+        return _voucherRecordPicker(
+          context,
+          hub,
+          items: hub.paymentVouchers,
+          emptyMessage: AppLocaleKeys.osMessagingHubNoPaidInvoices.tr,
+          label: AppLocaleKeys.osMessagingHubSelectPaidInvoice.tr,
+        );
+      case OsWhatsappTemplatePurpose.paymentReceipt:
+        return _voucherRecordPicker(
+          context,
+          hub,
+          items: hub.receiptVouchers,
+          emptyMessage: AppLocaleKeys.osMessagingHubNoVouchers.tr,
+          label: AppLocaleKeys.osMessagingHubSelectVoucher.tr,
+        );
+      case OsWhatsappTemplatePurpose.contract:
+        final contracts = hub.contracts;
+        if (contracts.isEmpty) {
+          return [
             Text(
-              AppLocaleKeys.osMessagingHubPreview.tr,
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w700,
-                color: context.appTheme.secondaryText,
-              ),
+              AppLocaleKeys.osMessagingHubNoContracts.tr,
+              style: TextStyle(color: context.appTheme.secondaryText),
             ),
-            const SizedBox(height: 6),
-            osWhatsappSessionHubPreview(
-              context,
-              text: hub.sessionMessageText.value,
-              documentFilename: hub.sessionPreviewDocumentFilename,
+          ];
+        }
+        return [
+          osEmailHubDocumentDropdown<OsLegalContractModel>(
+            context: context,
+            label: AppLocaleKeys.osMessagingHubSelectContract.tr,
+            value: hub.selectedContract,
+            items: contracts,
+            itemLabel: hub.contractListLabel,
+            onChanged: (v) => hub.selectContract(v?.id),
+          ),
+          const SizedBox(height: 12),
+        ];
+      case OsWhatsappTemplatePurpose.payslip:
+        final payslips = hub.payslips;
+        if (payslips.isEmpty) {
+          return [
+            Text(
+              AppLocaleKeys.osMessagingHubNoPayslips.tr,
+              style: TextStyle(color: context.appTheme.secondaryText),
             ),
-          ] else ...[
-            osEmailHubDocumentDropdown<OsWhatsappTemplateModel>(
-              context: context,
-              label: AppLocaleKeys.osMessagingHubSelectTemplate.tr,
-              value: hub.selectedInvoiceSafeTemplate,
-              items: hub.invoiceSafeTemplates,
-              itemLabel: (t) => '${t.name} (${t.language})',
-              onChanged: (t) => hub.selectTemplate(t?.name),
+          ];
+        }
+        return [
+          osEmailHubDocumentDropdown<OsPayslipModel>(
+            context: context,
+            label: AppLocaleKeys.osMessagingHubSelectPayslip.tr,
+            value: hub.selectedPayslip,
+            items: payslips,
+            itemLabel: hub.payslipListLabel,
+            onChanged: (v) => hub.selectPayslip(v?.id),
+          ),
+          const SizedBox(height: 12),
+        ];
+      default:
+        return const [];
+    }
+  }
+
+  List<Widget> _pdfAttachmentRecordPickers(
+    BuildContext context,
+    OsWhatsappHubController hub,
+    String attachment,
+    String? purpose,
+  ) {
+    switch (attachment) {
+      case OsWhatsappTemplateDocumentAttachment.invoicePdf:
+        final invoices = hub.unpaidInvoices;
+        if (invoices.isEmpty) {
+          return [
+            Text(
+              AppLocaleKeys.osMessagingHubNoInvoices.tr,
+              style: TextStyle(color: context.appTheme.secondaryText),
             ),
-            const SizedBox(height: 12),
-            ...osMessagingHubTemplateFields(context, hub),
-            const SizedBox(height: 12),
-            osMessagingHubPreviewBox(context, hub),
-          ],
-        ],
-      );
-    });
+          ];
+        }
+        return [
+          osEmailHubDocumentDropdown<OsInvoiceModel>(
+            context: context,
+            label: AppLocaleKeys.osMessagingHubSelectInvoice.tr,
+            value: hub.selectedInvoice,
+            items: invoices,
+            itemLabel: hub.invoiceListLabel,
+            onChanged: (v) => hub.selectInvoice(v?.id),
+          ),
+          const SizedBox(height: 12),
+        ];
+      case OsWhatsappTemplateDocumentAttachment.quotationPdf:
+        final quotes = hub.quotations;
+        if (quotes.isEmpty) {
+          return [
+            Text(
+              AppLocaleKeys.osMessagingHubNoQuotations.tr,
+              style: TextStyle(color: context.appTheme.secondaryText),
+            ),
+          ];
+        }
+        return [
+          osEmailHubDocumentDropdown<OsQuotationModel>(
+            context: context,
+            label: AppLocaleKeys.osMessagingHubSelectQuotation.tr,
+            value: hub.selectedQuotation,
+            items: quotes,
+            itemLabel: hub.quotationListLabel,
+            onChanged: (v) => hub.selectQuotation(v?.id),
+          ),
+          const SizedBox(height: 12),
+        ];
+      case OsWhatsappTemplateDocumentAttachment.voucherPdf:
+      case OsWhatsappTemplateDocumentAttachment.receiptPdf:
+        return _voucherRecordPicker(
+          context,
+          hub,
+          items: hub.receiptVouchers,
+          emptyMessage: AppLocaleKeys.osMessagingHubNoVouchers.tr,
+          label: AppLocaleKeys.osMessagingHubSelectVoucher.tr,
+        );
+      case OsWhatsappTemplateDocumentAttachment.paymentPdf:
+        return _voucherRecordPicker(
+          context,
+          hub,
+          items: hub.paymentVouchers,
+          emptyMessage: AppLocaleKeys.osMessagingHubNoPaidInvoices.tr,
+          label: AppLocaleKeys.osMessagingHubSelectPaidInvoice.tr,
+        );
+      case OsWhatsappTemplateDocumentAttachment.contractPdf:
+        final contracts = hub.contracts;
+        if (contracts.isEmpty) {
+          return [
+            Text(
+              AppLocaleKeys.osMessagingHubNoContracts.tr,
+              style: TextStyle(color: context.appTheme.secondaryText),
+            ),
+          ];
+        }
+        return [
+          osEmailHubDocumentDropdown<OsLegalContractModel>(
+            context: context,
+            label: AppLocaleKeys.osMessagingHubSelectContract.tr,
+            value: hub.selectedContract,
+            items: contracts,
+            itemLabel: hub.contractListLabel,
+            onChanged: (v) => hub.selectContract(v?.id),
+          ),
+          const SizedBox(height: 12),
+        ];
+      case OsWhatsappTemplateDocumentAttachment.payslipPdf:
+        final payslips = hub.payslips;
+        if (payslips.isEmpty) {
+          return [
+            Text(
+              AppLocaleKeys.osMessagingHubNoPayslips.tr,
+              style: TextStyle(color: context.appTheme.secondaryText),
+            ),
+          ];
+        }
+        return [
+          osEmailHubDocumentDropdown<OsPayslipModel>(
+            context: context,
+            label: AppLocaleKeys.osMessagingHubSelectPayslip.tr,
+            value: hub.selectedPayslip,
+            items: payslips,
+            itemLabel: hub.payslipListLabel,
+            onChanged: (v) => hub.selectPayslip(v?.id),
+          ),
+          const SizedBox(height: 12),
+        ];
+      default:
+        return const [];
+    }
+  }
+
+  List<Widget> _voucherRecordPicker(
+    BuildContext context,
+    OsWhatsappHubController hub, {
+    required List<OsVoucherModel> items,
+    required String emptyMessage,
+    required String label,
+  }) {
+    if (items.isEmpty) {
+      return [
+        Text(
+          emptyMessage,
+          style: TextStyle(color: context.appTheme.secondaryText),
+        ),
+      ];
+    }
+    return [
+      osEmailHubDocumentDropdown<OsVoucherModel>(
+        context: context,
+        label: label,
+        value: hub.selectedVoucher,
+        items: items,
+        itemLabel: hub.voucherListLabel,
+        onChanged: (v) => hub.selectVoucher(v?.id),
+      ),
+      const SizedBox(height: 12),
+    ];
   }
 }
 
@@ -639,26 +827,13 @@ class _WhatsappLogEntryCard extends StatelessWidget {
                         color: const Color(0xFFE11D48).withValues(alpha: 0.22),
                       ),
                     ),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Icon(
-                          Icons.error_outline_rounded,
-                          size: 18,
-                          color: Color(0xFFE11D48),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            errorText,
-                            style: TextStyle(
-                              fontSize: 12,
-                              height: 1.4,
-                              color: theme.primaryText,
-                            ),
-                          ),
-                        ),
-                      ],
+                    child: Text(
+                      errorText,
+                      style: TextStyle(
+                        fontSize: 12,
+                        height: 1.4,
+                        color: theme.secondaryText,
+                      ),
                     ),
                   ),
                 ],
@@ -678,36 +853,22 @@ class _WhatsappLogStatusChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color =
-        failed ? const Color(0xFFE11D48) : const Color(0xFF059669);
-    final bg = color.withValues(alpha: 0.12);
-    final label = failed
-        ? AppLocaleKeys.osMessagingHubStatusFailed.tr
-        : AppLocaleKeys.osMessagingHubStatusSent.tr;
+    final color = failed ? const Color(0xFFE11D48) : const Color(0xFF059669);
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
-        color: bg,
+        color: color.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(6),
       ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            failed ? Icons.cancel_rounded : Icons.check_circle_rounded,
-            size: 14,
-            color: color,
-          ),
-          const SizedBox(width: 4),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w700,
-              color: color,
-            ),
-          ),
-        ],
+      child: Text(
+        failed
+            ? AppLocaleKeys.osMessagingHubStatusFailed.tr
+            : AppLocaleKeys.osMessagingHubStatusSent.tr,
+        style: TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w700,
+          color: color,
+        ),
       ),
     );
   }
@@ -720,20 +881,19 @@ class _WhatsappLogCategoryChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = context.appTheme;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
-        color: theme.panelTint,
+        color: context.appTheme.panelTint,
         borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: theme.border),
+        border: Border.all(color: context.appTheme.border),
       ),
       child: Text(
         label,
         style: TextStyle(
           fontSize: 11,
           fontWeight: FontWeight.w600,
-          color: theme.secondaryText,
+          color: context.appTheme.secondaryText,
         ),
       ),
     );
@@ -748,33 +908,26 @@ class _WhatsappLogAttachmentChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
-        color: const Color(0xFFEA0038).withValues(alpha: 0.12),
+        color: context.appTheme.accentText.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(6),
-        border: Border.all(
-          color: const Color(0xFFEA0038).withValues(alpha: 0.28),
-        ),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(
-            Icons.picture_as_pdf_rounded,
-            size: 14,
-            color: Color(0xFFEA0038),
+          Icon(
+            Icons.attach_file_rounded,
+            size: 12,
+            color: context.appTheme.accentText,
           ),
           const SizedBox(width: 4),
-          Flexible(
-            child: Text(
-              label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-                color: Color(0xFFEA0038),
-              ),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: context.appTheme.accentText,
             ),
           ),
         ],

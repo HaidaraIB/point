@@ -9,6 +9,8 @@ class OsVoucherModel {
   final double amount;
   final String date;
   final String payeeOrPayer;
+  /// Normalized WhatsApp phone for the payee/payer (digits only).
+  final String? payeePhone;
   final String description;
   final String bankAccountId;
   final String status;
@@ -24,6 +26,7 @@ class OsVoucherModel {
     required this.amount,
     required this.date,
     required this.payeeOrPayer,
+    this.payeePhone,
     required this.description,
     required this.bankAccountId,
     this.status = OsVoucherStatus.completed,
@@ -55,6 +58,7 @@ class OsVoucherModel {
       amount: (json['amount'] as num?)?.toDouble() ?? 0,
       date: json['date'] as String? ?? '',
       payeeOrPayer: json['payeeOrPayer'] as String? ?? '',
+      payeePhone: json['payeePhone'] as String?,
       description: json['description'] as String? ?? '',
       bankAccountId: json['bankAccountId'] as String? ?? '',
       status: json['status'] as String? ?? OsVoucherStatus.completed,
@@ -71,6 +75,7 @@ class OsVoucherModel {
         'amount': amount,
         'date': date,
         'payeeOrPayer': payeeOrPayer,
+        if (payeePhone != null && payeePhone!.isNotEmpty) 'payeePhone': payeePhone,
         'description': description,
         'bankAccountId': bankAccountId,
         'status': status,
@@ -86,6 +91,7 @@ class OsVoucherModel {
     double? amount,
     String? date,
     String? payeeOrPayer,
+    String? payeePhone,
     String? description,
     String? bankAccountId,
     String? status,
@@ -100,6 +106,7 @@ class OsVoucherModel {
       amount: amount ?? this.amount,
       date: date ?? this.date,
       payeeOrPayer: payeeOrPayer ?? this.payeeOrPayer,
+      payeePhone: payeePhone ?? this.payeePhone,
       description: description ?? this.description,
       bankAccountId: bankAccountId ?? this.bankAccountId,
       status: status ?? this.status,

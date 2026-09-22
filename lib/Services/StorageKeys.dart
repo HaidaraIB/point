@@ -336,12 +336,15 @@ class StorageKeys {
   static const prefsOsEmailHubTabKey = 'point_os_email_hub_tab_v1';
   static const prefsOsEmailHubDraftKey = 'point_os_email_hub_draft_v1';
   static const prefsOsMessagingHubTabKey = 'point_os_messaging_hub_tab_v1';
+  static const prefsOsSettingsTabKey = 'point_os_settings_tab_v1';
   static const prefsOsCrmViewKey = 'point_os_crm_view_v1';
 
   /// OS electronic stamp (mirrors point_os localStorage).
   static const prefsOsStampText = 'point_os_stamp_text_v1';
   static const prefsOsStampColor = 'point_os_stamp_color_v1';
   static const prefsOsStampEnabled = 'point_os_stamp_enabled_v1';
+  static const prefsOsPrintSignatureDataUri =
+      'point_os_print_signature_data_uri_v1';
 
   /// OS quotation digital template header/footer (point_os Quotations).
   static const prefsOsQuoteHeader = 'point_os_quote_header_v1';

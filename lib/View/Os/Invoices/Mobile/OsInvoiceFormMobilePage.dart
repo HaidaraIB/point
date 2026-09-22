@@ -15,7 +15,11 @@ import 'package:point/View/Os/os_form_dialog.dart';
 import 'package:point/View/Os/os_invoice_stamp.dart';
 import 'package:point/View/Os/os_line_items_editor.dart';
 import 'package:point/View/Os/os_page_header.dart';
+import 'package:point/Utils/whatsapp_phone.dart';
+import 'package:point/View/Os/os_custom_client.dart';
+import 'package:point/View/Os/os_client_contact_fields.dart';
 import 'package:point/View/Os/os_snackbar.dart';
+import 'package:point/View/Shared/whatsapp_phone_field.dart';
 
 class OsInvoiceFormMobilePage extends StatefulWidget {
   const OsInvoiceFormMobilePage({super.key, this.existing});
@@ -37,18 +41,52 @@ class _OsInvoiceFormMobilePageState extends State<OsInvoiceFormMobilePage> {
   late final TextEditingController _discountCtrl;
   late final TextEditingController _notesCtrl;
   late final TextEditingController _phoneCtrl;
+  late final TextEditingController _customNameCtrl;
   late final TextEditingController _emailCtrl;
   late final TextEditingController _addressCtrl;
   late final TextEditingController _taxCtrl;
   late final OsLineItemsController _lines;
   bool _saving = false;
+  Set<OsClientContactField>? _clientHadAtEdit;
+
+  ClientModel? _selectedClient(List<ClientModel> clients) {
+    if (_clientId == null || osIsCustomClientId(_clientId)) return null;
+    for (final c in clients) {
+      if (c.id == _clientId) return c;
+    }
+    return null;
+  }
+
+  void _initContactControllersForEdit(OsInvoiceModel e, ClientModel client) {
+    _clientHadAtEdit = osClientContactFieldsPresent(
+      client,
+      fields: kOsFinanceDocumentContactFields,
+    );
+    final missing = osClientMissingContactFields(
+      client,
+      fields: kOsFinanceDocumentContactFields,
+    );
+    _phoneCtrl.text = missing.contains(OsClientContactField.phone)
+        ? (e.clientPhone ?? '')
+        : '';
+    _emailCtrl.text = missing.contains(OsClientContactField.email)
+        ? (e.clientEmail ?? '')
+        : '';
+    _addressCtrl.text = missing.contains(OsClientContactField.address)
+        ? (e.clientAddress ?? '')
+        : '';
+  }
 
   @override
   void initState() {
     super.initState();
     final e = widget.existing;
     final now = DateTime.now();
-    _clientId = e?.clientId;
+    if (e != null && osDocumentHasCustomClient(clientId: e.clientId)) {
+      _clientId = kOsCustomClientId;
+    } else {
+      _clientId = e?.clientId;
+    }
     _date = OsFinanceFormat.parseYmd(e?.date) ?? now;
     _dueDate =
         OsFinanceFormat.parseYmd(e?.dueDate) ?? now.add(const Duration(days: 14));
@@ -61,6 +99,11 @@ class _OsInvoiceFormMobilePageState extends State<OsInvoiceFormMobilePage> {
     );
     _notesCtrl = TextEditingController(text: e?.notes ?? '');
     _phoneCtrl = TextEditingController(text: e?.clientPhone ?? '');
+    _customNameCtrl = TextEditingController(
+      text: e != null && osDocumentHasCustomClient(clientId: e.clientId)
+          ? e.clientName
+          : '',
+    );
     _emailCtrl = TextEditingController(text: e?.clientEmail ?? '');
     _addressCtrl = TextEditingController(text: e?.clientAddress ?? '');
     _taxCtrl = TextEditingController(text: e?.clientTaxNumber ?? '');
@@ -68,9 +111,13 @@ class _OsInvoiceFormMobilePageState extends State<OsInvoiceFormMobilePage> {
       initialItems: e?.items,
       initialTaxRate: (e != null && e.vat > 0) ? 0.05 : 0,
     );
-    if (e == null ||
-        ((e.clientPhone == null || e.clientPhone!.isEmpty) &&
-            (e.clientEmail == null || e.clientEmail!.isEmpty))) {
+    if (e != null && !osDocumentHasCustomClient(clientId: e.clientId)) {
+      final clients = Get.find<HomeController>().clients;
+      final client = _selectedClient(clients);
+      if (client != null) {
+        _initContactControllersForEdit(e, client);
+      }
+    } else if (e == null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _applyClientContact(_clientId);
       });
@@ -82,6 +129,7 @@ class _OsInvoiceFormMobilePageState extends State<OsInvoiceFormMobilePage> {
     _discountCtrl.dispose();
     _notesCtrl.dispose();
     _phoneCtrl.dispose();
+    _customNameCtrl.dispose();
     _emailCtrl.dispose();
     _addressCtrl.dispose();
     _taxCtrl.dispose();
@@ -90,7 +138,17 @@ class _OsInvoiceFormMobilePageState extends State<OsInvoiceFormMobilePage> {
   }
 
   void _applyClientContact(String? clientId) {
-    if (clientId == null) return;
+    if (clientId == null || osIsCustomClientId(clientId)) {
+      setState(() {
+        _clientHadAtEdit = null;
+        if (osIsCustomClientId(clientId)) {
+          _phoneCtrl.clear();
+          _emailCtrl.clear();
+          _addressCtrl.clear();
+        }
+      });
+      return;
+    }
     final clients = Get.find<HomeController>().clients;
     ClientModel? client;
     for (final c in clients) {
@@ -100,50 +158,103 @@ class _OsInvoiceFormMobilePageState extends State<OsInvoiceFormMobilePage> {
       }
     }
     if (client == null) return;
+    final missing = osClientMissingContactFields(
+      client,
+      fields: kOsFinanceDocumentContactFields,
+    );
     setState(() {
-      if (_phoneCtrl.text.trim().isEmpty) {
-        _phoneCtrl.text = client!.phone?.trim() ?? '';
-      }
-      if (_emailCtrl.text.trim().isEmpty) {
-        _emailCtrl.text = client!.email?.trim() ?? '';
-      }
-      if (_addressCtrl.text.trim().isEmpty) {
-        _addressCtrl.text = client!.address?.trim() ?? '';
-      }
+      _clientHadAtEdit = null;
+      _phoneCtrl.text = missing.contains(OsClientContactField.phone) ? '' : '';
+      _emailCtrl.text = missing.contains(OsClientContactField.email) ? '' : '';
+      _addressCtrl.text =
+          missing.contains(OsClientContactField.address) ? '' : '';
     });
   }
 
-  Future<void> _pickDate({required bool due}) async {
-    final initial = due ? _dueDate : _date;
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: initial,
-      firstDate: DateTime(2020),
-      lastDate: DateTime(2100),
+  OsClientContactDraft _contactDraftFromControllers(ClientModel? client) {
+    final missing = client == null
+        ? kOsFinanceDocumentContactFields
+        : osClientMissingContactFields(
+            client,
+            fields: kOsFinanceDocumentContactFields,
+          );
+    return OsClientContactDraft(
+      phone: missing.contains(OsClientContactField.phone)
+          ? _phoneCtrl.text.trim()
+          : null,
+      email: missing.contains(OsClientContactField.email)
+          ? _emailCtrl.text.trim()
+          : null,
+      address: missing.contains(OsClientContactField.address)
+          ? _addressCtrl.text.trim()
+          : null,
     );
-    if (picked == null) return;
-    setState(() {
-      if (due) {
-        _dueDate = picked;
-      } else {
-        _date = picked;
-      }
-    });
   }
 
   Future<void> _save() async {
-    final clients = Get.find<HomeController>().clients;
-    ClientModel? client;
-    for (final c in clients) {
-      if (c.id == _clientId) {
-        client = c;
-        break;
+    final home = Get.find<HomeController>();
+    final clients = home.clients;
+    late final String clientId;
+    late final String clientName;
+    late final OsClientContactDraft resolvedContact;
+    ClientModel? linkedClient;
+
+    if (osIsCustomClientId(_clientId)) {
+      clientName = _customNameCtrl.text.trim();
+      if (clientName.isEmpty) {
+        OsSnackbar.error(
+          AppLocaleKeys.osInvoicesTitle.tr,
+          AppLocaleKeys.osInvoicesClientName.tr,
+        );
+        return;
       }
+      clientId = '';
+      resolvedContact = OsClientContactDraft(
+        phone: _phoneCtrl.text.trim(),
+        email: _emailCtrl.text.trim(),
+        address: _addressCtrl.text.trim(),
+      );
+    } else {
+      linkedClient = _selectedClient(clients);
+      if (linkedClient?.id == null) {
+        OsSnackbar.error(
+          AppLocaleKeys.osInvoicesTitle.tr,
+          AppLocaleKeys.osInvoicesErrorNoClient.tr,
+        );
+        return;
+      }
+      clientId = linkedClient!.id!;
+      final draft = _contactDraftFromControllers(linkedClient);
+      var resolved = osResolveDocumentContact(
+        client: linkedClient,
+        draft: draft,
+        fields: kOsFinanceDocumentContactFields,
+      );
+      if (widget.existing != null && _clientHadAtEdit != null) {
+        resolved = osPreserveExistingDocumentContact(
+          existingDocument: OsClientContactDraft(
+            phone: widget.existing!.clientPhone,
+            email: widget.existing!.clientEmail,
+            address: widget.existing!.clientAddress,
+          ),
+          resolved: resolved,
+          clientHadAtEdit: _clientHadAtEdit!,
+        );
+      }
+      resolvedContact = resolved;
+      clientName = linkedClient.name?.trim().isNotEmpty == true
+          ? linkedClient.name!.trim()
+          : (linkedClient.email ?? linkedClient.id!);
     }
-    if (client?.id == null) {
+
+    final normalizedPhone = normalizeWhatsappPhone(
+          resolvedContact.phone?.trim() ?? '',
+        );
+
+    if (normalizedPhone == null || normalizedPhone.isEmpty) {
       OsSnackbar.error(
         AppLocaleKeys.osInvoicesTitle.tr,
-        AppLocaleKeys.osInvoicesErrorNoClient.tr,
+        AppLocaleKeys.commonPhoneInvalid.tr,
       );
       return;
     }
@@ -158,19 +269,33 @@ class _OsInvoiceFormMobilePageState extends State<OsInvoiceFormMobilePage> {
     }
 
     setState(() => _saving = true);
+
+    if (linkedClient != null) {
+      final fillOk = await home.fillEmptyClientContact(
+        client: linkedClient,
+        draft: _contactDraftFromControllers(linkedClient),
+        fields: kOsFinanceDocumentContactFields,
+      );
+      if (!fillOk) {
+        if (mounted) setState(() => _saving = false);
+        return;
+      }
+    }
+
     final discount =
         double.tryParse(_discountCtrl.text.trim().replaceAll(',', '')) ?? 0;
     final model = OsInvoiceModel(
       id: widget.existing?.id,
       displayNumber: widget.existing?.displayNumber,
-      clientId: client!.id!,
-      clientName: client.name?.trim().isNotEmpty == true
-          ? client.name!.trim()
-          : (client.email ?? client.id!),
-      clientPhone: _phoneCtrl.text.trim().isEmpty ? null : _phoneCtrl.text.trim(),
-      clientEmail: _emailCtrl.text.trim().isEmpty ? null : _emailCtrl.text.trim(),
-      clientAddress:
-          _addressCtrl.text.trim().isEmpty ? null : _addressCtrl.text.trim(),
+      clientId: clientId,
+      clientName: clientName,
+      clientPhone: normalizedPhone,
+      clientEmail: resolvedContact.email?.trim().isEmpty ?? true
+          ? null
+          : resolvedContact.email!.trim(),
+      clientAddress: resolvedContact.address?.trim().isEmpty ?? true
+          ? null
+          : resolvedContact.address!.trim(),
       clientTaxNumber:
           _taxCtrl.text.trim().isEmpty ? null : _taxCtrl.text.trim(),
       date: OsFinanceFormat.ymd(_date),
@@ -207,10 +332,29 @@ class _OsInvoiceFormMobilePageState extends State<OsInvoiceFormMobilePage> {
     }
   }
 
+  Future<void> _pickDate({required bool due}) async {
+    final initial = due ? _dueDate : _date;
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: initial,
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2100),
+    );
+    if (picked == null) return;
+    setState(() {
+      if (due) {
+        _dueDate = picked;
+      } else {
+        _date = picked;
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = context.appTheme;
     final clients = Get.find<HomeController>().clients;
+    final linkedClient = _selectedClient(clients);
     final finance = Get.find<OsFinanceController>();
     final stamp = Get.find<OsStampSettingsController>();
 
@@ -238,14 +382,19 @@ class _OsInvoiceFormMobilePageState extends State<OsInvoiceFormMobilePage> {
               children: [
           DropdownButtonFormField<String>(
             key: ValueKey(_clientId),
-            initialValue:
-                _clientId != null && clients.any((c) => c.id == _clientId)
+            initialValue: osIsCustomClientId(_clientId)
+                ? kOsCustomClientId
+                : (_clientId != null && clients.any((c) => c.id == _clientId)
                     ? _clientId
-                    : null,
+                    : null),
             decoration: osFinanceFieldDecoration(
               AppLocaleKeys.osInvoicesClient.tr,
             ),
             items: [
+              DropdownMenuItem(
+                value: kOsCustomClientId,
+                child: Text(AppLocaleKeys.osInvoicesCustomClient.tr),
+              ),
               for (final c in clients)
                 if (c.id != null)
                   DropdownMenuItem(
@@ -258,27 +407,67 @@ class _OsInvoiceFormMobilePageState extends State<OsInvoiceFormMobilePage> {
               _applyClientContact(v);
             },
           ),
-          const SizedBox(height: 10),
-          osPhoneTextFormField(
-            controller: _phoneCtrl,
-            decoration: osFinanceFieldDecoration(
-              AppLocaleKeys.osInvoicesClientPhone.tr,
+          if (osIsCustomClientId(_clientId)) ...[
+            const SizedBox(height: 10),
+            osTypedTextFormField(
+              controller: _customNameCtrl,
+              decoration: osFinanceFieldDecoration(
+                AppLocaleKeys.osInvoicesClientName.tr,
+              ),
             ),
-          ),
-          const SizedBox(height: 10),
-          osTypedTextFormField(
-            controller: _emailCtrl,
-            decoration: osFinanceFieldDecoration(
-              AppLocaleKeys.osInvoicesClientEmail.tr,
+          ],
+          if (osShowClientContactField(
+            client: linkedClient,
+            field: OsClientContactField.phone,
+            fields: kOsFinanceDocumentContactFields,
+          )) ...[
+            const SizedBox(height: 10),
+            WhatsappPhoneField(
+              key: ValueKey('phone-${_clientId ?? 'custom'}-${_phoneCtrl.text}'),
+              initialNormalized: _phoneCtrl.text.trim().isEmpty
+                  ? null
+                  : _phoneCtrl.text.trim(),
+              decoration: osClientContactFieldDecoration(
+                osFinanceFieldDecoration(
+                  AppLocaleKeys.osInvoicesClientPhone.tr,
+                ),
+                savesToClient: linkedClient != null,
+              ),
+              onChanged: (v) => _phoneCtrl.text = v ?? '',
             ),
-          ),
-          const SizedBox(height: 10),
-          osTypedTextFormField(
-            controller: _addressCtrl,
-            decoration: osFinanceFieldDecoration(
-              AppLocaleKeys.osInvoicesClientAddress.tr,
+          ],
+          if (osShowClientContactField(
+            client: linkedClient,
+            field: OsClientContactField.email,
+            fields: kOsFinanceDocumentContactFields,
+          )) ...[
+            const SizedBox(height: 10),
+            osTypedTextFormField(
+              controller: _emailCtrl,
+              decoration: osClientContactFieldDecoration(
+                osFinanceFieldDecoration(
+                  AppLocaleKeys.osInvoicesClientEmail.tr,
+                ),
+                savesToClient: linkedClient != null,
+              ),
             ),
-          ),
+          ],
+          if (osShowClientContactField(
+            client: linkedClient,
+            field: OsClientContactField.address,
+            fields: kOsFinanceDocumentContactFields,
+          )) ...[
+            const SizedBox(height: 10),
+            osTypedTextFormField(
+              controller: _addressCtrl,
+              decoration: osClientContactFieldDecoration(
+                osFinanceFieldDecoration(
+                  AppLocaleKeys.osInvoicesClientAddress.tr,
+                ),
+                savesToClient: linkedClient != null,
+              ),
+            ),
+          ],
           const SizedBox(height: 10),
           osTypedTextFormField(
             controller: _taxCtrl,

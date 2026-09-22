@@ -6,7 +6,9 @@ import 'package:point/Models/Os/OsEmailSettings.dart';
 import 'package:point/Utils/app_theme_extension.dart';
 import 'package:point/View/Os/EmailHub/os_email_hub_form_widgets.dart';
 import 'package:point/View/Os/os_button_styles.dart';
+import 'package:point/View/Os/os_form_dialog.dart';
 import 'package:point/View/Os/os_snackbar.dart';
+import 'package:point/View/Shared/whatsapp_phone_field.dart';
 
 /// Agency sender profile for outbound email (invoices, payslips, HR letters, etc.).
 class OsEmailSettingsPanel extends StatefulWidget {
@@ -188,12 +190,15 @@ class _OsEmailSettingsPanelState extends State<OsEmailSettingsPanel> {
           onChanged: (_) => _onChanged(),
         ),
         const SizedBox(height: 12),
-        osEmailHubTextField(
-          context,
-          label: AppLocaleKeys.osEmailHubSettingsPhone.tr,
-          controller: _phone,
-          keyboardType: TextInputType.phone,
-          onChanged: (_) => _onChanged(),
+        WhatsappPhoneField(
+          initialNormalized: _phone.text.trim().isEmpty ? null : _phone.text.trim(),
+          decoration: osDialogFieldDecoration(context).copyWith(
+            labelText: AppLocaleKeys.osEmailHubSettingsPhone.tr,
+          ),
+          onChanged: (v) {
+            _phone.text = v ?? '';
+            _onChanged();
+          },
         ),
         const SizedBox(height: 12),
         osEmailHubTextField(

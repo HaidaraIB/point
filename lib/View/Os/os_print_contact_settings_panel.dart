@@ -7,8 +7,10 @@ import 'package:point/Utils/AppFonts.dart';
 import 'package:point/Utils/app_theme_extension.dart';
 import 'package:point/View/Os/os_button_styles.dart';
 import 'package:point/View/Os/os_form_dialog.dart';
+import 'package:point/Utils/whatsapp_phone.dart';
 import 'package:point/View/Os/os_snackbar.dart';
 import 'package:point/View/Shared/phone_number_text.dart';
+import 'package:point/View/Shared/whatsapp_phone_field.dart';
 
 /// Editable agency contact lines used on invoice / voucher print headers.
 class OsPrintContactSettingsPanel extends StatefulWidget {
@@ -181,12 +183,17 @@ class _OsPrintContactSettingsPanelState
           hint: OsGeneralSettings.defaultPrintAddressEn,
         ),
         const SizedBox(height: 12),
-        _labeledField(
-          theme,
-          AppLocaleKeys.osSettingsPrintContactPhone.tr,
-          _phoneCtrl,
-          hint: OsGeneralSettings.defaultPrintPhone,
-          keyboard: TextInputType.phone,
+        WhatsappPhoneField(
+          initialNormalized: _phoneCtrl.text.trim().isEmpty
+              ? null
+              : _phoneCtrl.text.trim(),
+          decoration: osDialogFieldDecoration(context).copyWith(
+            labelText: AppLocaleKeys.osSettingsPrintContactPhone.tr,
+          ),
+          onChanged: (v) {
+            _phoneCtrl.text = v ?? '';
+            _onChanged();
+          },
         ),
         const SizedBox(height: 12),
         _labeledField(
@@ -227,22 +234,14 @@ class _OsPrintContactSettingsPanelState
           ),
         ),
         const SizedBox(height: 8),
-        keyboard == TextInputType.phone
-            ? osPhoneTextField(
-                controller: controller,
-                onChanged: (_) => _onChanged(),
-                hintText: hint,
-                decoration:
-                    osDialogFieldDecoration(context).copyWith(hintText: hint),
-              )
-            : osTypedTextField(
-                controller: controller,
-                keyboardType: keyboard,
-                onChanged: (_) => _onChanged(),
-                hintText: hint,
-                decoration:
-                    osDialogFieldDecoration(context).copyWith(hintText: hint),
-              ),
+        osTypedTextField(
+          controller: controller,
+          keyboardType: keyboard,
+          onChanged: (_) => _onChanged(),
+          hintText: hint,
+          decoration:
+              osDialogFieldDecoration(context).copyWith(hintText: hint),
+        ),
       ],
     );
   }
@@ -366,7 +365,11 @@ class OsPrintContactPreview extends StatelessWidget {
       );
     }
 
-    addLine(Icons.phone, settings.printPhone, phone: true);
+    addLine(
+      Icons.phone,
+      formatWhatsappPhoneDisplay(settings.printPhone),
+      phone: true,
+    );
     addLine(Icons.email, settings.printEmail);
     addLine(Icons.public, settings.printWebsite);
 
