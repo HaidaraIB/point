@@ -55,6 +55,7 @@ class ChatTranslationLanguageMenu extends StatelessWidget {
 
     if (compact) {
       return Obx(() {
+        clc.contentLanguage.value;
         return PopupMenuButton<String>(
           tooltip: AppLocaleKeys.chatTranslationPreference.tr,
           padding: EdgeInsets.zero,

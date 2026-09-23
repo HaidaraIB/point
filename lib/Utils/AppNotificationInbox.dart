@@ -23,3 +23,8 @@ int unreadInAppInboxCount(Iterable<NotificationModel> notifications) {
       )
       .length;
 }
+
+/// Call inside [Obx] so GetX tracks [notifications] list changes.
+int reactiveUnreadInAppInboxCount(Iterable<NotificationModel> notifications) {
+  return unreadInAppInboxCount([...notifications]);
+}

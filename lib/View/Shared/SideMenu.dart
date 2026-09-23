@@ -249,7 +249,11 @@ class _CustomSidebarState extends State<CustomSidebar> {
             child: GetBuilder<HomeController>(
               builder: (controller) {
                 return Obx(
-                  () => controller.effectiveEmployee?.role == 'admin'
+                  () =>
+                      (controller.currentEmployee.value ??
+                              controller.lastKnownEmployee.value)
+                          ?.role ==
+                      'admin'
                           ? ListView(
                             padding: const EdgeInsets.only(top: 8),
                             children: [

@@ -3837,6 +3837,13 @@ class HomeController extends GetxController {
   EmployeeModel? get effectiveEmployee =>
       currentEmployee.value ?? lastKnownEmployee.value;
 
+  /// Use inside [Obx] so GetX tracks [currentEmployee] / [lastKnownEmployee].
+  EmployeeModel? get reactiveEffectiveEmployee {
+    currentEmployee.value;
+    lastKnownEmployee.value;
+    return effectiveEmployee;
+  }
+
   void listenToClient(String empid) async {
     _employeeDocSub?.cancel();
     _employeeDocSub = _clientCollection

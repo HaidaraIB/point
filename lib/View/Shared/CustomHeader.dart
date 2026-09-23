@@ -292,8 +292,9 @@ class MobileAppBarProfileWidget extends StatelessWidget {
                       ),
                       Obx(
                         () {
-                          final n = unreadInAppInboxCount(
-                            Get.find<HomeController>().notifications,
+                          final hc = Get.find<HomeController>();
+                          final n = reactiveUnreadInAppInboxCount(
+                            hc.notifications,
                           );
                           if (n <= 0) return const SizedBox.shrink();
                           return Padding(
@@ -468,9 +469,10 @@ class HeaderWidget extends StatelessWidget {
         if (!isMobile && employee == true && client != true) _chats(),
         if (!isMobile && employee == true && client != true)
           Obx(() {
-            if (!LibraryPermissions.canAccessLibrary(
-              Get.find<HomeController>().effectiveEmployee,
-            )) {
+            final hc = Get.find<HomeController>();
+            final emp =
+                hc.currentEmployee.value ?? hc.lastKnownEmployee.value;
+            if (!LibraryPermissions.canAccessLibrary(emp)) {
               return const SizedBox.shrink();
             }
             return IconButton(
@@ -814,7 +816,9 @@ class NotificationDropdown extends StatelessWidget {
               top: 6,
               child: Obx(
                 () => HeaderCountBadge(
-                      count: unreadInAppInboxCount(controller.notifications),
+                      count: reactiveUnreadInAppInboxCount(
+                        controller.notifications,
+                      ),
                     ),
               ),
             ),

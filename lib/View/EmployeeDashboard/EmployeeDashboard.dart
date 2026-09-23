@@ -173,35 +173,29 @@ List<MapEntry<String, int>> employeeDashboardAssignedTaskStatEntriesOrdered({
 }
 
 Widget _employeeLibraryNavButton({double width = 160}) {
-  return Obx(() {
-    final emp = Get.find<HomeController>().effectiveEmployee;
-    if (!LibraryPermissions.canAccessLibrary(emp)) {
-      return const SizedBox.shrink();
-    }
-    return MainButton(
-      width: width,
-      height: 45,
-      borderSize: 35,
-      fontColor: Colors.white,
-      backgroundColor: AppColors.primary,
-      widget: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text(
-            'library.sidebar'.tr,
-            style: const TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.bold,
-              fontSize: 13,
-            ),
+  return MainButton(
+    width: width,
+    height: 45,
+    borderSize: 35,
+    fontColor: Colors.white,
+    backgroundColor: AppColors.primary,
+    widget: Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Text(
+          'library.sidebar'.tr,
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            fontSize: 13,
           ),
-          const SizedBox(width: 5),
-          const Icon(Icons.folder_copy_outlined, color: Colors.white),
-        ],
-      ),
-      onPressed: () => Get.toNamed('/library'),
-    );
-  });
+        ),
+        const SizedBox(width: 5),
+        const Icon(Icons.folder_copy_outlined, color: Colors.white),
+      ],
+    ),
+    onPressed: () => Get.toNamed('/library'),
+  );
 }
 
 Widget _buildAssignedTasksSectionTitle(BuildContext context) {
@@ -216,15 +210,13 @@ Widget _buildAssignedTasksSectionTitle(BuildContext context) {
 }
 
 Widget _buildAssignedTasksSectionActions(HomeController controller) {
-  final emp = controller.currentEmployee.value;
-  final showContent = emp != null &&
-      (emp.hasDepartment(StorageKeys.departmentPromotion) ||
-          emp.hasDepartment(StorageKeys.departmentPublishing));
-
   return Obx(() {
-    final showLibrary = LibraryPermissions.canAccessLibrary(
-      controller.effectiveEmployee,
-    );
+    final emp =
+        controller.currentEmployee.value ?? controller.lastKnownEmployee.value;
+    final showContent = emp != null &&
+        (emp.hasDepartment(StorageKeys.departmentPromotion) ||
+            emp.hasDepartment(StorageKeys.departmentPublishing));
+    final showLibrary = LibraryPermissions.canAccessLibrary(emp);
     if (!showContent && !showLibrary) {
       return const SizedBox.shrink();
     }
@@ -260,7 +252,7 @@ Widget _buildAssignedTasksSectionActions(HomeController controller) {
               ),
               onPressed: () => Get.toNamed('/employeeContent'),
             ),
-          _employeeLibraryNavButton(width: 160),
+          if (showLibrary) _employeeLibraryNavButton(width: 160),
         ],
       ),
     );
@@ -313,30 +305,31 @@ class _EmployeeDashboardBody extends StatelessWidget {
   Widget _buildDesktop(BuildContext context) {
     return GetBuilder<HomeController>(
       builder: (controller) {
-        return Obx(
-          () => Row(
-            children: [
-              SingleChildScrollView(
+        return Row(
+          children: [
+            Expanded(
+              child: SingleChildScrollView(
                 child: Container(
                   padding: EdgeInsets.all(10),
-                  width: Get.width,
+                  width: double.infinity,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       PreferredSize(
                         preferredSize: Size(Get.width, 60),
                         child: Obx(
-                          () => HeaderWidget(
-                            employee: true,
-                            name: controller.currentEmployee.value?.name ?? '',
-                            role: controller.currentEmployee.value?.role ?? '',
-                            departments:
-                                controller.currentEmployee.value?.departments ??
-                                const [],
-                            avatarUrl:
-                                controller.currentEmployee.value?.image ??
-                                kDefaultAvatarUrl,
-                          ),
+                          () {
+                            final emp =
+                                controller.currentEmployee.value ??
+                                controller.lastKnownEmployee.value;
+                            return HeaderWidget(
+                              employee: true,
+                              name: emp?.name ?? '',
+                              role: emp?.role ?? '',
+                              departments: emp?.departments ?? const [],
+                              avatarUrl: emp?.image ?? kDefaultAvatarUrl,
+                            );
+                          },
                         ),
                       ),
                       SizedBox(height: 20),
@@ -387,8 +380,8 @@ class _EmployeeDashboardBody extends StatelessWidget {
                   ),
                 ),
               ),
-            ],
-          ),
+            ),
+          ],
         );
       },
     );
@@ -397,11 +390,10 @@ class _EmployeeDashboardBody extends StatelessWidget {
   Widget _buildMobile(BuildContext context) {
     return GetBuilder<HomeController>(
       builder: (controller) {
-        return Obx(
-          () => Row(
-            children: [
-              Expanded(
-                child: RefreshIndicator(
+        return Row(
+          children: [
+            Expanded(
+              child: RefreshIndicator(
                   onRefresh: () async {
                     controller.fetchTasks();
                     await Future.delayed(const Duration(seconds: 1));
@@ -410,7 +402,7 @@ class _EmployeeDashboardBody extends StatelessWidget {
                     physics: const AlwaysScrollableScrollPhysics(),
                     child: Container(
                       padding: EdgeInsets.all(10),
-                      width: Get.width,
+                      width: double.infinity,
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -469,8 +461,7 @@ class _EmployeeDashboardBody extends StatelessWidget {
                   ),
                 ),
               ),
-            ],
-          ),
+          ],
         );
       },
     );

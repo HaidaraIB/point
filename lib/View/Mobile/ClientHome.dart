@@ -240,8 +240,9 @@ class ClientHome extends StatelessWidget {
               final client = controller.currentClient.value;
               final displayName = (client?.name ?? '').trim();
               final avatarUrl = client?.image ?? kDefaultAvatarUrl;
-              final unreadInbox = unreadInAppInboxCount(
-                Get.find<HomeController>().notifications,
+              final hc = Get.find<HomeController>();
+              final unreadInbox = reactiveUnreadInAppInboxCount(
+                hc.notifications,
               );
               return Row(
                 mainAxisAlignment: MainAxisAlignment.end,

@@ -87,24 +87,19 @@ class ResponsiveScaffold extends StatelessWidget {
                               PreferredSize(
                                 preferredSize: Size(Get.width, 60),
                                 child: Obx(
-                                  () => HeaderWidget(
-                                    employee: true,
-
-                                    name:
-                                        controller.effectiveEmployee?.name ??
-                                        '',
-                                    role:
-                                        controller.effectiveEmployee?.role ??
-                                        '',
-                                    departments:
-                                        controller
-                                            .effectiveEmployee
-                                            ?.departments ??
-                                        const [],
-                                    avatarUrl:
-                                        controller.effectiveEmployee?.image ??
-                                        kDefaultAvatarUrl,
-                                  ),
+                                  () {
+                                    final emp =
+                                        controller.currentEmployee.value ??
+                                        controller.lastKnownEmployee.value;
+                                    return HeaderWidget(
+                                      employee: true,
+                                      name: emp?.name ?? '',
+                                      role: emp?.role ?? '',
+                                      departments:
+                                          emp?.departments ?? const [],
+                                      avatarUrl: emp?.image ?? kDefaultAvatarUrl,
+                                    );
+                                  },
                                 ),
                               ),
                               Expanded(child: body),
@@ -206,7 +201,7 @@ class ResponsiveScaffold extends StatelessWidget {
                                   const SizedBox(width: 6),
                                   _MobileHeaderIconButton(
                                     icon: Icons.notifications_none_rounded,
-                                    count: unreadInAppInboxCount(
+                                    count: reactiveUnreadInAppInboxCount(
                                       controller.notifications,
                                     ),
                                     onTap: () {

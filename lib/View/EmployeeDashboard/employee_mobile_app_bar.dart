@@ -61,7 +61,9 @@ class EmployeeMobileAppBar extends StatelessWidget implements PreferredSizeWidge
                   top: -4,
                   child: Obx(
                     () => HeaderCountBadge(
-                      count: unreadInAppInboxCount(controller.notifications),
+                      count: reactiveUnreadInAppInboxCount(
+                        controller.notifications,
+                      ),
                     ),
                   ),
                 ),
@@ -113,9 +115,10 @@ class EmployeeMobileAppBar extends StatelessWidget implements PreferredSizeWidge
             onPressed: () => Get.to(() => ChatsListScreen(onMinimize: () {})),
           ),
           Obx(() {
-            if (!LibraryPermissions.canAccessLibrary(
-              controller.effectiveEmployee,
-            )) {
+            final emp =
+                controller.currentEmployee.value ??
+                controller.lastKnownEmployee.value;
+            if (!LibraryPermissions.canAccessLibrary(emp)) {
               return const SizedBox.shrink();
             }
             return IconButton(
@@ -133,7 +136,9 @@ class EmployeeMobileAppBar extends StatelessWidget implements PreferredSizeWidge
           ],
           Expanded(
             child: Obx(() {
-              final emp = controller.currentEmployee.value;
+              final emp =
+                  controller.currentEmployee.value ??
+                  controller.lastKnownEmployee.value;
               final displayName = (emp?.name ?? '').trim();
               final displayRole = (emp?.role ?? '').trim();
               final avatarUrl = emp?.image ?? kDefaultAvatarUrl;

@@ -124,9 +124,10 @@ class EmployeeContentDashboard extends StatelessWidget {
                 onPressed: () => Get.toNamed('/employeeDashboard'),
               ),
               Obx(() {
-                if (!LibraryPermissions.canAccessLibrary(
-                  controller.effectiveEmployee,
-                )) {
+                final emp =
+                    controller.currentEmployee.value ??
+                    controller.lastKnownEmployee.value;
+                if (!LibraryPermissions.canAccessLibrary(emp)) {
                   return const SizedBox.shrink();
                 }
                 return MainButton(
@@ -276,9 +277,10 @@ class EmployeeContentDashboard extends StatelessWidget {
                     onPressed: () => Get.toNamed('/employeeDashboard'),
                   ),
                   Obx(() {
-                    if (!LibraryPermissions.canAccessLibrary(
-                      controller.effectiveEmployee,
-                    )) {
+                    final emp =
+                        controller.currentEmployee.value ??
+                        controller.lastKnownEmployee.value;
+                    if (!LibraryPermissions.canAccessLibrary(emp)) {
                       return const SizedBox.shrink();
                     }
                     return Row(
