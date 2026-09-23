@@ -310,14 +310,56 @@ class _OsSettingsPageState extends State<OsSettingsPage>
                               ),
                             ),
                             const SizedBox(height: 16),
-                            Align(
-                              alignment: AlignmentDirectional.centerEnd,
-                              child: Wrap(
-                                spacing: 10,
-                                runSpacing: 10,
-                                alignment: WrapAlignment.end,
+                            if (_status.configuredInFirestore)
+                              Row(
                                 children: [
-                                  FilledButton.icon(
+                                  Expanded(
+                                    child: SizedBox(
+                                      width: double.infinity,
+                                      child: FilledButton.icon(
+                                        onPressed: _saving ? null : _save,
+                                        style: OsButtonStyles.primaryCompact(),
+                                        icon: _saving
+                                            ? const SizedBox(
+                                                width: 18,
+                                                height: 18,
+                                                child:
+                                                    CircularProgressIndicator(
+                                                  strokeWidth: 2,
+                                                ),
+                                              )
+                                            : const Icon(Icons.save_outlined,
+                                                size: 18),
+                                        label: Text(
+                                          AppLocaleKeys.osSettingsAiSave.tr,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: SizedBox(
+                                      width: double.infinity,
+                                      child: OutlinedButton.icon(
+                                        onPressed:
+                                            _saving ? null : _clearStoredKey,
+                                        style: OsButtonStyles.outlinedCompact(
+                                          theme,
+                                        ),
+                                        icon: const Icon(Icons.delete_outline,
+                                            size: 18),
+                                        label: Text(
+                                          AppLocaleKeys.osSettingsAiClear.tr,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              )
+                            else
+                              Align(
+                                alignment: AlignmentDirectional.centerEnd,
+                                child: FilledButton.icon(
                                   onPressed: _saving ? null : _save,
                                   style: OsButtonStyles.primaryCompact(),
                                   icon: _saving
@@ -330,22 +372,11 @@ class _OsSettingsPageState extends State<OsSettingsPage>
                                         )
                                       : const Icon(Icons.save_outlined,
                                           size: 18),
-                                  label:
-                                      Text(AppLocaleKeys.osSettingsAiSave.tr),
-                                ),
-                                if (_status.configuredInFirestore)
-                                  OutlinedButton.icon(
-                                    onPressed:
-                                        _saving ? null : _clearStoredKey,
-                                    icon: const Icon(Icons.delete_outline,
-                                        size: 18),
-                                    label: Text(
-                                      AppLocaleKeys.osSettingsAiClear.tr,
-                                    ),
+                                  label: Text(
+                                    AppLocaleKeys.osSettingsAiSave.tr,
                                   ),
-                                ],
+                                ),
                               ),
-                            ),
                           ],
                             ),
                           ),

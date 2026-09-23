@@ -139,13 +139,22 @@ class TranslationService {
     });
 
     final data = res.data;
-    if (res.status == 429 ||
-        (data is Map && data['errorCode'] == 'ERR_RATE_LIMITED')) {
-      throw StateError('Rate limited');
-    }
-    if (res.status == 403 ||
-        (data is Map && data['errorCode'] == 'ERR_FORBIDDEN')) {
-      throw StateError('Forbidden');
+    if (data is Map) {
+      final errorCode = data['errorCode']?.toString();
+      final message = data['message']?.toString();
+      if (res.status == 429 || errorCode == 'ERR_RATE_LIMITED') {
+        throw StateError('Rate limited');
+      }
+      if (res.status == 403 || errorCode == 'ERR_FORBIDDEN') {
+        throw StateError('Forbidden');
+      }
+      if (errorCode != null && errorCode.isNotEmpty && data['success'] != true) {
+        throw StateError(
+          message != null && message.isNotEmpty
+              ? '$errorCode: $message'
+              : errorCode,
+        );
+      }
     }
 
     return data;

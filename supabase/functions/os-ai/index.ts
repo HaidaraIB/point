@@ -7,7 +7,11 @@ import {
 import { assertOsAdmin, assertOsAccess } from "../_shared/os-admin.ts";
 
 const GEMINI_TIMEOUT_MS = 4000;
-const GEMINI_MODEL = "gemini-2.0-flash";
+const GEMINI_MODEL_CANDIDATES = [
+  "gemini-3.6-flash",
+  "gemini-3.5-flash-lite",
+  "gemini-3.5-flash",
+];
 const COOLDOWN_MS = 180_000;
 const SUMMARY_CACHE_TTL_MS = 600_000;
 
@@ -208,22 +212,37 @@ function isRateLimitError(err: unknown): boolean {
   );
 }
 
-async function callGemini(
-  prompt: string,
-  accessToken: string,
-  projectId: string,
-): Promise<string> {
-  const apiKey = await resolveGeminiApiKey(accessToken, projectId);
-  if (!apiKey) {
-    throw new Error("No API key");
-  }
+function isGeminiModelError(msg: string): boolean {
+  const lower = msg.toLowerCase();
+  return (
+    lower.includes("not found") ||
+    lower.includes("not_found") ||
+    lower.includes("invalid model") ||
+    lower.includes("model is not") ||
+    lower.includes("no longer available")
+  );
+}
 
+function geminiModelCandidates(): string[] {
+  const override = (Deno.env.get("GEMINI_MODEL") ?? "").trim();
+  if (!override) return GEMINI_MODEL_CANDIDATES;
+  return [
+    override,
+    ...GEMINI_MODEL_CANDIDATES.filter((model) => model !== override),
+  ];
+}
+
+async function callGeminiWithModel(
+  prompt: string,
+  model: string,
+  apiKey: string,
+): Promise<string> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), GEMINI_TIMEOUT_MS);
 
   try {
     const url =
-      `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${encodeURIComponent(apiKey)}`;
+      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`;
     const res = await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -259,6 +278,30 @@ async function callGemini(
   } finally {
     clearTimeout(timer);
   }
+}
+
+async function callGemini(
+  prompt: string,
+  accessToken: string,
+  projectId: string,
+): Promise<string> {
+  const apiKey = await resolveGeminiApiKey(accessToken, projectId);
+  if (!apiKey) {
+    throw new Error("No API key");
+  }
+
+  let lastError: Error | null = null;
+  for (const model of geminiModelCandidates()) {
+    try {
+      return await callGeminiWithModel(prompt, model, apiKey);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      if (!isGeminiModelError(msg)) throw e;
+      console.warn(`os-ai: ${model} unavailable, trying next model`);
+      lastError = e instanceof Error ? e : new Error(msg);
+    }
+  }
+  throw lastError ?? new Error("No Gemini model available");
 }
 
 function defaultServiceDescription(serviceName: string): string {

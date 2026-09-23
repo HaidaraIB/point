@@ -12,8 +12,13 @@ import {
   verifyFirebaseIdToken,
 } from "../_shared/firebase-edge.ts";
 
-const GEMINI_MODEL = "gemini-2.5-flash-lite";
-const GEMINI_TIMEOUT_MS = 8000;
+/** Cheapest first; later entries are fallbacks when a model is retired. */
+const GEMINI_MODEL_CANDIDATES = [
+  "gemini-3.5-flash-lite",
+  "gemini-3.6-flash",
+  "gemini-3.5-flash",
+];
+const GEMINI_TIMEOUT_MS = 15000;
 const MAX_UNCACHED_PER_USER_PER_DAY = 80;
 const OS_SETTINGS_DOC = "os_settings/default";
 
@@ -117,8 +122,50 @@ async function sha256Hex(text: string): Promise<string> {
 }
 
 function getGeminiApiKeyFromEnv(): string | null {
-  const key = (Deno.env.get("GEMINI_API_KEY") ?? "").trim();
+  const key = (Deno.env.get("GEMINI_API_KEY") ?? Deno.env.get("API_KEY") ?? "")
+    .trim();
   return key.length > 0 ? key : null;
+}
+
+function parseJsonFromGeminiText(text: string): Record<string, string> {
+  let cleaned = text.trim();
+  if (cleaned.startsWith("```")) {
+    cleaned = cleaned
+      .replace(/^```(?:json)?\s*/i, "")
+      .replace(/\s*```$/i, "")
+      .trim();
+  }
+  const start = cleaned.indexOf("{");
+  const end = cleaned.lastIndexOf("}");
+  if (start >= 0 && end > start) {
+    cleaned = cleaned.slice(start, end + 1);
+  }
+  const parsed = JSON.parse(cleaned) as Record<string, unknown>;
+  const out: Record<string, string> = {};
+  for (const [k, v] of Object.entries(parsed)) {
+    if (typeof v === "string" && v.trim()) out[k] = v.trim();
+  }
+  return out;
+}
+
+function isGeminiModelError(msg: string): boolean {
+  const lower = msg.toLowerCase();
+  return (
+    lower.includes("not found") ||
+    lower.includes("not_found") ||
+    lower.includes("invalid model") ||
+    lower.includes("model is not") ||
+    lower.includes("no longer available")
+  );
+}
+
+function geminiModelCandidates(): string[] {
+  const override = (Deno.env.get("GEMINI_MODEL") ?? "").trim();
+  if (!override) return GEMINI_MODEL_CANDIDATES;
+  return [
+    override,
+    ...GEMINI_MODEL_CANDIDATES.filter((model) => model !== override),
+  ];
 }
 
 async function loadGeminiApiKeyFromFirestore(
@@ -150,20 +197,17 @@ function shouldSkipTranslation(text: string): boolean {
   return false;
 }
 
-async function callGeminiJson(
+async function callGeminiJsonWithModel(
   prompt: string,
-  accessToken: string,
-  projectId: string,
+  model: string,
+  apiKey: string,
 ): Promise<Record<string, string>> {
-  const apiKey = await resolveGeminiApiKey(accessToken, projectId);
-  if (!apiKey) throw new Error("No API key");
-
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), GEMINI_TIMEOUT_MS);
 
   try {
     const url =
-      `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${encodeURIComponent(apiKey)}`;
+      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`;
     const res = await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -172,7 +216,6 @@ async function callGeminiJson(
         generationConfig: {
           temperature: 0,
           maxOutputTokens: 1024,
-          responseMimeType: "application/json",
         },
       }),
       signal: controller.signal,
@@ -195,15 +238,32 @@ async function callGeminiJson(
       : "";
     if (!text) throw new Error("Empty Gemini response");
 
-    const parsed = JSON.parse(text) as Record<string, unknown>;
-    const out: Record<string, string> = {};
-    for (const [k, v] of Object.entries(parsed)) {
-      if (typeof v === "string" && v.trim()) out[k] = v.trim();
-    }
-    return out;
+    return parseJsonFromGeminiText(text);
   } finally {
     clearTimeout(timer);
   }
+}
+
+async function callGeminiJson(
+  prompt: string,
+  accessToken: string,
+  projectId: string,
+): Promise<Record<string, string>> {
+  const apiKey = await resolveGeminiApiKey(accessToken, projectId);
+  if (!apiKey) throw new Error("ERR_NO_API_KEY");
+
+  let lastError: Error | null = null;
+  for (const model of geminiModelCandidates()) {
+    try {
+      return await callGeminiJsonWithModel(prompt, model, apiKey);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      if (!isGeminiModelError(msg)) throw e;
+      console.warn(`translate: ${model} unavailable, trying next model`);
+      lastError = e instanceof Error ? e : new Error(msg);
+    }
+  }
+  throw lastError ?? new Error("No Gemini model available");
 }
 
 function toFirestoreMap(values: Record<string, string>) {
@@ -246,29 +306,30 @@ async function writeCache(
   scope: string,
 ): Promise<void> {
   const now = new Date().toISOString();
-  await createFirestoreDoc(
+  const updateFields = {
+    translations: toFirestoreMap(translations),
+    scope: toFirestoreString(scope),
+    updatedAt: toFirestoreString(now),
+  };
+  const created = await createFirestoreDoc(
     accessToken,
     projectId,
     "translation_cache",
     hash,
     {
-      translations: toFirestoreMap(translations),
-      scope: toFirestoreString(scope),
+      ...updateFields,
       createdAt: toFirestoreString(now),
     },
-  ).catch(async () => {
+  );
+  if (created === "exists") {
     await setFirestoreDoc(
       accessToken,
       projectId,
       `translation_cache/${hash}`,
-      {
-        translations: toFirestoreMap(translations),
-        scope: toFirestoreString(scope),
-        updatedAt: toFirestoreString(now),
-      },
+      updateFields,
       ["translations", "scope", "updatedAt"],
     );
-  });
+  }
 }
 
 function utcDayKey(): string {
@@ -515,7 +576,27 @@ Deno.serve(async (req: Request) => {
     if (msg === "ERR_RATE_LIMITED") {
       return json({ errorCode: "ERR_RATE_LIMITED" }, 429);
     }
+    if (msg === "ERR_NO_API_KEY") {
+      return json(
+        {
+          errorCode: "ERR_NO_API_KEY",
+          message: "Gemini API key not configured in OS settings",
+        },
+        503,
+      );
+    }
+    if (msg.includes("429") || msg.includes("RESOURCE_EXHAUSTED")) {
+      return json({ errorCode: "ERR_RATE_LIMITED" }, 429);
+    }
+    if (msg.includes("Gemini error") || msg.includes("Empty Gemini response")) {
+      console.error("translate gemini error:", msg);
+      return json({ errorCode: "ERR_GEMINI", message: msg }, 502);
+    }
+    if (msg.includes("Firestore")) {
+      console.error("translate firestore error:", msg);
+      return json({ errorCode: "ERR_FIRESTORE", message: msg }, 500);
+    }
     console.error("translate error:", msg);
-    return json({ errorCode: "ERR_INTERNAL" }, 500);
+    return json({ errorCode: "ERR_INTERNAL", message: msg }, 500);
   }
 });
