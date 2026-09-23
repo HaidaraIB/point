@@ -19,6 +19,7 @@ import 'package:point/Bindings/AppBindings.dart';
 import 'package:point/Controller/HomeController.dart';
 import 'package:point/Controller/ThemeController.dart';
 import 'package:point/Localization/ContentLanguageController.dart';
+import 'package:point/Localization/SentTranslationController.dart';
 import 'package:point/Localization/LanguageController.dart';
 import 'package:point/Localization/AppTranslations.dart';
 import 'package:point/Routing/app_route_observer.dart';
@@ -89,6 +90,9 @@ void main(List<String> args) async {
   final contentLanguageController =
       Get.put(ContentLanguageController(), permanent: true);
   await contentLanguageController.initialize();
+  final sentTranslationController =
+      Get.put(SentTranslationController(), permanent: true);
+  await sentTranslationController.initialize();
   final themeController = Get.put(ThemeController(), permanent: true);
   await themeController.initialize();
   // Keep numerals Latin (0-9) across all app languages.

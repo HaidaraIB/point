@@ -33,6 +33,10 @@ class ChatMessageActions {
     required String newText,
     required String editedBy,
     required String editedByName,
+    String? sentTranslation,
+    String? sentTranslationLang,
+    String? sentTranslationSourceHash,
+    bool clearSentTranslation = false,
   }) async {
     final batch = fs.batch();
     final msgRef = fs
@@ -53,6 +57,23 @@ class ChatMessageActions {
       'editedAt': FieldValue.serverTimestamp(),
     });
     await batch.commit();
+
+    if (clearSentTranslation) {
+      await msgRef.update({
+        'sentTranslation': FieldValue.delete(),
+        'sentTranslationLang': FieldValue.delete(),
+        'sentTranslationSourceHash': FieldValue.delete(),
+      });
+    } else if (sentTranslation != null &&
+        sentTranslationLang != null &&
+        sentTranslationSourceHash != null) {
+      await msgRef.update({
+        'sentTranslation': sentTranslation,
+        'sentTranslationLang': sentTranslationLang,
+        'sentTranslationSourceHash': sentTranslationSourceHash,
+      });
+    }
+
     await syncChatLastMessageFromLatest(fs, chatId);
   }
 

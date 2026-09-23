@@ -37,6 +37,8 @@ import 'package:point/View/Chats/chat_message_list_panel.dart';
 import 'package:point/View/Chats/pending_chat_attachment.dart';
 import 'package:point/View/Chats/chat_list_tile_media_subtitle.dart';
 import 'package:point/View/Chats/chat_private_typing.dart';
+import 'package:point/View/Chats/chat_composer_live_translation.dart';
+import 'package:point/View/Shared/chat_sent_translation_menu.dart';
 import 'package:point/View/Chats/chat_reply_draft_banner.dart';
 import 'package:point/View/Chats/chat_ui_helpers.dart';
 import 'package:point/View/Shared/app_user_avatar.dart';
@@ -67,6 +69,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   final TextEditingController _messageController = TextEditingController();
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _messageFocusNode = FocusNode();
+  late final ChatComposerLiveTranslationController _composerLiveTranslation;
   ChatImagePasteListener? _imagePasteListener;
   bool _isEmojiVisible = false;
   PendingChatAttachment? _pendingAttachment;
@@ -207,6 +210,11 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     _typingWriter = PrivateChatTypingWriter(_firestore);
+    _composerLiveTranslation = ChatComposerLiveTranslationController(
+      onChanged: () {
+        if (mounted) setState(() {});
+      },
+    );
     _messageController.addListener(_onComposerTextChanged);
     _imagePasteListener = ChatImagePasteListener(
       onImagePasted: _handlePastedImage,
@@ -286,6 +294,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
 
   void _onComposerTextChanged() {
     _typingWriter.onComposerTextChanged(_messageController.text);
+    _composerLiveTranslation.onTextChanged(_messageController.text);
   }
 
   void _rebindTypingWriter() {
@@ -980,6 +989,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     }
     unawaited(_typingWriter.dispose());
     _voiceRecorder?.dispose();
+    _composerLiveTranslation.dispose();
     _messageController.removeListener(_onComposerTextChanged);
     _messageController.dispose();
     // Do not call unfocus() here: during Android route pop it can deadlock the
@@ -1258,8 +1268,12 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     final text = _messageController.text.trim();
     final pending = _pendingAttachment;
     if (text.isEmpty && pending == null) return;
+    final sentTranslation = text.isNotEmpty
+        ? await _composerLiveTranslation.resolveForSend(text)
+        : null;
     unawaited(_typingWriter.clearTyping());
     _messageController.clear();
+    _composerLiveTranslation.clear();
     if (!kIsWeb) {
       _messageFocusNode.requestFocus();
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -1278,6 +1292,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
             messageType: 'image',
             text: text,
             attachmentUrl: pending.attachmentUrl,
+            sentTranslation: sentTranslation,
           );
           break;
         case 'video':
@@ -1287,6 +1302,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
             text: text,
             attachmentUrl: pending.attachmentUrl,
             fileName: pending.fileName,
+            sentTranslation: sentTranslation,
           );
           break;
         case 'file':
@@ -1296,6 +1312,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
             text: text,
             attachmentUrl: pending.attachmentUrl,
             fileName: pending.fileName,
+            sentTranslation: sentTranslation,
           );
           break;
         case 'voice':
@@ -1305,17 +1322,17 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
             text: text,
             attachmentUrl: pending.attachmentUrl,
             durationSec: pending.durationSec,
+            sentTranslation: sentTranslation,
           );
           break;
       }
       return;
     }
-    unawaited(
-      _sendChatPayload(
-        lastMessagePreview: text,
-        messageType: 'text',
-        text: text,
-      ),
+    await _sendChatPayload(
+      lastMessagePreview: text,
+      messageType: 'text',
+      text: text,
+      sentTranslation: sentTranslation,
     );
   }
 
@@ -1348,6 +1365,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     String? attachmentUrl,
     String? fileName,
     int? durationSec,
+    SentTranslationPayload? sentTranslation,
   }) async {
     if (_selectedChat == null || _currentUserId == null) return;
     if (messageType == 'text' && text.trim().isEmpty) return;
@@ -1400,6 +1418,11 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     }
     if (durationSec != null) {
       payload['durationSec'] = durationSec;
+    }
+    if (sentTranslation != null) {
+      payload['sentTranslation'] = sentTranslation.translation;
+      payload['sentTranslationLang'] = sentTranslation.targetLang;
+      payload['sentTranslationSourceHash'] = sentTranslation.sourceHash;
     }
     final reply = _replyDraft;
     if (reply != null) {
@@ -2513,6 +2536,16 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                                               () => _replyDraft = null,
                                             ),
                                           ),
+                                        ChatComposerSentTranslationBar(
+                                          onTargetChanged: () =>
+                                              _composerLiveTranslation
+                                                  .onTargetChanged(
+                                                _messageController.text,
+                                              ),
+                                        ),
+                                        ChatComposerTranslationPreview(
+                                          controller: _composerLiveTranslation,
+                                        ),
                                         VoiceRecorderActiveStrip(),
                                         if (_pendingAttachment != null)
                                           PendingAttachmentStrip(

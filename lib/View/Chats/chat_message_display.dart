@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:point/Localization/AppLocaleKeys.dart';
 import 'package:point/Utils/chat_message_bidi.dart';
+import 'package:point/Utils/translation_text.dart';
 import 'package:point/Utils/media_url_opener.dart';
 import 'package:point/Services/chat_attachment_cache.dart';
 import 'package:point/View/Chats/chat_cached_attachment_image.dart';
@@ -40,6 +41,29 @@ bool _fileNameLooksLikeImage(String? fileName) {
       base.endsWith('.jpeg') ||
       base.endsWith('.gif') ||
       base.endsWith('.webp');
+}
+
+Widget _captionTextContent(
+  Map<String, dynamic> msg,
+  String caption,
+  bool isMe, {
+  String? chatId,
+  String? messageId,
+}) {
+  if (messageHasSentTranslation(msg)) {
+    return messageTextWithSentTranslation(
+      msg,
+      isMe,
+      chatId: chatId,
+      messageId: messageId,
+    );
+  }
+  return messageTextRich(
+    caption,
+    isMe,
+    chatId: chatId,
+    messageId: messageId,
+  );
 }
 
 bool _messageShowsAsVideo(
@@ -104,7 +128,13 @@ Widget chatMessageBubbleContent(
         children: [
           row,
           const SizedBox(height: 6),
-          messageTextRich(caption, isMe, chatId: chatId, messageId: messageId),
+          _captionTextContent(
+            msg,
+            caption,
+            isMe,
+            chatId: chatId,
+            messageId: messageId,
+          ),
         ],
       );
     }
@@ -141,7 +171,13 @@ Widget chatMessageBubbleContent(
           messageId: messageId,
         ),
         const SizedBox(height: 6),
-        messageTextRich(caption, isMe, chatId: chatId, messageId: messageId),
+        _captionTextContent(
+          msg,
+          caption,
+          isMe,
+          chatId: chatId,
+          messageId: messageId,
+        ),
       ],
     );
   }
@@ -164,7 +200,13 @@ Widget chatMessageBubbleContent(
       children: [
         bubble,
         const SizedBox(height: 6),
-        messageTextRich(caption, isMe, chatId: chatId, messageId: messageId),
+        _captionTextContent(
+          msg,
+          caption,
+          isMe,
+          chatId: chatId,
+          messageId: messageId,
+        ),
       ],
     );
   }
@@ -189,12 +231,78 @@ Widget chatMessageBubbleContent(
       children: [
         bubble,
         const SizedBox(height: 6),
-        messageTextRich(caption, isMe, chatId: chatId, messageId: messageId),
+        _captionTextContent(
+          msg,
+          caption,
+          isMe,
+          chatId: chatId,
+          messageId: messageId,
+        ),
       ],
     );
   }
 
+  if (messageHasSentTranslation(msg)) {
+    return messageTextWithSentTranslation(
+      msg,
+      isMe,
+      chatId: chatId,
+      messageId: messageId,
+    );
+  }
   return messageTextRich(text, isMe, chatId: chatId, messageId: messageId);
+}
+
+Widget messageTextWithSentTranslation(
+  Map<String, dynamic> msg,
+  bool isMe, {
+  String? chatId,
+  String? messageId,
+}) {
+  final original = (msg['text'] ?? '').toString();
+  final translated = (msg['sentTranslation'] as String?)?.trim() ?? '';
+  final targetLang = (msg['sentTranslationLang'] as String?)?.trim();
+  return Builder(
+    builder: (context) {
+      final textColor = chatBubbleTextColor(context, isMe);
+      final dividerColor = textColor.withValues(alpha: 0.35);
+      final sourceLang = detectLikelySourceLangCode(original);
+      final originalDirection = textDirectionForTranslation(
+        original,
+        langCode: sourceLang,
+      );
+      final translationDirection = textDirectionForTranslation(
+        translated,
+        langCode: targetLang,
+      );
+
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          messageTextRich(
+            original,
+            isMe,
+            chatId: chatId,
+            messageId: messageId,
+            underline: true,
+            textDirection: originalDirection,
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 6),
+            child: Divider(height: 1, thickness: 1, color: dividerColor),
+          ),
+          messageTextRich(
+            translated,
+            isMe,
+            chatId: chatId,
+            messageId: messageId,
+            textDirection: translationDirection,
+          ),
+        ],
+      );
+    },
+  );
 }
 
 class _ChatImageBubble extends StatelessWidget {
@@ -671,21 +779,33 @@ Widget messageTextRich(
   bool isMe, {
   String? chatId,
   String? messageId,
+  bool underline = false,
+  TextDirection? textDirection,
 }) {
   return Builder(
     builder: (context) {
-      final resolvedDirection = chatMessageTextDirectionFromFirstWord(text) ??
+      final resolvedDirection = textDirection ??
+          chatMessageTextDirectionFromFirstWord(text) ??
           Directionality.of(context);
       final matches = linkifiedUrlRegex.allMatches(text);
 
       final style = TextStyle(
         fontSize: 15,
         color: chatBubbleTextColor(context, isMe),
+        decoration: underline ? TextDecoration.underline : null,
+        decorationColor: chatBubbleTextColor(context, isMe).withValues(
+          alpha: 0.55,
+        ),
       );
 
       final child = matches.isEmpty
-          ? Text(text, style: style)
+          ? Text(
+              text,
+              style: style,
+              textAlign: TextAlign.start,
+            )
           : RichText(
+              textAlign: TextAlign.start,
               text: TextSpan(
                 children: buildMessageSpans(
                   text,
@@ -697,7 +817,10 @@ Widget messageTextRich(
               ),
             );
 
-      return Directionality(textDirection: resolvedDirection, child: child);
+      return Directionality(
+        textDirection: resolvedDirection,
+        child: child,
+      );
     },
   );
 }

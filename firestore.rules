@@ -751,6 +751,21 @@ service cloud.firestore {
         && messageDocNotSoftDeleted(resource.data);
     }
 
+    function messageSentTranslationFieldsUpdate(chatIdParam) {
+      let d = request.resource.data.diff(resource.data).affectedKeys();
+      return d.hasOnly([
+        'sentTranslation',
+        'sentTranslationLang',
+        'sentTranslationSourceHash',
+      ])
+        && messageParticipantInChat(chatIdParam)
+        && messageDocNotSoftDeleted(resource.data)
+        && (
+          resource.data.senderId == actorParticipantId()
+          || isAdmin()
+        );
+    }
+
     function messageTextEditBySender(chatIdParam) {
       return resource.data.senderId == actorParticipantId()
         && !isAdmin()
@@ -1157,6 +1172,7 @@ service cloud.firestore {
             || messageTextEditByAdmin(chatId)
             || messagePinUpdate(chatId)
             || messageTranslationsUpdate(chatId)
+            || messageSentTranslationFieldsUpdate(chatId)
           );
 
         allow delete: if false;

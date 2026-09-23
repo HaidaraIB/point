@@ -15,6 +15,12 @@ class AppLocaleKeys {
   static const chatActionSeeOriginal = 'chat.action.see_original';
   static const chatTranslationLoading = 'chat.translation.loading';
   static const chatTranslationFailed = 'chat.translation.failed';
+  static const chatSentTranslationPreference =
+      'chat.sentTranslation.preference';
+  static const chatSentTranslationOff = 'chat.sentTranslation.off';
+  static const chatSentTranslationPoweredBy = 'chat.sentTranslation.powered_by';
+  static const chatSentTranslationPreviewLoading =
+      'chat.sentTranslation.preview_loading';
   static const tasksTranslationGenerate = 'tasks.translation.generate';
   static const tasksTranslationGenerating = 'tasks.translation.generating';
   static const tasksTranslationStale = 'tasks.translation.stale';

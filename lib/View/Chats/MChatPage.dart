@@ -41,6 +41,8 @@ import 'package:point/View/Chats/chat_ui_helpers.dart';
 import 'package:point/View/Shared/app_user_avatar.dart';
 import 'package:point/View/Shared/material_list_tile_scope.dart';
 import 'package:point/View/Chats/chat_list_tile_media_subtitle.dart';
+import 'package:point/View/Chats/chat_composer_live_translation.dart';
+import 'package:point/View/Shared/chat_sent_translation_menu.dart';
 import 'package:point/View/Chats/chat_reply_draft_banner.dart';
 import 'package:point/View/Chats/chat_list_row_trailing.dart';
 import 'package:point/View/Chats/chat_list_folder_utils.dart';
@@ -1438,6 +1440,7 @@ class _MessageScreenState extends State<MessageScreen>
     with WidgetsBindingObserver, RouteAware {
   final TextEditingController _messageController = TextEditingController();
   final FocusNode _messageFocusNode = FocusNode();
+  late final ChatComposerLiveTranslationController _composerLiveTranslation;
   ChatImagePasteListener? _imagePasteListener;
   bool _isEmojiVisible = false;
   PendingChatAttachment? _pendingAttachment;
@@ -1571,6 +1574,11 @@ class _MessageScreenState extends State<MessageScreen>
   void initState() {
     super.initState();
     _typingWriter = PrivateChatTypingWriter(_firestore);
+    _composerLiveTranslation = ChatComposerLiveTranslationController(
+      onChanged: () {
+        if (mounted) setState(() {});
+      },
+    );
     _chatId = widget.chat['id'];
     _typingWriter.rebind(
       chatId: _chatId,
@@ -1640,6 +1648,7 @@ class _MessageScreenState extends State<MessageScreen>
 
   void _onComposerTextChanged() {
     _typingWriter.onComposerTextChanged(_messageController.text);
+    _composerLiveTranslation.onTextChanged(_messageController.text);
   }
 
   Map<String, String> _participantNamesMap() {
@@ -1844,6 +1853,7 @@ class _MessageScreenState extends State<MessageScreen>
     _clearVisibleChatFocusFromServices();
     // Do not call unfocus() here: during Android route pop it can deadlock the
     // platform text input channel; dispose() releases focus.
+    _composerLiveTranslation.dispose();
     _messageFocusNode.dispose();
     _messageController.removeListener(_onComposerTextChanged);
     _messageController.dispose();
@@ -1854,8 +1864,12 @@ class _MessageScreenState extends State<MessageScreen>
     final text = _messageController.text.trim();
     final pending = _pendingAttachment;
     if (text.isEmpty && pending == null) return;
+    final sentTranslation = text.isNotEmpty
+        ? await _composerLiveTranslation.resolveForSend(text)
+        : null;
     unawaited(_typingWriter.clearTyping());
     _messageController.clear();
+    _composerLiveTranslation.clear();
     if (!kIsWeb) {
       _messageFocusNode.requestFocus();
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -1879,6 +1893,7 @@ class _MessageScreenState extends State<MessageScreen>
             messageType: 'image',
             text: text,
             attachmentUrl: pending.attachmentUrl,
+            sentTranslation: sentTranslation,
           );
           break;
         case 'video':
@@ -1888,6 +1903,7 @@ class _MessageScreenState extends State<MessageScreen>
             text: text,
             attachmentUrl: pending.attachmentUrl,
             fileName: pending.fileName,
+            sentTranslation: sentTranslation,
           );
           break;
         case 'file':
@@ -1897,6 +1913,7 @@ class _MessageScreenState extends State<MessageScreen>
             text: text,
             attachmentUrl: pending.attachmentUrl,
             fileName: pending.fileName,
+            sentTranslation: sentTranslation,
           );
           break;
         case 'voice':
@@ -1906,17 +1923,17 @@ class _MessageScreenState extends State<MessageScreen>
             text: text,
             attachmentUrl: pending.attachmentUrl,
             durationSec: pending.durationSec,
+            sentTranslation: sentTranslation,
           );
           break;
       }
       return;
     }
-    unawaited(
-      _sendChatPayload(
-        lastMessagePreview: text,
-        messageType: 'text',
-        text: text,
-      ),
+    await _sendChatPayload(
+      lastMessagePreview: text,
+      messageType: 'text',
+      text: text,
+      sentTranslation: sentTranslation,
     );
   }
 
@@ -1978,6 +1995,7 @@ class _MessageScreenState extends State<MessageScreen>
     String? attachmentUrl,
     String? fileName,
     int? durationSec,
+    SentTranslationPayload? sentTranslation,
   }) async {
     if (messageType == 'text' && text.trim().isEmpty) return;
     if (messageType != 'text' &&
@@ -2011,6 +2029,11 @@ class _MessageScreenState extends State<MessageScreen>
     }
     if (durationSec != null) {
       payload['durationSec'] = durationSec;
+    }
+    if (sentTranslation != null) {
+      payload['sentTranslation'] = sentTranslation.translation;
+      payload['sentTranslationLang'] = sentTranslation.targetLang;
+      payload['sentTranslationSourceHash'] = sentTranslation.sourceHash;
     }
     final reply = _replyDraft;
     if (reply != null) {
@@ -2341,6 +2364,14 @@ class _MessageScreenState extends State<MessageScreen>
                         padding: const EdgeInsets.fromLTRB(14, 0, 14, 4),
                         onCancel: () => setState(() => _replyDraft = null),
                       ),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(14, 0, 14, 2),
+                      child: ChatComposerSentTranslationBar(
+                        padding: EdgeInsets.zero,
+                        onTargetChanged: () => _composerLiveTranslation
+                            .onTargetChanged(_messageController.text),
+                      ),
+                    ),
                     const VoiceRecorderActiveStrip(
                       padding: EdgeInsets.fromLTRB(14, 0, 14, 2),
                     ),
@@ -2361,6 +2392,13 @@ class _MessageScreenState extends State<MessageScreen>
                               : null,
                         ),
                       ),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(14, 0, 14, 2),
+                      child: ChatComposerTranslationPreview(
+                        controller: _composerLiveTranslation,
+                        padding: EdgeInsets.zero,
+                      ),
+                    ),
 
                     // 2. إدخال الرسالة والإيموجي
                     Align(

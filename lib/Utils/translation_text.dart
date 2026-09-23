@@ -1,6 +1,8 @@
 import 'dart:convert';
 
 import 'package:crypto/crypto.dart';
+import 'package:flutter/material.dart';
+import 'package:point/Utils/chat_message_bidi.dart';
 
 /// Stable cache key for translation lookups (matches Edge Function).
 String translationTextHash(String text) {
@@ -37,6 +39,73 @@ Map<String, String> parseTranslationMap(Object? raw) {
     out[k] = v;
   }
   return out;
+}
+
+/// Likely source language for compose-time translation chip (`ar` or `en`).
+String detectLikelySourceLangCode(String text) {
+  final arCount = RegExp(r'[\u0600-\u06FF]').allMatches(text).length;
+  final latinCount = RegExp(r'[A-Za-z]').allMatches(text).length;
+  return arCount >= latinCount ? 'ar' : 'en';
+}
+
+/// Paragraph direction for a known translation language code.
+TextDirection textDirectionForLangCode(String code) {
+  switch (code) {
+    case 'ar':
+    case 'fa':
+      return TextDirection.rtl;
+    case 'en':
+      return TextDirection.ltr;
+    default:
+      return TextDirection.ltr;
+  }
+}
+
+/// Prefer [langCode] when set; otherwise infer from [text].
+TextDirection textDirectionForTranslation(
+  String text, {
+  String? langCode,
+}) {
+  if (langCode != null && langCode.isNotEmpty) {
+    return textDirectionForLangCode(langCode);
+  }
+  return chatMessageTextDirectionFromFirstWord(text) ?? TextDirection.ltr;
+}
+
+/// Uppercase chip label for a language code.
+String translationLangChipLabel(String code) {
+  switch (code) {
+    case 'en':
+      return 'EN';
+    case 'fa':
+      return 'FA';
+    case 'ar':
+      return 'AR';
+    default:
+      return code.toUpperCase();
+  }
+}
+
+/// Skip live compose translation when text is already in the target language.
+bool shouldSkipComposeTranslation(String text, String targetLang) {
+  if (shouldSkipTranslation(text)) return true;
+  final source = detectLikelySourceLangCode(text);
+  if (targetLang == 'en' && source == 'en') return true;
+  if (targetLang == 'ar' && source == 'ar') return true;
+  return false;
+}
+
+/// Whether [msg] has a valid stored outgoing bilingual translation.
+bool messageHasSentTranslation(Map<String, dynamic> msg) {
+  final text = (msg['text'] ?? '').toString().trim();
+  if (text.isEmpty) return false;
+  final translated = (msg['sentTranslation'] as String?)?.trim() ?? '';
+  if (translated.isEmpty) return false;
+  final lang = (msg['sentTranslationLang'] as String?)?.trim() ?? '';
+  if (lang != 'ar' && lang != 'en' && lang != 'fa') return false;
+  final storedHash = (msg['sentTranslationSourceHash'] as String?)?.trim() ?? '';
+  if (storedHash.isEmpty) return false;
+  return storedHash == translationTextHash(text);
 }
 
 String localizedTaskField({

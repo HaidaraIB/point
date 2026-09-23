@@ -112,6 +112,24 @@ class FirestoreServices extends FirestoreServicesBase
         code: code,
       );
 
+  static Future<void> setEmployeeSentTranslationTarget({
+    required String employeeId,
+    required String? code,
+  }) =>
+      FirestoreFcmApi.setEmployeeSentTranslationTarget(
+        employeeId: employeeId,
+        code: code,
+      );
+
+  static Future<void> setClientSentTranslationTarget({
+    required String clientId,
+    required String? code,
+  }) =>
+      FirestoreFcmApi.setClientSentTranslationTarget(
+        clientId: clientId,
+        code: code,
+      );
+
   static Stream<List<AttendanceRecordModel>> streamTodayAttendanceForEmployee(
     String employeeId,
   ) =>

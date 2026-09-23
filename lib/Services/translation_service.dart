@@ -6,6 +6,20 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 const String _functionName = 'translate';
 
+class ComposeTranslationResult {
+  const ComposeTranslationResult({
+    required this.sourceHash,
+    this.translation,
+    this.skip = false,
+    this.source = 'gemini',
+  });
+
+  final String? translation;
+  final String sourceHash;
+  final bool skip;
+  final String source;
+}
+
 class ChatTranslationResult {
   const ChatTranslationResult({
     required this.translations,
@@ -35,6 +49,29 @@ class TaskTranslationResult {
 class TranslationService {
   TranslationService._();
   static final TranslationService instance = TranslationService._();
+
+  Future<ComposeTranslationResult?> translateComposeMessage(
+    String text,
+    String targetLang,
+  ) async {
+    if (shouldSkipTranslation(text)) return null;
+    if (targetLang != 'ar' && targetLang != 'en' && targetLang != 'fa') {
+      return null;
+    }
+    try {
+      final data = await _invokeRaw(
+        body: {
+          'action': 'translate-compose',
+          'text': text.trim(),
+          'targetLang': targetLang,
+        },
+      );
+      return _parseComposeResult(data, text);
+    } catch (e, st) {
+      appLog('TranslationService.translateComposeMessage failed: $e\n$st');
+      return null;
+    }
+  }
 
   Future<ChatTranslationResult?> translateChatMessage(String text) async {
     if (shouldSkipTranslation(text)) return null;
@@ -72,6 +109,26 @@ class TranslationService {
       appLog('TranslationService.translateTaskFields failed: $e\n$st');
       return null;
     }
+  }
+
+  ComposeTranslationResult? _parseComposeResult(dynamic data, String sourceText) {
+    if (data is! Map) return null;
+    final map = Map<String, dynamic>.from(data);
+    if (map['success'] != true) return null;
+    final hash = map['sourceHash']?.toString().trim();
+    final sourceHash = (hash != null && hash.isNotEmpty)
+        ? hash
+        : translationTextHash(sourceText);
+    if (map['skip'] == true) {
+      return ComposeTranslationResult(sourceHash: sourceHash, skip: true);
+    }
+    final translation = map['translation']?.toString().trim();
+    if (translation == null || translation.isEmpty) return null;
+    return ComposeTranslationResult(
+      translation: translation,
+      sourceHash: sourceHash,
+      source: map['source']?.toString() ?? 'gemini',
+    );
   }
 
   ChatTranslationResult? _parseChatResult(dynamic data, String sourceText) {

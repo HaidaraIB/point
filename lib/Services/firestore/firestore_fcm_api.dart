@@ -268,6 +268,48 @@ class FirestoreFcmApi {
     }
   }
 
+  static Future<void> setEmployeeSentTranslationTarget({
+    required String employeeId,
+    required String? code,
+  }) async {
+    final cleanedId = employeeId.trim();
+    if (cleanedId.isEmpty) return;
+    if (code != null && code != 'ar' && code != 'en' && code != 'fa') return;
+    try {
+      final ref = FirebaseFirestore.instance
+          .collection('employees')
+          .doc(cleanedId);
+      if (code == null) {
+        await ref.update({'sentTranslationTarget': FieldValue.delete()});
+      } else {
+        await ref.update({'sentTranslationTarget': code});
+      }
+    } catch (e, st) {
+      appLog('setEmployeeSentTranslationTarget failed: $e');
+      appLog('$st');
+    }
+  }
+
+  static Future<void> setClientSentTranslationTarget({
+    required String clientId,
+    required String? code,
+  }) async {
+    final cleanedId = clientId.trim();
+    if (cleanedId.isEmpty) return;
+    if (code != null && code != 'ar' && code != 'en' && code != 'fa') return;
+    try {
+      final ref = FirebaseFirestore.instance.collection('clients').doc(cleanedId);
+      if (code == null) {
+        await ref.update({'sentTranslationTarget': FieldValue.delete()});
+      } else {
+        await ref.update({'sentTranslationTarget': code});
+      }
+    } catch (e, st) {
+      appLog('setClientSentTranslationTarget failed: $e');
+      appLog('$st');
+    }
+  }
+
   static Future<void> _removeEmployeeFcmToken({
     required String employeeId,
     required String token,

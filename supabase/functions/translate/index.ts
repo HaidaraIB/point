@@ -27,6 +27,7 @@ type TranslateBody = {
   text?: string;
   title?: string;
   description?: string;
+  targetLang?: string;
 };
 
 function corsHeaders() {
@@ -400,6 +401,77 @@ function detectLikelyLang(text: string): "ar" | "en" {
   return arCount >= latinCount ? "ar" : "en";
 }
 
+function isValidTargetLang(lang: string): boolean {
+  return lang === "ar" || lang === "en" || lang === "fa";
+}
+
+function shouldSkipComposeTranslation(text: string, targetLang: string): boolean {
+  if (shouldSkipTranslation(text)) return true;
+  const sourceLang = detectLikelyLang(text);
+  if (targetLang === "en" && sourceLang === "en") return true;
+  if (targetLang === "ar" && sourceLang === "ar") return true;
+  return false;
+}
+
+async function handleTranslateCompose(
+  body: TranslateBody,
+  accessToken: string,
+  projectId: string,
+  uid: string,
+) {
+  const text = (body.text ?? "").trim();
+  const targetLang = (body.targetLang ?? "").trim();
+  if (!isValidTargetLang(targetLang)) {
+    return json({ errorCode: "ERR_INVALID_LANG" }, 400);
+  }
+  if (shouldSkipTranslation(text)) {
+    return json({ errorCode: "ERR_EMPTY_TEXT" }, 400);
+  }
+
+  const sourceHash = await sha256Hex(text);
+  if (shouldSkipComposeTranslation(text, targetLang)) {
+    return json({ success: true, skip: true, sourceHash });
+  }
+
+  const cached = await readCache(accessToken, projectId, sourceHash);
+  const cachedTranslation = cached?.[targetLang]?.trim();
+  if (cachedTranslation) {
+    return json({
+      success: true,
+      translation: cachedTranslation,
+      sourceHash,
+      source: "cache",
+    });
+  }
+
+  await assertUserRateLimit(accessToken, projectId, uid);
+
+  const langName =
+    targetLang === "ar"
+      ? "Arabic"
+      : targetLang === "fa"
+        ? "Farsi/Persian"
+        : "English";
+  const prompt =
+    `Translate the following message into ${langName} only. ` +
+    `Return ONLY valid JSON with a single key "${targetLang}" and the translation as its value. No markdown.\n\n${text}`;
+  const result = await callGeminiJson(prompt, accessToken, projectId);
+  const translated = result[targetLang]?.trim();
+  if (!translated) {
+    return json({ errorCode: "ERR_INVALID_RESPONSE" }, 502);
+  }
+
+  const toCache = { ...(cached ?? {}), [targetLang]: translated };
+  await writeCache(accessToken, projectId, sourceHash, toCache, "compose");
+
+  return json({
+    success: true,
+    translation: translated,
+    sourceHash,
+    source: "gemini",
+  });
+}
+
 async function handleTranslateChat(
   body: TranslateBody,
   accessToken: string,
@@ -550,6 +622,14 @@ Deno.serve(async (req: Request) => {
     const body = await req.json().catch(() => ({})) as TranslateBody;
     const action = (body.action ?? "").trim();
 
+    if (action === "translate-compose") {
+      return await handleTranslateCompose(
+        body,
+        saAccessToken,
+        caller.firebaseProjectId,
+        caller.uid,
+      );
+    }
     if (action === "translate-chat") {
       return await handleTranslateChat(
         body,

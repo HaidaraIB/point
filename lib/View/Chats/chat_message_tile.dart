@@ -13,8 +13,10 @@ import 'package:point/Localization/AppLocaleKeys.dart';
 import 'package:point/Localization/ContentLanguageController.dart';
 import 'package:point/Services/FunHelper.dart';
 import 'package:point/Services/chat_message_actions.dart';
+import 'package:point/Localization/SentTranslationController.dart';
 import 'package:point/Services/translation_service.dart';
 import 'package:point/Utils/translation_text.dart';
+import 'package:point/View/Chats/chat_composer_live_translation.dart';
 import 'package:point/View/Chats/chat_translation_preference_dialog.dart';
 import 'package:point/Utils/chat_attachment_download.dart';
 import 'package:point/Utils/chat_attachment_save.dart';
@@ -213,6 +215,7 @@ class _ChatMessageTileState extends State<ChatMessageTile>
 
   bool get _canTranslate {
     if (_deleted) return false;
+    if (messageHasSentTranslation(widget.message)) return false;
     final text = _copyablePlainText();
     return text.isNotEmpty && !shouldSkipTranslation(text);
   }
@@ -341,6 +344,15 @@ class _ChatMessageTileState extends State<ChatMessageTile>
         ),
       ),
     );
+  }
+
+  String _clipboardPlainText() {
+    final base = _copyablePlainText();
+    if (!messageHasSentTranslation(widget.message)) return base;
+    final translated =
+        (widget.message['sentTranslation'] as String?)?.trim() ?? '';
+    if (translated.isEmpty) return base;
+    return '$base\n$translated';
   }
 
   /// Clipboard: only the typed body or caption — never URLs, filenames, or placeholders.
@@ -521,7 +533,7 @@ class _ChatMessageTileState extends State<ChatMessageTile>
 
   int _menuItemCount() {
     var n = 1; // reply
-    final copyText = _copyablePlainText();
+    final copyText = _clipboardPlainText();
     if (!_deleted && copyText.isNotEmpty) n++;
     if (!_deleted && _downloadable != null) n++;
     if (!_deleted) n++;
@@ -732,18 +744,51 @@ class _ChatMessageTileState extends State<ChatMessageTile>
     if (next == null || next == prev) return;
     try {
       final editorName = widget.currentUserDisplayName?.trim();
+      final trimmedNext = next.trim();
+      SentTranslationPayload? sentPayload;
+      final storedTarget =
+          (widget.message['sentTranslationLang'] as String?)?.trim();
+      final target = Get.find<SentTranslationController>().targetOrNull ??
+          ((storedTarget == 'ar' ||
+                  storedTarget == 'en' ||
+                  storedTarget == 'fa')
+              ? storedTarget
+              : null);
+      if (target != null &&
+          !shouldSkipComposeTranslation(trimmedNext, target)) {
+        final result = await TranslationService.instance.translateComposeMessage(
+          trimmedNext,
+          target,
+        );
+        if (result != null && !result.skip) {
+          final translated = result.translation?.trim() ?? '';
+          if (translated.isNotEmpty && translated != trimmedNext) {
+            sentPayload = SentTranslationPayload(
+              translation: translated,
+              targetLang: target,
+              sourceHash: result.sourceHash,
+            );
+          }
+        }
+      }
+
       await ChatMessageActions.applyTextEdit(
         fs: FirebaseFirestore.instance,
         chatId: widget.chatId,
         messageId: widget.messageId,
         previousText: prev,
-        newText: next.trim(),
+        newText: trimmedNext,
         editedBy: widget.currentUserId,
         editedByName: (editorName != null && editorName.isNotEmpty)
             ? editorName
             : (widget.isMe
                   ? widget.senderName
                   : AppLocaleKeys.chatSenderFallback.tr),
+        sentTranslation: sentPayload?.translation,
+        sentTranslationLang: sentPayload?.targetLang,
+        sentTranslationSourceHash: sentPayload?.sourceHash,
+        clearSentTranslation:
+            sentPayload == null && messageHasSentTranslation(widget.message),
       );
     } catch (e) {
       _showChatFeedback(
@@ -815,7 +860,7 @@ class _ChatMessageTileState extends State<ChatMessageTile>
     final bubbleInOverlay = _bubbleRectInOverlay();
     if (bubbleInOverlay == null) return;
 
-    final copyText = _copyablePlainText();
+    final copyText = _clipboardPlainText();
     final editedFlag = widget.message['edited'] == true;
     final colorScheme = Theme.of(context).colorScheme;
 
@@ -1078,10 +1123,13 @@ class _ChatMessageTileState extends State<ChatMessageTile>
                   horizontal: 11,
                   vertical: 8,
                 ),
-                child: Column(
-                  crossAxisAlignment: _bubbleInnerCrossAxisAlignment(context),
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
+                child: IntrinsicWidth(
+                  child: Column(
+                    crossAxisAlignment: messageHasSentTranslation(widget.message)
+                        ? CrossAxisAlignment.stretch
+                        : _bubbleInnerCrossAxisAlignment(context),
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
                     _replyQuoteBar(context),
                     chatMessageBubbleContent(
                       _messageForDisplay(),
@@ -1155,6 +1203,7 @@ class _ChatMessageTileState extends State<ChatMessageTile>
                       ],
                     ),
                   ],
+                  ),
                 ),
               ),
             ],
