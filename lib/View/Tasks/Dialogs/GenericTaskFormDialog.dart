@@ -18,6 +18,8 @@ import 'package:point/View/Tasks/Dialogs/TaskFormDialogHeader.dart';
 import 'package:point/View/Tasks/Shared/task_form_dialog_actions.dart';
 import 'package:point/View/Tasks/Shared/task_note_body.dart';
 import 'package:point/View/Tasks/Shared/task_voice_form_helpers.dart';
+import 'package:point/View/Tasks/Shared/task_translation_form_state.dart';
+import 'package:point/View/Tasks/Shared/task_translation_generate_bar.dart';
 import 'package:point/View/Tasks/Shared/task_voice_record_field.dart';
 import 'package:point/Models/VoiceRecordEntry.dart';
 import 'package:point/Utils/app_theme_extension.dart';
@@ -53,6 +55,7 @@ class _GenericTaskFormDialogState extends State<GenericTaskFormDialog> {
   DateTime? _endAt;
   bool _useCustomClient = false;
   List<VoiceRecordEntry> _voiceRecords = const [];
+  final TaskTranslationFormState _translationState = TaskTranslationFormState();
 
   @override
   void initState() {
@@ -69,6 +72,7 @@ class _GenericTaskFormDialogState extends State<GenericTaskFormDialog> {
     _startAt = m?.fromDate;
     _endAt = m?.toDate;
     _voiceRecords = voiceRecordsFromTask(m);
+    _translationState.loadFromTask(m);
     Get.find<HomeController>().uploadedFilesPaths.assignAll(m?.files ?? []);
     widget.delegate.initFromModel(m);
   }
@@ -110,6 +114,11 @@ class _GenericTaskFormDialogState extends State<GenericTaskFormDialog> {
                       child: Column(
                         children: [
                           _buildTitleAndExecutorRow(controller),
+                          TaskTranslationGenerateBar(
+                            titleController: _titleController,
+                            descriptionController: _notesController,
+                            translationState: _translationState,
+                          ),
                           _buildClientRow(controller),
                           widget.delegate.buildTypeSpecificFields(context, _dialogWidth),
                           _buildPriorityRow(controller),
@@ -534,9 +543,11 @@ class _GenericTaskFormDialogState extends State<GenericTaskFormDialog> {
       voiceRecordDurationSec:
           VoiceRecordEntry.primaryDurationSec(_voiceRecords),
     );
-    final task = applyVoiceRecordsToTask(
-      widget.delegate.buildTask(common, widget.model, controller),
-      _voiceRecords,
+    final task = _translationState.mergeInto(
+      applyVoiceRecordsToTask(
+        widget.delegate.buildTask(common, widget.model, controller),
+        _voiceRecords,
+      ),
     );
     if (widget.model == null) {
       await controller.addTask(task);

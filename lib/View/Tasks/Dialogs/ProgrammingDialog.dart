@@ -22,6 +22,8 @@ import 'package:point/View/Tasks/ProgrammingUpdates/updates_source_banner.dart';
 import 'package:point/View/Tasks/Shared/task_form_dialog_actions.dart';
 import 'package:point/View/Tasks/Shared/task_note_body.dart';
 import 'package:point/View/Tasks/Shared/task_voice_form_helpers.dart';
+import 'package:point/View/Tasks/Shared/task_translation_form_state.dart';
+import 'package:point/View/Tasks/Shared/task_translation_generate_bar.dart';
 import 'package:point/View/Tasks/Shared/task_voice_record_field.dart';
 import 'package:point/Models/VoiceRecordEntry.dart';
 import 'package:point/Utils/app_theme_extension.dart';
@@ -71,6 +73,8 @@ void programmingDialog(
     text: model?.programmingModel?.aboutTask ?? '',
   );
   final notesController = TextEditingController(text: model?.description ?? '');
+  final translationState = TaskTranslationFormState();
+  translationState.loadFromTask(model);
 
   DateTime? startAt = model?.fromDate;
   DateTime? endAt = model?.toDate;
@@ -204,6 +208,11 @@ void programmingDialog(
                                   ),
                                 ),
                               ],
+                            ),
+                            TaskTranslationGenerateBar(
+                              titleController: titleController,
+                              descriptionController: notesController,
+                              translationState: translationState,
                             ),
 
                             Row(
@@ -608,6 +617,7 @@ void programmingDialog(
                                         model.id!.isEmpty;
                                     if (isNewTask) {
                                         controller.addTask(
+                                          translationState.mergeInto(
                                           TaskModel(
                                             title: titleController.text,
                                             description: notesController.text,
@@ -655,11 +665,13 @@ void programmingDialog(
                                               aboutTask: aboutTaskController.text,
                                             ),
                                           ),
+                                          ),
                                         );
                                         Get.back();
                                         controller.uploadedFilesPaths.clear();
                                       } else {
                                         controller.updateTask(
+                                          translationState.mergeInto(
                                           TaskModel(
                                             id: model.id,
                                             title: titleController.text,
@@ -713,6 +725,7 @@ void programmingDialog(
                                               designsDimensions: '',
                                               aboutTask: aboutTaskController.text,
                                             ),
+                                          ),
                                           ),
                                         );
                                         Get.back();

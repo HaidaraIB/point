@@ -23,6 +23,8 @@ import 'package:point/View/Tasks/Dialogs/task_dialog_constants.dart';
 import 'package:point/View/Tasks/Shared/task_form_dialog_actions.dart';
 import 'package:point/View/Tasks/Shared/task_note_body.dart';
 import 'package:point/View/Tasks/Shared/task_voice_form_helpers.dart';
+import 'package:point/View/Tasks/Shared/task_translation_form_state.dart';
+import 'package:point/View/Tasks/Shared/task_translation_generate_bar.dart';
 import 'package:point/View/Tasks/Shared/task_voice_record_field.dart';
 import 'package:point/Models/VoiceRecordEntry.dart';
 
@@ -72,6 +74,8 @@ void photographyDialog(BuildContext context, {TaskModel? model}) {
   );
   // final attachmentController = TextEditingController();
   final notesController = TextEditingController(text: model?.description ?? '');
+  final translationState = TaskTranslationFormState();
+  translationState.loadFromTask(model);
 
   DateTime? startAt = model?.fromDate;
   DateTime? endAt = model?.toDate;
@@ -202,6 +206,11 @@ void photographyDialog(BuildContext context, {TaskModel? model}) {
                                   ),
                                 ),
                               ],
+                            ),
+                            TaskTranslationGenerateBar(
+                              titleController: titleController,
+                              descriptionController: notesController,
+                              translationState: translationState,
                             ),
 
                             Row(
@@ -671,6 +680,7 @@ void photographyDialog(BuildContext context, {TaskModel? model}) {
                                         : clientController.text.trim();
                                     if (model == null) {
                                         controller.addTask(
+                                          translationState.mergeInto(
                                           TaskModel(
                                             title: titleController.text,
                                             description: notesController.text,
@@ -736,11 +746,13 @@ void photographyDialog(BuildContext context, {TaskModel? model}) {
                                                       shootingduration.text,
                                                 ),
                                           ),
+                                          ),
                                         );
                                         Get.back();
                                         controller.uploadedFilesPaths.clear();
                                       } else {
                                         controller.updateTask(
+                                          translationState.mergeInto(
                                           TaskModel(
                                             id: model.id,
                                             title: titleController.text,
@@ -798,6 +810,7 @@ void photographyDialog(BuildContext context, {TaskModel? model}) {
                                                   duration:
                                                       shootingduration.text,
                                                 ),
+                                          ),
                                           ),
                                         );
                                         Get.back();

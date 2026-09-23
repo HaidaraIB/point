@@ -101,4 +101,22 @@ class ChatMessageActions {
       'pinnedBy': FieldValue.delete(),
     });
   }
+
+  static Future<void> saveMessageTranslations({
+    required FirebaseFirestore fs,
+    required String chatId,
+    required String messageId,
+    required Map<String, String> translations,
+    required String sourceHash,
+  }) async {
+    await fs
+        .collection('chats')
+        .doc(chatId)
+        .collection('messages')
+        .doc(messageId)
+        .update({
+          'translations': translations,
+          'translationsSourceHash': sourceHash,
+        });
+  }
 }

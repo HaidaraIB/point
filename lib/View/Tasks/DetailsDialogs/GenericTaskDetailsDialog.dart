@@ -326,7 +326,10 @@ class _GenericTaskDetailsDialogState extends State<GenericTaskDetailsDialog> {
             .firstWhereOrNull((emp) => emp.id == widget.task.assignedTo)
             ?.name ??
         '';
-    final hasDescription = widget.task.description.trim().isNotEmpty;
+    final locale = Get.locale?.languageCode ?? 'ar';
+    final displayTitle = widget.task.localizedTitle(locale);
+    final displayDescription = widget.task.localizedDescription(locale);
+    final hasDescription = displayDescription.trim().isNotEmpty;
     final colorScheme = Theme.of(context).colorScheme;
 
     return Container(
@@ -344,7 +347,7 @@ class _GenericTaskDetailsDialogState extends State<GenericTaskDetailsDialog> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 SelectableText(
-                  widget.task.title,
+                  displayTitle,
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.w700,
                   ),
@@ -352,7 +355,7 @@ class _GenericTaskDetailsDialogState extends State<GenericTaskDetailsDialog> {
                 if (hasDescription) ...[
                   const SizedBox(height: 4),
                   LinkifiedText(
-                    widget.task.description,
+                    displayDescription,
                     selectable: true,
                     style: TextStyle(
                       color: colorScheme.onSurfaceVariant,

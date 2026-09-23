@@ -10,8 +10,12 @@ import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart' hide TextDirection;
 import 'package:point/Localization/AppLocaleKeys.dart';
+import 'package:point/Localization/ContentLanguageController.dart';
 import 'package:point/Services/FunHelper.dart';
 import 'package:point/Services/chat_message_actions.dart';
+import 'package:point/Services/translation_service.dart';
+import 'package:point/Utils/translation_text.dart';
+import 'package:point/View/Chats/chat_translation_preference_dialog.dart';
 import 'package:point/Utils/chat_attachment_download.dart';
 import 'package:point/Utils/chat_attachment_save.dart';
 import 'package:point/Utils/app_theme_extension.dart';
@@ -87,17 +91,28 @@ class ChatMessageTile extends StatefulWidget {
 
 class _ChatMessageTileState extends State<ChatMessageTile>
     with SingleTickerProviderStateMixin {
-  static final Map<String, DateTime> _feedbackDedupeLastShownAt = {};
   final GlobalKey _bubbleKey = GlobalKey(debugLabel: 'chatMessageBubble');
 
   late final SlidableController _slidableController;
   VoidCallback? _swipeReplyAnimListener;
+  bool _showTranslation = false;
+  bool _translating = false;
 
   @override
   void initState() {
     super.initState();
     _slidableController = SlidableController(this);
     _slidableController.endGesture.addListener(_onSlidableEndGesture);
+  }
+
+  @override
+  void didUpdateWidget(covariant ChatMessageTile oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.messageId != widget.messageId ||
+        oldWidget.message['text'] != widget.message['text']) {
+      _showTranslation = false;
+      _translating = false;
+    }
   }
 
   @override
@@ -194,6 +209,138 @@ class _ChatMessageTileState extends State<ChatMessageTile>
     final sender = (widget.message['senderId'] ?? '').toString();
     if (sender == widget.currentUserId) return true;
     return widget.isAdmin;
+  }
+
+  bool get _canTranslate {
+    if (_deleted) return false;
+    final text = _copyablePlainText();
+    return text.isNotEmpty && !shouldSkipTranslation(text);
+  }
+
+  String? _cachedTranslationForPreference(String langCode) {
+    final text = _copyablePlainText();
+    if (text.isEmpty) return null;
+    final storedHash = (widget.message['translationsSourceHash'] as String?)
+        ?.trim();
+    if (storedHash == null ||
+        storedHash.isEmpty ||
+        storedHash != translationTextHash(text)) {
+      return null;
+    }
+    final map = parseTranslationMap(widget.message['translations']);
+    final translated = map[langCode]?.trim();
+    if (translated == null || translated.isEmpty) return null;
+    return translated;
+  }
+
+  Map<String, dynamic> _messageForDisplay() {
+    final msg = Map<String, dynamic>.from(widget.message);
+    if (!_showTranslation) return msg;
+
+    final lang = Get.find<ContentLanguageController>().codeOrNull ?? 'ar';
+    final translated = _cachedTranslationForPreference(lang);
+    if (translated == null || translated.isEmpty) return msg;
+
+    msg['text'] = translated;
+    return msg;
+  }
+
+  Future<void> _onTranslateTap() async {
+    if (_showTranslation) {
+      setState(() => _showTranslation = false);
+      return;
+    }
+
+    final lang = await ensureChatTranslationPreference(context);
+    if (lang == null || !mounted) return;
+
+    final cached = _cachedTranslationForPreference(lang);
+    if (cached != null) {
+      setState(() => _showTranslation = true);
+      return;
+    }
+
+    final sourceText = _copyablePlainText();
+    if (shouldSkipTranslation(sourceText)) return;
+
+    setState(() => _translating = true);
+    try {
+      final result =
+          await TranslationService.instance.translateChatMessage(sourceText);
+      if (!mounted) return;
+      if (result == null) {
+        _showChatFeedback(
+          AppLocaleKeys.errorTitle.tr,
+          AppLocaleKeys.chatTranslationFailed.tr,
+          isError: true,
+          dedupeKey: 'chat_translate_fail_${widget.messageId}',
+        );
+        return;
+      }
+
+      await ChatMessageActions.saveMessageTranslations(
+        fs: FirebaseFirestore.instance,
+        chatId: widget.chatId,
+        messageId: widget.messageId,
+        translations: result.translations,
+        sourceHash: result.sourceHash,
+      );
+
+      if (!mounted) return;
+      setState(() {
+        widget.message['translations'] = result.translations;
+        widget.message['translationsSourceHash'] = result.sourceHash;
+        _showTranslation = true;
+      });
+    } finally {
+      if (mounted) setState(() => _translating = false);
+    }
+  }
+
+  Widget _bubbleTranslateButton(Color color) {
+    if (_showTranslation) {
+      return InkWell(
+        onTap: () => setState(() => _showTranslation = false),
+        borderRadius: BorderRadius.circular(4),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 1),
+          child: Text(
+            AppLocaleKeys.chatActionSeeOriginal.tr,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: color,
+              height: 1.0,
+            ),
+          ),
+        ),
+      );
+    }
+
+    return Tooltip(
+      message: AppLocaleKeys.chatActionTranslate.tr,
+      child: InkWell(
+        onTap: _translating ? null : () => unawaited(_onTranslateTap()),
+        borderRadius: BorderRadius.circular(4),
+        child: Padding(
+          padding: const EdgeInsets.all(2),
+          child: _translating
+              ? SizedBox(
+                  width: 12,
+                  height: 12,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 1.5,
+                    color: color,
+                  ),
+                )
+              : Icon(
+                  Icons.translate_outlined,
+                  size: 13,
+                  color: color.withValues(alpha: 0.72),
+                ),
+        ),
+      ),
+    );
   }
 
   /// Clipboard: only the typed body or caption — never URLs, filenames, or placeholders.
@@ -633,18 +780,7 @@ class _ChatMessageTileState extends State<ChatMessageTile>
     );
   }
 
-  bool _shouldSkipFeedback(String? dedupeKey, Duration dedupeWindow) {
-    if (dedupeKey == null || dedupeKey.isEmpty) return false;
-    final now = DateTime.now();
-    final last = _feedbackDedupeLastShownAt[dedupeKey];
-    if (last != null && now.difference(last) < dedupeWindow) {
-      return true;
-    }
-    _feedbackDedupeLastShownAt[dedupeKey] = now;
-    return false;
-  }
-
-  /// Opaque, high-contrast feedback (avoids GetX default frosted/blurred snackbar).
+  /// App-standard snackbar feedback (green success / red error, top).
   void _showChatFeedback(
     String title,
     String message, {
@@ -653,18 +789,26 @@ class _ChatMessageTileState extends State<ChatMessageTile>
     Duration dedupeWindow = const Duration(milliseconds: 1200),
   }) {
     if (!mounted) return;
-    if (_shouldSkipFeedback(dedupeKey, dedupeWindow)) return;
-    final bg = isError ? const Color(0xFF8E1A1A) : const Color(0xFF2D2D2D);
-
+    final bg = isError ? Colors.red : Colors.green;
+    if (dedupeKey != null && dedupeKey.isNotEmpty) {
+      FunHelper.showSnackbarDeduped(
+        title,
+        message,
+        dedupeKey: dedupeKey,
+        dedupeWindow: dedupeWindow,
+        backgroundColor: bg,
+        colorText: Colors.white,
+        autoHideAfter: dedupeWindow,
+      );
+      return;
+    }
     FunHelper.showSnackbar(
       title,
       message,
       backgroundColor: bg,
-      autoHideAfter: dedupeWindow,
-      snackPosition: SnackPosition.BOTTOM,
       colorText: Colors.white,
+      autoHideAfter: dedupeWindow,
     );
-
   }
 
   void _openContextMenu() {
@@ -708,6 +852,18 @@ class _ChatMessageTileState extends State<ChatMessageTile>
           child: _ChatMenuRow(
             icon: Icons.copy_outlined,
             label: AppLocaleKeys.chatActionCopy.tr,
+          ),
+        ),
+      if (_canTranslate)
+        PopupMenuItem<void>(
+          height: 42,
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          onTap: () => runAfterClose(_onTranslateTap),
+          child: _ChatMenuRow(
+            icon: Icons.translate_outlined,
+            label: _showTranslation
+                ? AppLocaleKeys.chatActionSeeOriginal.tr
+                : AppLocaleKeys.chatActionTranslate.tr,
           ),
         ),
       if (!_deleted && _downloadable != null)
@@ -928,7 +1084,7 @@ class _ChatMessageTileState extends State<ChatMessageTile>
                   children: [
                     _replyQuoteBar(context),
                     chatMessageBubbleContent(
-                      Map<String, dynamic>.from(widget.message),
+                      _messageForDisplay(),
                       !telegramLikeOutgoing && widget.isMe,
                       chatId: widget.chatId,
                       messageId: widget.messageId,
@@ -938,6 +1094,10 @@ class _ChatMessageTileState extends State<ChatMessageTile>
                       mainAxisAlignment: _bubbleFooterMainAxis(context),
                       mainAxisSize: MainAxisSize.min,
                       children: [
+                        if (_canTranslate) ...[
+                          _bubbleTranslateButton(footerTextColor),
+                          const SizedBox(width: 4),
+                        ],
                         if (widget.message['isPinned'] == true) ...[
                           Icon(
                             Icons.push_pin_rounded,

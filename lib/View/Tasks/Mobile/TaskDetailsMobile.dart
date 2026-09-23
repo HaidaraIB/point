@@ -105,7 +105,7 @@ class TaskDetailsMobilePage extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     SelectableText(
-                      task.title,
+                      task.localizedTitle(Get.locale?.languageCode ?? 'ar'),
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
@@ -114,7 +114,9 @@ class TaskDetailsMobilePage extends StatelessWidget {
                     ),
                     const SizedBox(height: 8),
                     LinkifiedText(
-                      task.description,
+                      task.localizedDescription(
+                        Get.locale?.languageCode ?? 'ar',
+                      ),
                       selectable: true,
                       style: TextStyle(
                         fontSize: 14,

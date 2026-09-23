@@ -7,6 +7,7 @@ import 'package:point/Services/FunHelper.dart';
 import 'package:point/View/EmployeeDashboard/employee_dashboard_dialogs.dart';
 import 'package:point/View/Shared/app_version_label.dart';
 import 'package:point/View/Shared/app_theme_menu_button.dart';
+import 'package:point/View/Shared/chat_translation_language_menu.dart';
 import 'package:point/Services/StorageKeys.dart';
 import 'package:point/Utils/AppConstants.dart';
 import 'package:point/Utils/AppImages.dart';
@@ -971,6 +972,7 @@ class _CustomSidebarState extends State<CustomSidebar> {
             ),
           ),
           _buildLanguageSelector(),
+          const ChatTranslationLanguageMenu(onDarkSurface: true),
           const AppThemeMenuButton(onDarkSurface: true),
           AppVersionLabel(
             padding: const EdgeInsets.fromLTRB(12, 4, 12, 4),

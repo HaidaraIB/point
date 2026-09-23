@@ -22,15 +22,21 @@ class OsAiGenerateButton extends StatelessWidget {
     required this.onPressed,
     this.isLoading = false,
     this.compact = false,
+    this.label,
+    this.icon,
   });
 
   final VoidCallback? onPressed;
   final bool isLoading;
   final bool compact;
+  final String? label;
+  final IconData? icon;
 
   @override
   Widget build(BuildContext context) {
     final actionColor = OsAiColors.actionForeground(context);
+    final resolvedIcon = icon ?? Icons.auto_awesome;
+    final resolvedLabel = label ?? AppLocaleKeys.osAiGenerate.tr;
     final labelStyle = TextStyle(
       fontSize: compact ? 11 : 14,
       fontWeight: FontWeight.w800,
@@ -57,9 +63,9 @@ class OsAiGenerateButton extends StatelessWidget {
                 color: actionColor,
               ),
             )
-          : Icon(Icons.auto_awesome, size: compact ? 14 : 16, color: actionColor),
+          : Icon(resolvedIcon, size: compact ? 14 : 16, color: actionColor),
       label: Text(
-        AppLocaleKeys.osAiGenerate.tr,
+        resolvedLabel,
         style: labelStyle,
       ),
     );

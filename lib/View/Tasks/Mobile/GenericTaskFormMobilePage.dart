@@ -25,6 +25,8 @@ import 'package:point/View/Tasks/Dialogs/task_dialog_constants.dart';
 import 'package:point/View/Tasks/ProgrammingUpdates/updates_source_banner.dart';
 import 'package:point/View/Tasks/Shared/task_voice_form_helpers.dart';
 import 'package:point/View/Tasks/Shared/task_note_body.dart';
+import 'package:point/View/Tasks/Shared/task_translation_form_state.dart';
+import 'package:point/View/Tasks/Shared/task_translation_generate_bar.dart';
 import 'package:point/View/Tasks/Shared/task_voice_record_field.dart';
 import 'package:point/Models/VoiceRecordEntry.dart';
 import 'package:point/Utils/app_theme_extension.dart';
@@ -102,6 +104,7 @@ class _GenericTaskFormMobilePageState extends State<GenericTaskFormMobilePage> {
   late String taskType;
   bool useCustomClient = false;
   List<VoiceRecordEntry> _voiceRecords = const [];
+  final TaskTranslationFormState _translationState = TaskTranslationFormState();
 
   TaskModel _applyVoice(TaskModel task) =>
       applyVoiceRecordsToTask(task, _voiceRecords);
@@ -122,6 +125,7 @@ class _GenericTaskFormMobilePageState extends State<GenericTaskFormMobilePage> {
     startAt = m?.fromDate;
     endAt = m?.toDate;
     _voiceRecords = voiceRecordsFromTask(m);
+    _translationState.loadFromTask(m);
 
     // Promotion (0)
     final promo = m?.promotionModel;
@@ -286,7 +290,7 @@ class _GenericTaskFormMobilePageState extends State<GenericTaskFormMobilePage> {
     if (model == null) {
       final newTask = _buildNewTask(execImage, controller, resolvedClientName);
       if (newTask == null) return;
-      await controller.addTask(newTask);
+      await controller.addTask(_translationState.mergeInto(newTask));
       if (!mounted) return;
       Get.back();
       controller.uploadedFilesPaths.clear();
@@ -499,7 +503,9 @@ class _GenericTaskFormMobilePageState extends State<GenericTaskFormMobilePage> {
             files: updatedFiles,
           );
       }
-      await controller.updateTask(_applyVoice(updated));
+      await controller.updateTask(
+        _translationState.mergeInto(_applyVoice(updated)),
+      );
       if (!mounted) return;
       Get.back();
       controller.uploadedFilesPaths.clear();
@@ -759,6 +765,11 @@ class _GenericTaskFormMobilePageState extends State<GenericTaskFormMobilePage> {
                     controller: titleController,
                     validator: (v) => (v == null || v.isEmpty) ? ' ' : null,
                     borderRadius: 8,
+                  ),
+                  TaskTranslationGenerateBar(
+                    titleController: titleController,
+                    descriptionController: notesController,
+                    translationState: _translationState,
                   ),
                   const SizedBox(height: 16),
                   DynamicDropdown<dynamic>(

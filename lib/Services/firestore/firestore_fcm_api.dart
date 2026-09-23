@@ -214,6 +214,24 @@ class FirestoreFcmApi {
     }
   }
 
+  static Future<void> setEmployeeContentLanguage({
+    required String employeeId,
+    required String code,
+  }) async {
+    final cleanedId = employeeId.trim();
+    if (cleanedId.isEmpty) return;
+    if (code != 'ar' && code != 'en' && code != 'fa') return;
+    try {
+      await FirebaseFirestore.instance
+          .collection('employees')
+          .doc(cleanedId)
+          .update({'contentLanguage': code});
+    } catch (e, st) {
+      appLog('setEmployeeContentLanguage failed: $e');
+      appLog('$st');
+    }
+  }
+
   static Future<void> setClientLanguage({
     required String clientId,
     required String code,
@@ -228,6 +246,24 @@ class FirestoreFcmApi {
           .update({'language': code});
     } catch (e, st) {
       appLog('setClientLanguage failed: $e');
+      appLog('$st');
+    }
+  }
+
+  static Future<void> setClientContentLanguage({
+    required String clientId,
+    required String code,
+  }) async {
+    final cleanedId = clientId.trim();
+    if (cleanedId.isEmpty) return;
+    if (code != 'ar' && code != 'en' && code != 'fa') return;
+    try {
+      await FirebaseFirestore.instance
+          .collection('clients')
+          .doc(cleanedId)
+          .update({'contentLanguage': code});
+    } catch (e, st) {
+      appLog('setClientContentLanguage failed: $e');
       appLog('$st');
     }
   }

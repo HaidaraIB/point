@@ -7,6 +7,7 @@ import 'package:point/Models/ProgrammingModel.dart';
 import 'package:point/Models/PromotionModel.dart';
 import 'package:point/Models/PublishModel.dart';
 import 'package:point/Models/VoiceRecordEntry.dart';
+import 'package:point/Utils/translation_text.dart';
 
 /// خرائط Firestore على الويب قد تكون كائنات JS وليست [Map] دارتية؛
 /// [Map.from] يحوّلها حتى يعمل المشغّل [] في النماذج الفرعية.
@@ -97,6 +98,12 @@ class TaskModel {
   final List<VoiceRecordEntry> voiceRecords;
   /// Programming updates merged into this task (type `'6'`).
   final List<String> sourceUpdateIds;
+  /// Locale-specific title (`ar` / `en` only). Original [title] is unchanged.
+  final Map<String, String> titleTranslations;
+  /// Locale-specific description (`ar` / `en` only).
+  final Map<String, String> descriptionTranslations;
+  final String titleTranslationHash;
+  final String descriptionTranslationHash;
 
   static const String kDeadlineExtensionPending = 'pending';
   static const String kDeadlineExtensionDenied = 'denied';
@@ -158,7 +165,23 @@ class TaskModel {
     this.voiceRecordDurationSec = 0,
     this.voiceRecords = const [],
     this.sourceUpdateIds = const [],
+    this.titleTranslations = const {},
+    this.descriptionTranslations = const {},
+    this.titleTranslationHash = '',
+    this.descriptionTranslationHash = '',
   });
+
+  String localizedTitle(String localeCode) => localizedTaskField(
+    original: title,
+    translations: titleTranslations,
+    localeCode: localeCode,
+  );
+
+  String localizedDescription(String localeCode) => localizedTaskField(
+    original: description,
+    translations: descriptionTranslations,
+    localeCode: localeCode,
+  );
 
   /// قيمة عددية لـ [progressMilestoneMask]؛ يُحوَّل الترميز القديم (1–31) إلى 32|64|128|256.
   static int parseProgressMilestoneMask(dynamic raw) {
@@ -340,6 +363,12 @@ class TaskModel {
       sourceUpdateIds: json['sourceUpdateIds'] != null
           ? List<String>.from(json['sourceUpdateIds'] as List)
           : <String>[],
+      titleTranslations: parseTranslationMap(json['titleTranslations']),
+      descriptionTranslations:
+          parseTranslationMap(json['descriptionTranslations']),
+      titleTranslationHash: json['titleTranslationHash']?.toString() ?? '',
+      descriptionTranslationHash:
+          json['descriptionTranslationHash']?.toString() ?? '',
     );
   }
 
@@ -417,6 +446,13 @@ class TaskModel {
       if (voiceRecords.isNotEmpty)
         'voiceRecords': VoiceRecordEntry.listToJson(voiceRecords),
       if (sourceUpdateIds.isNotEmpty) 'sourceUpdateIds': sourceUpdateIds,
+      if (titleTranslations.isNotEmpty) 'titleTranslations': titleTranslations,
+      if (descriptionTranslations.isNotEmpty)
+        'descriptionTranslations': descriptionTranslations,
+      if (titleTranslationHash.isNotEmpty)
+        'titleTranslationHash': titleTranslationHash,
+      if (descriptionTranslationHash.isNotEmpty)
+        'descriptionTranslationHash': descriptionTranslationHash,
     };
   }
 
@@ -478,6 +514,10 @@ class TaskModel {
     int? voiceRecordDurationSec,
     List<VoiceRecordEntry>? voiceRecords,
     List<String>? sourceUpdateIds,
+    Map<String, String>? titleTranslations,
+    Map<String, String>? descriptionTranslations,
+    String? titleTranslationHash,
+    String? descriptionTranslationHash,
     bool clearVoiceRecord = false,
   }) {
     return TaskModel(
@@ -563,6 +603,12 @@ class TaskModel {
           ? const []
           : (voiceRecords ?? this.voiceRecords),
       sourceUpdateIds: sourceUpdateIds ?? this.sourceUpdateIds,
+      titleTranslations: titleTranslations ?? this.titleTranslations,
+      descriptionTranslations:
+          descriptionTranslations ?? this.descriptionTranslations,
+      titleTranslationHash: titleTranslationHash ?? this.titleTranslationHash,
+      descriptionTranslationHash:
+          descriptionTranslationHash ?? this.descriptionTranslationHash,
     );
   }
 

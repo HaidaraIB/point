@@ -11,6 +11,7 @@ import 'package:point/View/Chats/MChatPage.dart';
 import 'package:point/View/EmployeeDashboard/employee_dashboard_dialogs.dart';
 import 'package:point/View/Shared/CustomHeader.dart';
 import 'package:point/View/Shared/app_theme_menu_button.dart';
+import 'package:point/View/Shared/chat_translation_language_menu.dart';
 import 'package:point/View/Shared/internet_status_badge.dart';
 import 'package:point/Utils/app_theme_extension.dart';
 import 'package:point/Utils/LibraryPermissions.dart';
@@ -86,6 +87,10 @@ class EmployeeMobileAppBar extends StatelessWidget implements PreferredSizeWidge
                     child: Text(AppLocaleKeys.appLanguageEnglish.tr),
                   ),
                 ],
+          ),
+          ChatTranslationLanguageMenu(
+            iconColor: context.appTheme.accentText,
+            compact: true,
           ),
           const AppThemeMenuButton(compact: true),
           IconButton(

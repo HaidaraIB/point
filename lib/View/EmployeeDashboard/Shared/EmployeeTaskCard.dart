@@ -110,7 +110,9 @@ class EmployeeTaskCard extends StatelessWidget {
                         children: [
                           Expanded(
                             child: Text(
-                              task.title,
+                              task.localizedTitle(
+                                Get.locale?.languageCode ?? 'ar',
+                              ),
                               style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,
@@ -307,7 +309,9 @@ class EmployeeTaskCard extends StatelessWidget {
 
                       // --- الوصف ---
                       Text(
-                        task.description,
+                        task.localizedDescription(
+                          Get.locale?.languageCode ?? 'ar',
+                        ),
                         maxLines: 3,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(

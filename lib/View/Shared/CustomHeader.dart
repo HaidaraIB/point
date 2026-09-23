@@ -15,6 +15,7 @@ import 'package:point/View/Chats/ChatPage.dart';
 import 'package:point/View/Chats/MChatPage.dart';
 import 'package:point/View/Chats/chat_ui_helpers.dart';
 import 'package:point/View/Shared/app_theme_menu_button.dart';
+import 'package:point/View/Shared/chat_translation_language_menu.dart';
 import 'package:point/View/Shared/in_app_notifications_panel.dart';
 import 'package:point/View/Shared/internet_status_badge.dart';
 import 'package:point/View/Shared/InputText.dart';
@@ -488,6 +489,21 @@ class HeaderWidget extends StatelessWidget {
             return Padding(
               padding: const EdgeInsetsDirectional.only(start: 4, end: 4),
               child: _webEmployeeLanguageMenuButton(),
+            );
+          }),
+        if (!isMobile && employee == true && client != true && kIsWeb)
+          Obx(() {
+            final r =
+                (Get.find<HomeController>().currentEmployee.value?.role ?? '')
+                    .trim()
+                    .toLowerCase();
+            if (r != 'employee') return const SizedBox.shrink();
+            return Padding(
+              padding: const EdgeInsetsDirectional.only(start: 0, end: 4),
+              child: ChatTranslationLanguageMenu(
+                iconColor: resolveAppTheme().accentText,
+                compact: true,
+              ),
             );
           }),
         if (!isMobile && employee == true && client != true && kIsWeb)

@@ -94,6 +94,24 @@ class FirestoreServices extends FirestoreServicesBase
   }) =>
       FirestoreFcmApi.setClientLanguage(clientId: clientId, code: code);
 
+  static Future<void> setEmployeeContentLanguage({
+    required String employeeId,
+    required String code,
+  }) =>
+      FirestoreFcmApi.setEmployeeContentLanguage(
+        employeeId: employeeId,
+        code: code,
+      );
+
+  static Future<void> setClientContentLanguage({
+    required String clientId,
+    required String code,
+  }) =>
+      FirestoreFcmApi.setClientContentLanguage(
+        clientId: clientId,
+        code: code,
+      );
+
   static Stream<List<AttendanceRecordModel>> streamTodayAttendanceForEmployee(
     String employeeId,
   ) =>

@@ -24,6 +24,8 @@ import 'package:point/View/Tasks/Dialogs/task_dialog_constants.dart';
 import 'package:point/View/Tasks/Shared/task_form_dialog_actions.dart';
 import 'package:point/View/Tasks/Shared/task_note_body.dart';
 import 'package:point/View/Tasks/Shared/task_voice_form_helpers.dart';
+import 'package:point/View/Tasks/Shared/task_translation_form_state.dart';
+import 'package:point/View/Tasks/Shared/task_translation_generate_bar.dart';
 import 'package:point/View/Tasks/Shared/task_voice_record_field.dart';
 import 'package:point/Models/VoiceRecordEntry.dart';
 
@@ -74,6 +76,8 @@ void montageDialog(BuildContext context, {TaskModel? model}) {
     text: model?.monatageModel?.attachementurl,
   );
   final notesController = TextEditingController(text: model?.description ?? '');
+  final translationState = TaskTranslationFormState();
+  translationState.loadFromTask(model);
 
   DateTime? startAt = model?.fromDate;
   DateTime? endAt = model?.toDate;
@@ -204,6 +208,11 @@ void montageDialog(BuildContext context, {TaskModel? model}) {
                                   ),
                                 ),
                               ],
+                            ),
+                            TaskTranslationGenerateBar(
+                              titleController: titleController,
+                              descriptionController: notesController,
+                              translationState: translationState,
                             ),
 
                             Row(
@@ -659,6 +668,7 @@ void montageDialog(BuildContext context, {TaskModel? model}) {
                                         : clientController.text.trim();
                                     if (model == null) {
                                         controller.addTask(
+                                          translationState.mergeInto(
                                           TaskModel(
                                             title: titleController.text,
                                             description: notesController.text,
@@ -718,11 +728,13 @@ void montageDialog(BuildContext context, {TaskModel? model}) {
                                               platform: platforms,
                                             ),
                                           ),
+                                          ),
                                         );
                                         Get.back();
                                         controller.uploadedFilesPaths.clear();
                                       } else {
                                         controller.updateTask(
+                                          translationState.mergeInto(
                                           TaskModel(
                                             id: model.id,
                                             title: titleController.text,
@@ -775,6 +787,7 @@ void montageDialog(BuildContext context, {TaskModel? model}) {
                                               duration: duration.text,
                                               platform: platforms,
                                             ),
+                                          ),
                                           ),
                                         );
                                         Get.back();

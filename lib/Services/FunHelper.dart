@@ -881,22 +881,6 @@ class _ArmedConfirmDialogState extends State<_ArmedConfirmDialog> {
                 textAlign: TextAlign.center,
                 style: const TextStyle(fontSize: 16),
               ),
-              if (_loading) ...[
-                const SizedBox(height: 16),
-                SizedBox(
-                  width: widget.dialogWidth,
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(4),
-                    child: LinearProgressIndicator(
-                      minHeight: 4,
-                      backgroundColor: AppColors.primary.withValues(
-                        alpha: 0.12,
-                      ),
-                      color: context.appTheme.accentText,
-                    ),
-                  ),
-                ),
-              ],
             ],
           ),
         ),

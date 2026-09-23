@@ -16,6 +16,7 @@ import 'package:point/Utils/AppConstants.dart';
 import 'package:point/View/ClientDashboard/client_profile_form.dart';
 import 'package:point/View/Shared/CustomHeader.dart';
 import 'package:point/View/Shared/app_theme_menu_button.dart';
+import 'package:point/View/Shared/chat_translation_language_menu.dart';
 import 'package:point/View/Shared/app_version_label.dart';
 import 'package:point/View/Shared/responsive.dart';
 import 'package:point/Utils/AppNotificationInbox.dart';
@@ -273,6 +274,10 @@ class ClientHome extends StatelessWidget {
                             ),
                           ],
                     ),
+                  ),
+                  ChatTranslationLanguageMenu(
+                    iconColor: appTheme.accentText,
+                    compact: true,
                   ),
                   const AppThemeMenuButton(compact: true),
                   const SizedBox(width: 4),

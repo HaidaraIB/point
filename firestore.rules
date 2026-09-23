@@ -778,6 +778,13 @@ service cloud.firestore {
         && (pinAction || unpinAction);
     }
 
+    function messageTranslationsUpdate(chatIdParam) {
+      let d = request.resource.data.diff(resource.data).affectedKeys();
+      return d.hasOnly(['translations', 'translationsSourceHash'])
+        && messageParticipantInChat(chatIdParam)
+        && messageDocNotSoftDeleted(resource.data);
+    }
+
     function messageDocAt(chatIdParam, messageIdParam) {
       return get(/databases/$(database)/documents/chats/$(chatIdParam)/messages/$(messageIdParam)).data;
     }
@@ -888,6 +895,15 @@ service cloud.firestore {
         && request.resource.data.osModuleAccess is list;
     }
 
+    // Written only by Supabase Edge Functions (service account). Clients never access.
+    match /translation_cache/{docId} {
+      allow read, write: if false;
+    }
+
+    match /translation_usage/{docId} {
+      allow read, write: if false;
+    }
+
     match /meta/{docId} {
       allow read: if isSignedIn() && hasAuthRole() && isManager();
       // Supervisors run the same client backfill path as admins.
@@ -923,6 +939,7 @@ service cloud.firestore {
               'name',
               'image',
               'language',
+              'contentLanguage',
             ]));
     }
 
@@ -1139,6 +1156,7 @@ service cloud.firestore {
             || messageTextEditBySender(chatId)
             || messageTextEditByAdmin(chatId)
             || messagePinUpdate(chatId)
+            || messageTranslationsUpdate(chatId)
           );
 
         allow delete: if false;
