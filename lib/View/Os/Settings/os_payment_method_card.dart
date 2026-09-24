@@ -10,7 +10,7 @@ import 'package:point/View/Os/os_form_dialog.dart';
 class OsPaymentMethodCard extends StatelessWidget {
   const OsPaymentMethodCard({
     super.key,
-    required this.icon,
+    required this.iconAsset,
     required this.title,
     required this.subtitle,
     required this.configured,
@@ -25,7 +25,8 @@ class OsPaymentMethodCard extends StatelessWidget {
     required this.onEditCredentials,
   });
 
-  final IconData icon;
+  /// Branded logo from `assets/images/` (same paths as web/pay.html).
+  final String iconAsset;
   final String title;
   final String subtitle;
   final bool configured;
@@ -64,7 +65,20 @@ class OsPaymentMethodCard extends StatelessWidget {
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(icon, size: 20, color: theme.accentText),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: Image.asset(
+                    iconAsset,
+                    width: 36,
+                    height: 36,
+                    fit: BoxFit.contain,
+                    errorBuilder: (_, __, ___) => Icon(
+                      Icons.payments_outlined,
+                      size: 28,
+                      color: theme.accentText,
+                    ),
+                  ),
+                ),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Column(
@@ -152,6 +166,7 @@ class OsPaymentMethodCard extends StatelessWidget {
               ],
               onChanged: bankFieldEnabled ? onBankAccountChanged : null,
             ),
+            const Spacer(),
             const SizedBox(height: 10),
             OutlinedButton.icon(
               onPressed: onEditCredentials,

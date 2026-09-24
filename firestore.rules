@@ -1512,6 +1512,11 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    // ZainCash webhook idempotency events (Edge Function service account only)
+    match /os_zaincash_events/{eventId} {
+      allow read, write: if false;
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }

@@ -13,5 +13,8 @@ verify_jwt = false
 [functions.qicard-webhook]
 verify_jwt = false
 
+[functions.zaincash-webhook]
+verify_jwt = false
+
 [functions.pay-link]
 verify_jwt = false

@@ -21,6 +21,11 @@ import {
   settleQicardInvoice,
 } from "../_shared/qicard.ts";
 import {
+  mapZaincashPaymentStatus,
+  resolveZaincashTransactionForInvoice,
+  settleZaincashInvoice,
+} from "../_shared/zaincash.ts";
+import {
   mapPaytabsResponseStatus,
   parsePaytabsNotification,
   queryPaytabsTransaction,
@@ -173,6 +178,57 @@ async function resolveAlqasehStatus(
   };
 }
 
+async function resolveZaincashStatus(
+  accessToken: string,
+  projectId: string,
+  invoiceId: string,
+): Promise<StatusResponse> {
+  let txn;
+  try {
+    txn = await resolveZaincashTransactionForInvoice(
+      accessToken,
+      projectId,
+      invoiceId,
+    );
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    console.warn("ZainCash resolve failed:", invoiceId, msg);
+    return { state: "failed" };
+  }
+
+  if (!txn) {
+    return { state: "pending" };
+  }
+
+  let state = mapZaincashPaymentStatus(txn.status);
+
+  if (state === "paid" && txn.transactionId) {
+    const result = await settleZaincashInvoice(
+      accessToken,
+      projectId,
+      txn.transactionId,
+    );
+    if (result === "ignored") {
+      state = "failed";
+    }
+  }
+
+  const invoiceFields = await lookupInvoiceFields(
+    accessToken,
+    projectId,
+    invoiceId,
+  );
+
+  if (invoiceFields && firestoreString(invoiceFields, "status") === "PAID") {
+    state = "paid";
+  }
+
+  return {
+    state,
+    ...invoiceSummary(invoiceFields, txn.amount, txn.currency),
+  };
+}
+
 async function resolveQicardStatus(
   accessToken: string,
   projectId: string,
@@ -316,6 +372,11 @@ Deno.serve(async (req: Request) => {
 
     if (provider === "qicard") {
       const status = await resolveQicardStatus(accessToken, projectId, ref);
+      return json(status);
+    }
+
+    if (provider === "zaincash") {
+      const status = await resolveZaincashStatus(accessToken, projectId, ref);
       return json(status);
     }
 

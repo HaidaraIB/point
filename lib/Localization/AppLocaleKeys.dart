@@ -983,6 +983,42 @@ class AppLocaleKeys {
   static const osSettingsQicardToggleSave = 'os.settings.qicard.toggle_save';
   static const osSettingsQicardToggleSaved = 'os.settings.qicard.toggle_saved';
   static const osSettingsQicardActiveBadge = 'os.settings.qicard.active_badge';
+  static const osSettingsPaymentMethodsZaincashSubtitle =
+      'os.settings.payment_methods.zaincash_subtitle';
+  static const osSettingsZaincashSection = 'os.settings.zaincash.section';
+  static const osSettingsZaincashDescription = 'os.settings.zaincash.description';
+  static const osSettingsZaincashConfigured = 'os.settings.zaincash.configured';
+  static const osSettingsZaincashNotConfigured =
+      'os.settings.zaincash.not_configured';
+  static const osSettingsZaincashClientSecretPreview =
+      'os.settings.zaincash.client_secret_preview';
+  static const osSettingsZaincashClientId = 'os.settings.zaincash.client_id';
+  static const osSettingsZaincashClientSecret =
+      'os.settings.zaincash.client_secret';
+  static const osSettingsZaincashClientSecretHint =
+      'os.settings.zaincash.client_secret_hint';
+  static const osSettingsZaincashApiKey = 'os.settings.zaincash.api_key';
+  static const osSettingsZaincashApiKeyHint = 'os.settings.zaincash.api_key_hint';
+  static const osSettingsZaincashApiKeyConfigured =
+      'os.settings.zaincash.api_key_configured';
+  static const osSettingsZaincashServiceType =
+      'os.settings.zaincash.service_type';
+  static const osSettingsZaincashLiveApiBase =
+      'os.settings.zaincash.live_api_base';
+  static const osSettingsZaincashLiveApiBaseHint =
+      'os.settings.zaincash.live_api_base_hint';
+  static const osSettingsZaincashSave = 'os.settings.zaincash.save';
+  static const osSettingsZaincashSaved = 'os.settings.zaincash.saved';
+  static const osSettingsZaincashUseSandbox =
+      'os.settings.zaincash.use_sandbox';
+  static const osSettingsZaincashBankRequired =
+      'os.settings.zaincash.bank_required';
+  static const osSettingsZaincashToggleSaved =
+      'os.settings.zaincash.toggle_saved';
+  static const errorsZaincashNotConfigured = 'errors.zaincash_not_configured';
+  static const errorsZaincashCreateFailed = 'errors.zaincash_create_failed';
+  static const errorsZaincashLiveApiBaseRequired =
+      'errors.zaincash_live_api_base_required';
   static const errorsCardPaymentDisabled = 'errors.card_payment_disabled';
   static const errorsQicardNotConfigured = 'errors.qicard_not_configured';
   static const errorsQicardBankAccountRequired =

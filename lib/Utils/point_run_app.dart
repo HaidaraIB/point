@@ -2,7 +2,7 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
-import 'package:web/web.dart' as web;
+import 'package:point/Utils/point_web_hot_restart.dart';
 
 /// Starts the app on all platforms, including web after a dev hot restart.
 ///
@@ -29,15 +29,8 @@ void pointRunApp(Widget app) {
     return;
   }
 
-  if (kDebugMode) {
-    const reloadGuardKey = 'point_web_hot_restart_reload';
-    final storage = web.window.sessionStorage;
-    if (storage.getItem(reloadGuardKey) != '1') {
-      storage.setItem(reloadGuardKey, '1');
-      web.window.location.reload();
-      return;
-    }
-    storage.removeItem(reloadGuardKey);
+  if (tryReloadWebAfterHotRestart()) {
+    return;
   }
 
   runApp(app);

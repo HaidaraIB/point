@@ -19,7 +19,7 @@ export const INVOICES_COLLECTION = "os_invoices";
 export const BANK_ACCOUNTS_COLLECTION = "os_bank_accounts";
 export const VOUCHERS_COLLECTION = "os_vouchers";
 
-export type CardProvider = "paytabs" | "alqaseh" | "qicard";
+export type CardProvider = "paytabs" | "alqaseh" | "qicard" | "zaincash";
 
 export function amountsMatch(expected: number, received: number): boolean {
   return Math.abs(expected - received) < 0.01;

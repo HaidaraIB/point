@@ -18,6 +18,24 @@ void main() {
     expect(status.qicard.bankAccountId, 'bank-2');
   });
 
+  test('OsActiveCardProviderStatus parses zaincash wallet', () {
+    final status = OsActiveCardProviderStatus.fromJson({
+      'provider': 'none',
+      'defaultBankAccountId': '',
+      'qicard': {'enabled': false, 'bankAccountId': '', 'configured': false},
+      'zaincash': {
+        'enabled': true,
+        'bankAccountId': 'bank-z',
+        'configured': true,
+      },
+      'enabledMethods': ['zaincash'],
+    });
+
+    expect(status.zaincash.enabled, isTrue);
+    expect(status.zaincash.bankAccountId, 'bank-z');
+    expect(status.enabledMethods, ['zaincash']);
+  });
+
   test('isEnabled is false when no methods', () {
     final status = OsActiveCardProviderStatus.fromJson({
       'provider': 'none',

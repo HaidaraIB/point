@@ -16,7 +16,6 @@ import {
 } from "../_shared/card-settings.ts";
 import { createOnlinePaymentSession } from "../_shared/card-checkout.ts";
 import { resolveInvoiceByPayLinkToken } from "../_shared/pay-link.ts";
-import { amountsMatch } from "../_shared/card-settlement.ts";
 import { onlinePaymentMethodLabel, resolveCheckoutMethod } from "../_shared/online-payment-methods.ts";
 
 const throttle = new Map<string, number>();
@@ -61,6 +60,9 @@ async function resolveCurrency(
   if (methods.includes("qicard")) {
     const q = firestoreString(fields, "qicardCurrency");
     if (q) return q;
+  }
+  if (methods.includes("zaincash")) {
+    return "IQD";
   }
   if (methods.includes("alqaseh")) {
     const a = firestoreString(fields, "alqasehCurrency");
@@ -174,17 +176,6 @@ Deno.serve(async (req: Request) => {
     }
 
     const returnBaseUrl = (body.returnBaseUrl ?? "").trim();
-    const existingProvider = firestoreString(fields, "cardProvider");
-    const existingUrl = firestoreString(fields, "cardPaymentUrl");
-    const existingAmount = firestoreNumber(fields, "cardSessionAmount");
-
-    if (
-      existingProvider === method &&
-      existingUrl &&
-      amountsMatch(existingAmount, total)
-    ) {
-      return json({ redirectUrl: existingUrl });
-    }
 
     const session = await createOnlinePaymentSession(
       method,

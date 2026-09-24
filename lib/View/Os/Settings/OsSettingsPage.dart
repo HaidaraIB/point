@@ -12,6 +12,7 @@ import 'package:point/Services/os_alqaseh_service.dart';
 import 'package:point/Services/os_card_payment_service.dart';
 import 'package:point/Services/os_paytabs_service.dart';
 import 'package:point/Services/os_qicard_service.dart';
+import 'package:point/Services/os_zaincash_service.dart';
 import 'package:point/Services/os_settings_tab_persistence.dart';
 import 'package:point/Services/os_whatsapp_service.dart';
 import 'package:point/Utils/AppColors.dart';
@@ -114,6 +115,7 @@ class _OsSettingsPageState extends State<OsSettingsPage>
       OsPaytabsService.instance.loadSettings(),
       OsAlqasehService.instance.loadSettings(),
       OsQicardService.instance.loadSettings(),
+      OsZaincashService.instance.loadSettings(),
     ]);
   }
 

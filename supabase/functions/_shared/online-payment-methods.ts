@@ -9,7 +9,7 @@ export function parseOnlinePaymentMethod(
   allowed: OnlinePaymentMethod[],
 ): OnlinePaymentMethod | null {
   const v = value.trim().toLowerCase();
-  if (v === "paytabs" || v === "alqaseh" || v === "qicard") {
+  if (v === "paytabs" || v === "alqaseh" || v === "qicard" || v === "zaincash") {
     return allowed.includes(v) ? v : null;
   }
   return null;
@@ -27,5 +27,6 @@ export function resolveCheckoutMethod(
 
 export function onlinePaymentMethodLabel(id: OnlinePaymentMethod): string {
   if (id === "paytabs" || id === "alqaseh") return "Visa/Master Card";
+  if (id === "zaincash") return "ZainCash";
   return "Qi Card";
 }

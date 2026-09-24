@@ -1472,6 +1472,8 @@ class AppTranslations extends Translations {
             'Visa and Mastercard checkout via Alqaseh.',
         'os.settings.payment_methods.qicard_subtitle':
             'Local Qi Card hosted checkout on payment links.',
+        'os.settings.payment_methods.zaincash_subtitle':
+            'ZainCash wallet checkout on payment links.',
         'os.settings.local_payments.section': 'Local payment methods',
         'os.settings.local_payments.description':
             'Enable Iraqi local wallets and cards independently from the international gateway.',
@@ -1503,7 +1505,36 @@ class AppTranslations extends Translations {
         'os.settings.qicard.toggle_save': 'Save local payment settings',
         'os.settings.qicard.toggle_saved': 'Local payment settings saved',
         'os.settings.qicard.active_badge': 'Qi Card is offered on invoice payment links',
+        'os.settings.zaincash.section': 'ZainCash',
+        'os.settings.zaincash.description':
+            'Accept payments through ZainCash hosted checkout on invoice payment links. Credentials are provided by ZainCash during merchant onboarding.',
+        'os.settings.zaincash.use_sandbox': 'Fill UAT test credentials',
+        'os.settings.zaincash.configured': 'ZainCash credentials are configured',
+        'os.settings.zaincash.not_configured': 'ZainCash is not configured yet',
+        'os.settings.zaincash.client_secret_preview': 'Saved client secret: @preview',
+        'os.settings.zaincash.client_id': 'Client ID',
+        'os.settings.zaincash.client_secret': 'Client secret',
+        'os.settings.zaincash.client_secret_hint':
+            'Leave blank to keep the current client secret',
+        'os.settings.zaincash.api_key': 'API key (JWT verification)',
+        'os.settings.zaincash.api_key_hint':
+            'Optional. Used to verify redirect callback tokens.',
+        'os.settings.zaincash.api_key_configured':
+            'An API key is saved on the server.',
+        'os.settings.zaincash.service_type': 'Service type',
+        'os.settings.zaincash.live_api_base': 'Live API base URL',
+        'os.settings.zaincash.live_api_base_hint':
+            'e.g. https://pg-api.zaincash.iq',
+        'os.settings.zaincash.save': 'Save ZainCash settings',
+        'os.settings.zaincash.saved': 'ZainCash settings saved',
+        'os.settings.zaincash.bank_required':
+            'Choose the bank account that receives ZainCash payments',
+        'os.settings.zaincash.toggle_saved': 'ZainCash payment settings saved',
         'errors.card_payment_disabled': 'Card payments are not enabled',
+        'errors.zaincash_not_configured': 'ZainCash is not configured',
+        'errors.zaincash_create_failed': 'Could not start ZainCash payment',
+        'errors.zaincash_live_api_base_required':
+            'Live API base URL is required for production',
         'errors.qicard_not_configured': 'Qi Card is not configured',
         'errors.qicard_bank_account_required':
             'Choose a bank account for Qi Card settlements',
@@ -4662,6 +4693,8 @@ class AppTranslations extends Translations {
             "دفع فيزا وماستركارد عبر Alqaseh.",
         "os.settings.payment_methods.qicard_subtitle":
             "دفع Qi Card المحلي عبر صفحة الدفع الآمنة.",
+        "os.settings.payment_methods.zaincash_subtitle":
+            "دفع زين كاش عبر روابط دفع الفواتير.",
         "os.settings.local_payments.section": "طرق الدفع المحلية",
         "os.settings.local_payments.description":
             "تفعيل محافظ وبطاقات محلية بشكل مستقل عن البوابة الدولية.",
@@ -4693,7 +4726,37 @@ class AppTranslations extends Translations {
         "os.settings.qicard.toggle_save": "حفظ إعدادات الدفع المحلي",
         "os.settings.qicard.toggle_saved": "تم حفظ إعدادات الدفع المحلي",
         "os.settings.qicard.active_badge": "Qi Card متاح في روابط دفع الفواتير",
+        "os.settings.zaincash.section": "زين كاش",
+        "os.settings.zaincash.description":
+            "قبول المدفوعات عبر صفحة زين كاش الآمنة في روابط دفع الفواتير. تُوفَّر بيانات الاعتماد من زين كاش عند تسجيل التاجر.",
+        "os.settings.zaincash.use_sandbox": "تعبئة بيانات اختبار UAT",
+        "os.settings.zaincash.configured": "تم إعداد بيانات زين كاش",
+        "os.settings.zaincash.not_configured": "لم يتم إعداد زين كاش بعد",
+        "os.settings.zaincash.client_secret_preview":
+            "سر العميل المحفوظ: @preview",
+        "os.settings.zaincash.client_id": "معرّف العميل (Client ID)",
+        "os.settings.zaincash.client_secret": "سر العميل (Client Secret)",
+        "os.settings.zaincash.client_secret_hint":
+            "اتركه فارغاً للإبقاء على السر الحالي",
+        "os.settings.zaincash.api_key": "مفتاح API (التحقق من JWT)",
+        "os.settings.zaincash.api_key_hint":
+            "اختياري. للتحقق من رمز العودة بعد الدفع.",
+        "os.settings.zaincash.api_key_configured":
+            "تم حفظ مفتاح API على الخادم.",
+        "os.settings.zaincash.service_type": "نوع الخدمة",
+        "os.settings.zaincash.live_api_base": "رابط API للإنتاج",
+        "os.settings.zaincash.live_api_base_hint":
+            "مثال: https://pg-api.zaincash.iq",
+        "os.settings.zaincash.save": "حفظ إعدادات زين كاش",
+        "os.settings.zaincash.saved": "تم حفظ إعدادات زين كاش",
+        "os.settings.zaincash.bank_required":
+            "اختر الحساب البنكي الذي يستلم مدفوعات زين كاش",
+        "os.settings.zaincash.toggle_saved": "تم حفظ إعدادات دفع زين كاش",
         "errors.card_payment_disabled": "الدفع بالبطاقة غير مفعّل",
+        "errors.zaincash_not_configured": "زين كاش غير مُعد",
+        "errors.zaincash_create_failed": "تعذّر بدء دفع زين كاش",
+        "errors.zaincash_live_api_base_required":
+            "رابط API للإنتاج مطلوب في بيئة الإنتاج",
         "errors.qicard_not_configured": "Qi Card غير مُعد",
         "errors.qicard_bank_account_required":
             "اختر حساباً بنكياً لتسوية مدفوعات Qi Card",

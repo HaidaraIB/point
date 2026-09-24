@@ -46,6 +46,7 @@
           choose: "اختر طريقة الدفع",
           methodCard: "فيزا / ماستركارد",
           methodQi: "Qi Card",
+          methodZain: "زين كاش",
           redirecting: "جاري التحويل إلى بوابة الدفع…",
           starting: "جاري تجهيز الدفع…",
           submit: "متابعة إلى الدفع",
@@ -61,6 +62,7 @@
           choose: "Choose a payment method",
           methodCard: "Visa/Master Card",
           methodQi: "Qi Card",
+          methodZain: "ZainCash",
           redirecting: "Redirecting to payment…",
           starting: "Preparing checkout…",
           submit: "Continue to payment",
@@ -109,12 +111,14 @@
 
       function methodIcon(id) {
         if (id === "qicard") return "assets/images/qicard.png";
+        if (id === "zaincash") return "assets/images/zaincash.png";
         if (id === "paytabs" || id === "alqaseh") return "assets/images/card.png";
         return "";
       }
 
       function methodDisplayLabel(id) {
         if (id === "qicard") return t("methodQi");
+        if (id === "zaincash") return t("methodZain");
         if (id === "paytabs" || id === "alqaseh") return t("methodCard");
         return id;
       }
@@ -264,7 +268,11 @@
         })
           .then(function (res) {
             return res.json().then(function (body) {
-              if (!res.ok) throw new Error(body.errorCode || "error");
+              if (!res.ok) {
+                throw new Error(
+                  (body && body.errorCode) ? String(body.errorCode) : "error"
+                );
+              }
               return body;
             });
           })
@@ -275,14 +283,18 @@
             }
             throw new Error("missing redirect");
           })
-          .catch(function () {
+          .catch(function (e) {
             paymentInFlight = false;
             var card = document.getElementById("card");
+            var msg = t("error");
+            if (e && e.message && e.message.indexOf("ERR_") === 0) {
+              msg = e.message;
+            }
             if (lastSummary) {
               renderSummary(lastSummary);
               var err = document.createElement("p");
               err.className = "text-error";
-              err.textContent = t("error");
+              err.textContent = msg;
               err.setAttribute("role", "alert");
               card.appendChild(err);
             } else {

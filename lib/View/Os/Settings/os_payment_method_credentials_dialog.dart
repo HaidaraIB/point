@@ -3,12 +3,14 @@ import 'package:get/get.dart';
 import 'package:point/Localization/AppLocaleKeys.dart';
 import 'package:point/Models/Os/OsAlqasehSettingsStatus.dart';
 import 'package:point/Models/Os/OsPaytabsSettingsStatus.dart';
+import 'package:point/Models/Os/OsZaincashSettingsStatus.dart';
 import 'package:point/View/Os/os_alqaseh_settings_panel.dart';
 import 'package:point/View/Os/os_form_dialog.dart';
 import 'package:point/View/Os/os_paytabs_settings_panel.dart';
 import 'package:point/View/Os/os_qicard_settings_panel.dart';
+import 'package:point/View/Os/os_zaincash_settings_panel.dart';
 
-enum OsPaymentMethodKind { paytabs, alqaseh, qicard }
+enum OsPaymentMethodKind { paytabs, alqaseh, qicard, zaincash }
 
 Future<void> showOsPaymentMethodCredentialsDialog({
   required BuildContext context,
@@ -16,16 +18,19 @@ Future<void> showOsPaymentMethodCredentialsDialog({
   ValueChanged<OsPaytabsSettingsStatus>? onPaytabsSaved,
   ValueChanged<OsAlqasehSettingsStatus>? onAlqasehSaved,
   Future<void> Function()? onQicardSaved,
+  ValueChanged<OsZaincashSettingsStatus>? onZaincashSaved,
 }) {
   final title = switch (kind) {
     OsPaymentMethodKind.paytabs => AppLocaleKeys.osSettingsPaytabsSection.tr,
     OsPaymentMethodKind.alqaseh => AppLocaleKeys.osSettingsAlqasehSection.tr,
     OsPaymentMethodKind.qicard => AppLocaleKeys.osSettingsQicardSection.tr,
+    OsPaymentMethodKind.zaincash => AppLocaleKeys.osSettingsZaincashSection.tr,
   };
   final icon = switch (kind) {
     OsPaymentMethodKind.paytabs => Icons.credit_card_outlined,
     OsPaymentMethodKind.alqaseh => Icons.account_balance_outlined,
     OsPaymentMethodKind.qicard => Icons.qr_code_2_outlined,
+    OsPaymentMethodKind.zaincash => Icons.account_balance_wallet_outlined,
   };
 
   return showOsFormDialog(
@@ -60,6 +65,15 @@ Future<void> showOsPaymentMethodCredentialsDialog({
             compact: true,
             onSettingsSaved: (_) async {
               await onQicardSaved?.call();
+              setLocal(() {});
+            },
+          );
+        case OsPaymentMethodKind.zaincash:
+          return OsZaincashSettingsPanel(
+            embedded: true,
+            compact: true,
+            onSettingsSaved: (status) {
+              onZaincashSaved?.call(status);
               setLocal(() {});
             },
           );

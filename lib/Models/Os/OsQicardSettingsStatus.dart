@@ -62,30 +62,3 @@ class OsQicardSettingsStatus {
     );
   }
 }
-
-class OsQicardToggleStatus {
-  const OsQicardToggleStatus({
-    required this.enabled,
-    required this.bankAccountId,
-    required this.configured,
-  });
-
-  final bool enabled;
-  final String bankAccountId;
-  final bool configured;
-
-  factory OsQicardToggleStatus.empty() => const OsQicardToggleStatus(
-        enabled: false,
-        bankAccountId: '',
-        configured: false,
-      );
-
-  factory OsQicardToggleStatus.fromJson(Map<String, dynamic>? json) {
-    if (json == null) return OsQicardToggleStatus.empty();
-    return OsQicardToggleStatus(
-      enabled: json['enabled'] == true,
-      bankAccountId: (json['bankAccountId'] as String?)?.trim() ?? '',
-      configured: json['configured'] == true,
-    );
-  }
-}

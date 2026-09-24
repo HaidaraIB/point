@@ -96,14 +96,17 @@ class OsCardPaymentService {
     }
   }
 
-  Future<OsActiveCardProviderStatus?> setQicardEnabled({
+  Future<OsActiveCardProviderStatus?> setWalletEnabled({
+    required String method,
     required bool enabled,
     required String bankAccountId,
   }) async {
+    final wallet = method.trim().toLowerCase();
     try {
       final data = await _invokeRaw(
         body: {
-          'action': 'set-qicard',
+          'action': wallet == 'qicard' ? 'set-qicard' : 'set-wallet',
+          if (wallet != 'qicard') 'method': wallet,
           'enabled': enabled,
           'bankAccountId': bankAccountId.trim(),
         },
@@ -112,9 +115,20 @@ class OsCardPaymentService {
       if (status != null) _cachedActive = status;
       return status;
     } catch (e, st) {
-      appLog('OsCardPaymentService.setQicardEnabled failed: $e\n$st');
+      appLog('OsCardPaymentService.setWalletEnabled failed: $e\n$st');
       return null;
     }
+  }
+
+  Future<OsActiveCardProviderStatus?> setQicardEnabled({
+    required bool enabled,
+    required String bankAccountId,
+  }) {
+    return setWalletEnabled(
+      method: 'qicard',
+      enabled: enabled,
+      bankAccountId: bankAccountId,
+    );
   }
 
   Future<String?> getPayLink({

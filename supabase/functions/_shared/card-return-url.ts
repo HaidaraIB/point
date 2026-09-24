@@ -115,6 +115,30 @@ export function buildQicardFinishPaymentUrl(
   });
 }
 
+export function buildZaincashRedirectUrls(
+  firebaseProjectId: string,
+  invoiceId: string,
+  payLinkToken: string,
+  returnBaseUrl?: string,
+): { successUrl: string; failureUrl: string } {
+  const ref = invoiceId.trim();
+  const successUrl = buildPaymentResultUrl({
+    provider: "zaincash",
+    firebaseProjectId,
+    payLinkToken,
+    returnBaseUrl,
+    query: { ref },
+  });
+  const failureUrl = buildPaymentResultUrl({
+    provider: "zaincash",
+    firebaseProjectId,
+    payLinkToken,
+    returnBaseUrl,
+    query: { ref },
+  });
+  return { successUrl, failureUrl };
+}
+
 export function buildPaytabsAppReturnRedirect(
   appBase: string | undefined,
   firebaseProjectId: string,

@@ -41,6 +41,7 @@ class OsInvoiceModel {
   final String? payLinkToken;
   final String? qicardRequestId;
   final String? qicardPaymentId;
+  final String? zaincashTransactionId;
   final DateTime createdAt;
 
   const OsInvoiceModel({
@@ -76,6 +77,7 @@ class OsInvoiceModel {
     this.payLinkToken,
     this.qicardRequestId,
     this.qicardPaymentId,
+    this.zaincashTransactionId,
     required this.createdAt,
   });
 
@@ -132,6 +134,7 @@ class OsInvoiceModel {
       payLinkToken: json['payLinkToken'] as String?,
       qicardRequestId: json['qicardRequestId'] as String?,
       qicardPaymentId: json['qicardPaymentId'] as String?,
+      zaincashTransactionId: json['zaincashTransactionId'] as String?,
       createdAt: _parseDateTime(json['createdAt']) ?? DateTime.now(),
     );
   }
@@ -206,6 +209,7 @@ class OsInvoiceModel {
     String? payLinkToken,
     String? qicardRequestId,
     String? qicardPaymentId,
+    String? zaincashTransactionId,
     DateTime? createdAt,
   }) {
     return OsInvoiceModel(
@@ -243,6 +247,8 @@ class OsInvoiceModel {
       payLinkToken: payLinkToken ?? this.payLinkToken,
       qicardRequestId: qicardRequestId ?? this.qicardRequestId,
       qicardPaymentId: qicardPaymentId ?? this.qicardPaymentId,
+      zaincashTransactionId:
+          zaincashTransactionId ?? this.zaincashTransactionId,
       createdAt: createdAt ?? this.createdAt,
     );
   }

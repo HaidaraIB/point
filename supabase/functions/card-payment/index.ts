@@ -11,8 +11,10 @@ import {
   getPaymentMethodsStatus,
   listEnabledPaymentMethods,
   parseActiveCardProvider,
+  parseWalletMethod,
   setActiveCardProvider,
   setQicardEnabled,
+  setWalletEnabled,
 } from "../_shared/card-settings.ts";
 import { ensureInvoicePayLinkToken } from "../_shared/pay-link.ts";
 import { resolveCheckoutMethod } from "../_shared/online-payment-methods.ts";
@@ -26,6 +28,7 @@ type CardPaymentBody = {
   returnBaseUrl?: string;
   enabled?: boolean;
   bankAccountId?: string;
+  method?: string;
 };
 
 function corsHeaders() {
@@ -102,18 +105,33 @@ Deno.serve(async (req: Request) => {
       }
     }
 
-    if (action === "set-qicard") {
+    if (action === "set-wallet" || action === "set-qicard") {
       await assertOsAdmin(saAccessToken, caller.firebaseProjectId, caller.uid);
+      const method = action === "set-qicard"
+        ? "qicard"
+        : parseWalletMethod(body.method ?? "");
+      if (!method) {
+        return json({ success: false, errorCode: "ERR_INVALID_REQUEST" }, 400);
+      }
       try {
-        const status = await setQicardEnabled(
-          {
-            enabled: body.enabled === true,
-            bankAccountId: body.bankAccountId,
-          },
-          saAccessToken,
-          caller.firebaseProjectId,
-          caller.uid,
-        );
+        const walletInput = {
+          enabled: body.enabled === true,
+          bankAccountId: body.bankAccountId,
+        };
+        const status = action === "set-qicard"
+          ? await setQicardEnabled(
+            walletInput,
+            saAccessToken,
+            caller.firebaseProjectId,
+            caller.uid,
+          )
+          : await setWalletEnabled(
+            method,
+            walletInput,
+            saAccessToken,
+            caller.firebaseProjectId,
+            caller.uid,
+          );
         return json({ success: true, ...status });
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
