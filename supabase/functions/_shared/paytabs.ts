@@ -91,10 +91,12 @@ import {
   buildPaytabsAppReturnRedirect,
   normalizeReturnBaseUrl,
 } from "./card-return-url.ts";
+import { ensureInvoicePayLinkToken } from "./pay-link.ts";
 
 export function getReturnUrl(
   firebaseProjectId?: string,
   returnBaseUrl?: string,
+  payLinkToken?: string,
 ): string {
   const ipnUrl = getIpnUrl(firebaseProjectId);
   const separator = ipnUrl.includes("?") ? "&" : "?";
@@ -102,6 +104,10 @@ export function getReturnUrl(
   const appBase = normalizeReturnBaseUrl(returnBaseUrl);
   if (appBase) {
     url += `&appBase=${encodeURIComponent(appBase)}`;
+  }
+  const token = (payLinkToken ?? "").trim();
+  if (token) {
+    url += `&t=${encodeURIComponent(token)}`;
   }
   return url;
 }
@@ -632,6 +638,15 @@ export async function createPaytabsSession(
     };
   }
 
+  let payLinkToken = firestoreString(invoiceFields, "payLinkToken");
+  if (payLinkToken.length < 16) {
+    payLinkToken = await ensureInvoicePayLinkToken(
+      accessToken,
+      projectId,
+      invoiceId,
+    );
+  }
+
   const cartDescription = displayNumber
     ? `Invoice ${displayNumber}`
     : `Invoice ${invoiceId}`;
@@ -654,7 +669,7 @@ export async function createPaytabsSession(
     cart_amount: total,
     hide_shipping: true,
     callback: getIpnUrl(projectId),
-    return: getReturnUrl(projectId, returnBaseUrl),
+    return: getReturnUrl(projectId, returnBaseUrl, payLinkToken),
     customer_details: customerDetails,
   };
 

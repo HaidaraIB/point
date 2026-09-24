@@ -6,200 +6,7 @@
   <meta name="robots" content="noindex, nofollow">
   <meta name="color-scheme" content="light dark">
   <title>Point OS — Payment</title>
-  <style>
-    :root {
-      --bg: #f8fafc;
-      --card: #ffffff;
-      --text: #0f172a;
-      --muted: #64748b;
-      --border: #e2e8f0;
-      --ref-bg: #f1f5f9;
-      --success: #059669;
-      --success-bg: #ecfdf5;
-      --error: #dc2626;
-      --error-bg: #fef2f2;
-      --pending: #d97706;
-      --pending-bg: #fffbeb;
-      --verifying: #2563eb;
-      --verifying-bg: #eff6ff;
-      --verifying-spinner-track: #dbeafe;
-      --toolbar-bg: rgba(255, 255, 255, 0.92);
-      --toolbar-border: #e2e8f0;
-      --toggle-bg: #f1f5f9;
-      --toggle-active-bg: #ffffff;
-      --toggle-active-text: #0f172a;
-      --toggle-text: #64748b;
-    }
-    :root[data-theme="dark"] {
-      --bg: #0f172a;
-      --card: #1e293b;
-      --text: #f1f5f9;
-      --muted: #94a3b8;
-      --border: #334155;
-      --ref-bg: #0f172a;
-      --success: #34d399;
-      --success-bg: rgba(52, 211, 153, 0.12);
-      --error: #f87171;
-      --error-bg: rgba(248, 113, 113, 0.12);
-      --pending: #fbbf24;
-      --pending-bg: rgba(251, 191, 36, 0.12);
-      --verifying: #60a5fa;
-      --verifying-bg: rgba(96, 165, 250, 0.12);
-      --verifying-spinner-track: #1e3a5f;
-      --toolbar-bg: rgba(30, 41, 59, 0.92);
-      --toolbar-border: #334155;
-      --toggle-bg: #0f172a;
-      --toggle-active-bg: #334155;
-      --toggle-active-text: #f8fafc;
-      --toggle-text: #94a3b8;
-    }
-    * { box-sizing: border-box; }
-    body {
-      margin: 0;
-      min-height: 100vh;
-      font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 24px;
-      transition: background 0.2s ease, color 0.2s ease;
-    }
-    .wrap { width: 100%; max-width: 520px; }
-    .toolbar {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      margin-bottom: 16px;
-      padding: 8px 10px;
-      border: 1px solid var(--toolbar-border);
-      border-radius: 14px;
-      background: var(--toolbar-bg);
-      backdrop-filter: blur(8px);
-    }
-    .toolbar-group {
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      padding: 3px;
-      border-radius: 999px;
-      background: var(--toggle-bg);
-    }
-    .toolbar-btn {
-      appearance: none;
-      border: 0;
-      background: transparent;
-      color: var(--toggle-text);
-      font: inherit;
-      font-size: 12px;
-      font-weight: 700;
-      line-height: 1;
-      padding: 8px 12px;
-      border-radius: 999px;
-      cursor: pointer;
-      transition: background 0.15s ease, color 0.15s ease;
-    }
-    .toolbar-btn:hover { color: var(--toggle-active-text); }
-    .toolbar-btn.active {
-      background: var(--toggle-active-bg);
-      color: var(--toggle-active-text);
-      box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
-    }
-    .toolbar-btn.icon-btn {
-      min-width: 36px;
-      padding-inline: 10px;
-      font-size: 15px;
-    }
-    .brand {
-      text-align: center;
-      font-size: 11px;
-      letter-spacing: 0.12em;
-      font-weight: 700;
-      color: var(--muted);
-      margin-bottom: 16px;
-    }
-    .card {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 20px;
-      padding: 32px 28px 24px;
-      text-align: center;
-      transition: background 0.2s ease, border-color 0.2s ease;
-    }
-    .icon {
-      width: 56px;
-      height: 56px;
-      border-radius: 50%;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 28px;
-      font-weight: 700;
-      margin-bottom: 18px;
-    }
-    .icon.success { background: var(--success-bg); color: var(--success); }
-    .icon.failed { background: var(--error-bg); color: var(--error); }
-    .icon.pending { background: var(--pending-bg); color: var(--pending); }
-    .icon.verifying { background: var(--verifying-bg); color: var(--verifying); }
-    h1 {
-      margin: 0 0 12px;
-      font-size: 1.5rem;
-      line-height: 1.3;
-    }
-    h1.success { color: var(--success); }
-    h1.failed { color: var(--error); }
-    h1.pending { color: var(--pending); }
-    h1.verifying { color: var(--verifying); }
-    .message {
-      margin: 0;
-      color: var(--muted);
-      line-height: 1.6;
-      font-size: 1rem;
-    }
-    .refs {
-      margin-top: 22px;
-      padding-top: 12px;
-      border-top: 1px solid var(--border);
-      text-align: start;
-    }
-    .ref-block {
-      background: var(--ref-bg);
-      border-radius: 12px;
-      padding: 10px 12px;
-      margin-top: 10px;
-    }
-    .ref-label {
-      font-size: 11px;
-      font-weight: 700;
-      color: var(--muted);
-      margin-bottom: 4px;
-    }
-    .ref-value {
-      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-      font-size: 14px;
-      font-weight: 700;
-      word-break: break-all;
-      color: var(--text);
-    }
-    .hint {
-      margin-top: 18px;
-      font-size: 13px;
-      color: var(--muted);
-    }
-    .spinner {
-      width: 28px;
-      height: 28px;
-      border: 3px solid var(--verifying-spinner-track);
-      border-top-color: var(--verifying);
-      border-radius: 50%;
-      animation: spin 0.8s linear infinite;
-      margin: 0 auto 18px;
-    }
-    @keyframes spin { to { transform: rotate(360deg); } }
-    [hidden] { display: none !important; }
-  </style>
+  <link rel="stylesheet" href="payment-pages.css">
 </head>
 <body>
   <div class="wrap">
@@ -214,7 +21,7 @@
       </div>
     </div>
     <div class="brand" id="brand">Point OS</div>
-    <div class="card">
+    <div class="card card--center">
       <div id="view-verifying">
         <div class="spinner" aria-hidden="true"></div>
         <h1 class="verifying" id="title-verifying"></h1>
@@ -237,17 +44,16 @@
       </div>
       <div class="refs" id="refs" hidden></div>
       <p class="hint" id="hint"></p>
+      <p class="hint" id="back-pay" hidden><a id="back-pay-link" href="#"></a></p>
     </div>
   </div>
+  <script src="payment-pages-shared.js"></script>
   <script>
     (function () {
-      var STATUS_ENDPOINT =
-        "https://nbyhcxhdkxrathjaacvj.supabase.co/functions/v1/card-payment-status";
+      var shared = window.PointPaymentPages;
+      var STATUS_ENDPOINT = shared.statusEndpoint;
       var POLL_MS = 3000;
       var POLL_MAX = 20;
-      var LANG_KEY = "point_payment_result_lang";
-      var THEME_KEY = "point_payment_result_theme";
-
       var params = new URLSearchParams(location.search);
       var currentView = "verifying";
       var pendingFinal = false;
@@ -269,6 +75,7 @@
           orderRef: "مرجع الطلب",
           paymentRef: "مرجع الدفع",
           closeHint: "يمكنك إغلاق هذه النافذة الآن.",
+          backToPay: "اختيار طريقة دفع أخرى",
           errorTitle: "تعذّر التحقق",
           errorMsg: "حدث خطأ أثناء التحقق من الدفع. يرجى المحاولة لاحقاً.",
         },
@@ -287,56 +94,19 @@
           orderRef: "Order reference",
           paymentRef: "Payment reference",
           closeHint: "You can close this window now.",
+          backToPay: "Choose another payment method",
           errorTitle: "Verification failed",
           errorMsg: "We could not verify the payment. Please try again later.",
         },
       };
 
-      function detectLang() {
-        var stored = localStorage.getItem(LANG_KEY);
-        if (stored === "ar" || stored === "en") return stored;
-        return "ar";
-      }
-
-      function detectTheme() {
-        var stored = localStorage.getItem(THEME_KEY);
-        if (stored === "light" || stored === "dark") return stored;
-        return "dark";
-      }
-
-      var lang = detectLang();
-      var theme = detectTheme();
+      var chrome = shared.initToolbar({
+        onLangChange: function () { renderAllText(); },
+        onThemeChange: function () {},
+      });
 
       function t() {
-        return STRINGS[lang];
-      }
-
-      function setLang(next) {
-        if (next !== "ar" && next !== "en") return;
-        lang = next;
-        localStorage.setItem(LANG_KEY, lang);
-        document.documentElement.lang = lang;
-        document.documentElement.dir = lang === "ar" ? "rtl" : "ltr";
-        updateLangButtons();
-        renderAllText();
-      }
-
-      function setTheme(next) {
-        if (next !== "light" && next !== "dark") return;
-        theme = next;
-        localStorage.setItem(THEME_KEY, theme);
-        document.documentElement.setAttribute("data-theme", theme);
-        updateThemeButtons();
-      }
-
-      function updateLangButtons() {
-        document.getElementById("lang-ar").classList.toggle("active", lang === "ar");
-        document.getElementById("lang-en").classList.toggle("active", lang === "en");
-      }
-
-      function updateThemeButtons() {
-        document.getElementById("theme-light").classList.toggle("active", theme === "light");
-        document.getElementById("theme-dark").classList.toggle("active", theme === "dark");
+        return STRINGS[chrome.getLang()];
       }
 
       function renderAllText() {
@@ -359,30 +129,25 @@
           ? copy.pendingFinalMsg
           : copy.pendingMsg;
         document.getElementById("hint").textContent = copy.closeHint;
+        var back = shared.payLinkBackUrl(params);
+        var backEl = document.getElementById("back-pay");
+        var backLink = document.getElementById("back-pay-link");
+        if (back && (currentView === "failed" || currentView === "pending")) {
+          backLink.href = back;
+          backLink.textContent = copy.backToPay;
+          backEl.hidden = false;
+        } else {
+          backEl.hidden = true;
+        }
         renderRefs();
       }
-
-      document.getElementById("lang-ar").addEventListener("click", function () {
-        setLang("ar");
-      });
-      document.getElementById("lang-en").addEventListener("click", function () {
-        setLang("en");
-      });
-      document.getElementById("theme-light").addEventListener("click", function () {
-        setTheme("light");
-      });
-      document.getElementById("theme-dark").addEventListener("click", function () {
-        setTheme("dark");
-      });
-
-      setTheme(theme);
-      setLang(lang);
 
       function provider() {
         var p = (params.get("provider") || "").trim().toLowerCase();
         if (p) return p;
         if (params.get("payment_id") || params.get("paymentId")) return "alqaseh";
         if (params.get("tranRef") || params.get("tran_ref")) return "paytabs";
+        if (params.get("ref") && (params.get("p") || params.get("t"))) return "qicard";
         return "";
       }
 
@@ -433,7 +198,7 @@
             '<div class="ref-block"><div class="ref-label">' +
             copy.orderRef +
             '</div><div class="ref-value">' +
-            escapeHtml(order) +
+            shared.escapeHtml(order) +
             "</div></div>";
         }
         if (pay) {
@@ -441,7 +206,7 @@
             '<div class="ref-block"><div class="ref-label">' +
             copy.paymentRef +
             '</div><div class="ref-value">' +
-            escapeHtml(pay) +
+            shared.escapeHtml(pay) +
             "</div></div>";
         }
         if (html) {
@@ -450,14 +215,6 @@
         } else {
           refs.hidden = true;
         }
-      }
-
-      function escapeHtml(value) {
-        return String(value)
-          .replace(/&/g, "&amp;")
-          .replace(/</g, "&lt;")
-          .replace(/>/g, "&gt;")
-          .replace(/"/g, "&quot;");
       }
 
       function statusUrl() {

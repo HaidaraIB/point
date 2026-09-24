@@ -1,5 +1,5 @@
 /**
- * Active card payment provider settings (PayTabs / Alqaseh / none).
+ * Active card payment provider settings (PayTabs / Alqaseh / none) and Qi Card toggle.
  */
 
 import type { CardProvider } from "./card-settlement.ts";
@@ -15,6 +15,8 @@ import {
 export const OS_SETTINGS_DOC = "os_settings/default";
 
 export type ActiveCardProvider = "none" | "paytabs" | "alqaseh";
+
+export type OnlinePaymentMethod = "paytabs" | "alqaseh" | "qicard";
 
 export function parseActiveCardProvider(value: string): ActiveCardProvider {
   const v = value.trim().toLowerCase();
@@ -50,10 +52,85 @@ export async function loadCardDefaultBankAccountId(
   return firestoreString(fields, "paytabsDefaultBankAccountId");
 }
 
+export async function loadQicardBankAccountId(
+  accessToken: string,
+  projectId: string,
+): Promise<string> {
+  const fields = await getFirestoreDoc(accessToken, projectId, OS_SETTINGS_DOC);
+  if (!fields) return "";
+  return firestoreString(fields, "qicardBankAccountId");
+}
+
+export async function isQicardEnabledFlag(
+  accessToken: string,
+  projectId: string,
+): Promise<boolean> {
+  const fields = await getFirestoreDoc(accessToken, projectId, OS_SETTINGS_DOC);
+  if (!fields) return false;
+  return firestoreBool(fields, "qicardEnabled");
+}
+
+export async function isQicardConfigured(
+  accessToken: string,
+  projectId: string,
+): Promise<boolean> {
+  const { getQicardSettingsStatus } = await import("./qicard.ts");
+  const status = await getQicardSettingsStatus(accessToken, projectId);
+  return status.configuredInFirestore;
+}
+
+export async function isQicardEnabled(
+  accessToken: string,
+  projectId: string,
+): Promise<boolean> {
+  if (!(await isQicardEnabledFlag(accessToken, projectId))) return false;
+  return await isQicardConfigured(accessToken, projectId);
+}
+
 export type ActiveCardProviderStatus = {
   provider: ActiveCardProvider;
   defaultBankAccountId: string;
 };
+
+export type QicardToggleStatus = {
+  enabled: boolean;
+  bankAccountId: string;
+  configured: boolean;
+};
+
+export type PaymentMethodsStatus = ActiveCardProviderStatus & {
+  qicard: QicardToggleStatus;
+  enabledMethods: OnlinePaymentMethod[];
+};
+
+export async function listEnabledPaymentMethods(
+  accessToken: string,
+  projectId: string,
+): Promise<OnlinePaymentMethod[]> {
+  const methods: OnlinePaymentMethod[] = [];
+  const active = await loadActiveCardProvider(accessToken, projectId);
+
+  if (active === "paytabs") {
+    const configured = await providerConfiguredForEnvironment(
+      accessToken,
+      projectId,
+      "paytabs",
+    );
+    if (configured) methods.push("paytabs");
+  }
+  if (active === "alqaseh") {
+    const configured = await providerConfiguredForEnvironment(
+      accessToken,
+      projectId,
+      "alqaseh",
+    );
+    if (configured) methods.push("alqaseh");
+  }
+  if (await isQicardEnabled(accessToken, projectId)) {
+    methods.push("qicard");
+  }
+  return methods;
+}
 
 export async function getActiveCardProviderStatus(
   accessToken: string,
@@ -65,6 +142,33 @@ export async function getActiveCardProviderStatus(
     projectId,
   );
   return { provider, defaultBankAccountId };
+}
+
+export async function getPaymentMethodsStatus(
+  accessToken: string,
+  projectId: string,
+): Promise<PaymentMethodsStatus> {
+  const base = await getActiveCardProviderStatus(accessToken, projectId);
+  const qicardBankAccountId = await loadQicardBankAccountId(
+    accessToken,
+    projectId,
+  );
+  const qicardConfigured = await isQicardConfigured(accessToken, projectId);
+  const qicardEnabledFlag = await isQicardEnabledFlag(accessToken, projectId);
+  const enabledMethods = await listEnabledPaymentMethods(
+    accessToken,
+    projectId,
+  );
+
+  return {
+    ...base,
+    qicard: {
+      enabled: qicardEnabledFlag,
+      bankAccountId: qicardBankAccountId,
+      configured: qicardConfigured,
+    },
+    enabledMethods,
+  };
 }
 
 async function providerConfiguredForEnvironment(
@@ -96,7 +200,7 @@ export async function setActiveCardProvider(
   accessToken: string,
   projectId: string,
   uid: string,
-): Promise<ActiveCardProviderStatus> {
+): Promise<PaymentMethodsStatus> {
   const provider = parseActiveCardProvider(input.provider);
   const existingBank = await loadCardDefaultBankAccountId(
     accessToken,
@@ -142,7 +246,52 @@ export async function setActiveCardProvider(
     ],
   );
 
-  return await getActiveCardProviderStatus(accessToken, projectId);
+  return await getPaymentMethodsStatus(accessToken, projectId);
+}
+
+export type SetQicardEnabledInput = {
+  enabled: boolean;
+  bankAccountId?: string;
+};
+
+export async function setQicardEnabled(
+  input: SetQicardEnabledInput,
+  accessToken: string,
+  projectId: string,
+  uid: string,
+): Promise<PaymentMethodsStatus> {
+  const enabled = input.enabled === true;
+  const existingBank = await loadQicardBankAccountId(accessToken, projectId);
+  const bankAccountId = (input.bankAccountId ?? existingBank).trim();
+
+  if (enabled) {
+    if (!bankAccountId) {
+      throw new Error("ERR_QICARD_BANK_ACCOUNT_REQUIRED");
+    }
+    const configured = await isQicardConfigured(accessToken, projectId);
+    if (!configured) throw new Error("ERR_QICARD_NOT_CONFIGURED");
+  }
+
+  const now = new Date().toISOString();
+  await setFirestoreDoc(
+    accessToken,
+    projectId,
+    OS_SETTINGS_DOC,
+    {
+      qicardEnabled: toFirestoreBool(enabled),
+      qicardBankAccountId: toFirestoreString(bankAccountId),
+      qicardUpdatedAt: toFirestoreString(now),
+      qicardUpdatedBy: toFirestoreString(uid),
+    },
+    [
+      "qicardEnabled",
+      "qicardBankAccountId",
+      "qicardUpdatedAt",
+      "qicardUpdatedBy",
+    ],
+  );
+
+  return await getPaymentMethodsStatus(accessToken, projectId);
 }
 
 export async function resolveSettlementBankAccountId(
@@ -150,6 +299,11 @@ export async function resolveSettlementBankAccountId(
   projectId: string,
   provider: CardProvider,
 ): Promise<string> {
+  if (provider === "qicard") {
+    const qicardBank = await loadQicardBankAccountId(accessToken, projectId);
+    if (qicardBank) return qicardBank;
+  }
+
   const shared = await loadCardDefaultBankAccountId(accessToken, projectId);
   if (shared) return shared;
 

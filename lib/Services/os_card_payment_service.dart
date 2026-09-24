@@ -28,7 +28,7 @@ class OsCardPaymentSession {
   }
 }
 
-/// Unified card payment provider (PayTabs / Alqaseh) via Edge Function.
+/// Unified online payment methods (PayTabs / Alqaseh / Qi Card) via Edge Function.
 class OsCardPaymentService {
   OsCardPaymentService._();
   static final OsCardPaymentService instance = OsCardPaymentService._();
@@ -96,8 +96,51 @@ class OsCardPaymentService {
     }
   }
 
+  Future<OsActiveCardProviderStatus?> setQicardEnabled({
+    required bool enabled,
+    required String bankAccountId,
+  }) async {
+    try {
+      final data = await _invokeRaw(
+        body: {
+          'action': 'set-qicard',
+          'enabled': enabled,
+          'bankAccountId': bankAccountId.trim(),
+        },
+      );
+      final status = parseActiveFromResponse(data);
+      if (status != null) _cachedActive = status;
+      return status;
+    } catch (e, st) {
+      appLog('OsCardPaymentService.setQicardEnabled failed: $e\n$st');
+      return null;
+    }
+  }
+
+  Future<String?> getPayLink({
+    required String invoiceId,
+  }) async {
+    try {
+      final data = await _invokeRaw(
+        body: {
+          'action': 'get-pay-link',
+          'invoiceId': invoiceId.trim(),
+          'returnBaseUrl': AppConfig.resolveCardPaymentReturnBaseUrl(),
+        },
+      );
+      if (data is! Map) return null;
+      final map = Map<String, dynamic>.from(data);
+      if (map['success'] != true) return null;
+      return (map['payUrl'] as String?)?.trim();
+    } catch (e, st) {
+      appLog('OsCardPaymentService.getPayLink failed: $e\n$st');
+      return null;
+    }
+  }
+
   Future<OsCardPaymentSession?> createSession({
     required String invoiceId,
+    String? provider,
   }) async {
     try {
       final data = await _invokeRaw(
@@ -105,6 +148,8 @@ class OsCardPaymentService {
           'action': 'create-session',
           'invoiceId': invoiceId.trim(),
           'returnBaseUrl': AppConfig.resolveCardPaymentReturnBaseUrl(),
+          if (provider != null && provider.trim().isNotEmpty)
+            'provider': provider.trim().toLowerCase(),
         },
       );
       return parseSessionFromResponse(data);
@@ -114,7 +159,7 @@ class OsCardPaymentService {
     }
   }
 
-  /// Returns a hosted payment URL for [invoice], creating a session if needed.
+  /// Returns the stable pay.html URL for [invoice].
   Future<String?> resolveInvoicePaymentLink(OsInvoiceModel invoice) async {
     if (invoice.isPaid) return null;
 
@@ -124,20 +169,7 @@ class OsCardPaymentService {
     final active = await loadActiveProvider();
     if (active == null || !active.isEnabled) return null;
 
-    final cachedUrl = invoice.cardPaymentUrl?.trim().isNotEmpty == true
-        ? invoice.cardPaymentUrl!.trim()
-        : (invoice.paytabsRedirectUrl?.trim() ?? '');
-    final cachedProvider = invoice.cardProvider?.trim().toLowerCase() ??
-        (invoice.paytabsRedirectUrl?.isNotEmpty == true ? 'paytabs' : '');
-
-    if (cachedUrl.isNotEmpty &&
-        cachedProvider.isNotEmpty &&
-        cachedProvider == active.provider) {
-      return cachedUrl;
-    }
-
-    final session = await createSession(invoiceId: invoiceId);
-    return session?.redirectUrl;
+    return getPayLink(invoiceId: invoiceId);
   }
 
   Future<dynamic> _invokeRaw({required Map<String, dynamic> body}) async {

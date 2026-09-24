@@ -38,6 +38,9 @@ class OsInvoiceModel {
   final double? cardSessionAmount;
   final String? cardProviderRef;
   final String? alqasehOrderId;
+  final String? payLinkToken;
+  final String? qicardRequestId;
+  final String? qicardPaymentId;
   final DateTime createdAt;
 
   const OsInvoiceModel({
@@ -70,6 +73,9 @@ class OsInvoiceModel {
     this.cardSessionAmount,
     this.cardProviderRef,
     this.alqasehOrderId,
+    this.payLinkToken,
+    this.qicardRequestId,
+    this.qicardPaymentId,
     required this.createdAt,
   });
 
@@ -123,6 +129,9 @@ class OsInvoiceModel {
       cardSessionAmount: (json['cardSessionAmount'] as num?)?.toDouble(),
       cardProviderRef: json['cardProviderRef'] as String?,
       alqasehOrderId: json['alqasehOrderId'] as String?,
+      payLinkToken: json['payLinkToken'] as String?,
+      qicardRequestId: json['qicardRequestId'] as String?,
+      qicardPaymentId: json['qicardPaymentId'] as String?,
       createdAt: _parseDateTime(json['createdAt']) ?? DateTime.now(),
     );
   }
@@ -194,6 +203,9 @@ class OsInvoiceModel {
     double? cardSessionAmount,
     String? cardProviderRef,
     String? alqasehOrderId,
+    String? payLinkToken,
+    String? qicardRequestId,
+    String? qicardPaymentId,
     DateTime? createdAt,
   }) {
     return OsInvoiceModel(
@@ -228,6 +240,9 @@ class OsInvoiceModel {
       cardSessionAmount: cardSessionAmount ?? this.cardSessionAmount,
       cardProviderRef: cardProviderRef ?? this.cardProviderRef,
       alqasehOrderId: alqasehOrderId ?? this.alqasehOrderId,
+      payLinkToken: payLinkToken ?? this.payLinkToken,
+      qicardRequestId: qicardRequestId ?? this.qicardRequestId,
+      qicardPaymentId: qicardPaymentId ?? this.qicardPaymentId,
       createdAt: createdAt ?? this.createdAt,
     );
   }

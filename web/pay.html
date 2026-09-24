@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="color-scheme" content="light dark">
+  <title>Point OS — Pay invoice</title>
+  <link rel="stylesheet" href="payment-pages.css">
+</head>
+<body>
+  <div class="wrap">
+    <div class="toolbar">
+      <div class="toolbar-group" role="group" aria-label="Language">
+        <button type="button" class="toolbar-btn" id="lang-ar" data-lang="ar">العربية</button>
+        <button type="button" class="toolbar-btn" id="lang-en" data-lang="en">English</button>
+      </div>
+      <div class="toolbar-group" role="group" aria-label="Theme">
+        <button type="button" class="toolbar-btn icon-btn" id="theme-light" aria-label="Light mode">☀</button>
+        <button type="button" class="toolbar-btn icon-btn" id="theme-dark" aria-label="Dark mode">☾</button>
+      </div>
+    </div>
+    <div class="brand" id="brand">Point OS</div>
+    <div class="card card--pay" id="card">
+      <div id="loading-state">
+        <div class="spinner spinner--block" aria-hidden="true"></div>
+      </div>
+    </div>
+  </div>
+  <script src="payment-pages-shared.js"></script>
+  <script>
+    (function () {
+      var shared = window.PointPaymentPages;
+      var params = new URLSearchParams(location.search);
+      var projectId = (params.get("p") || "").trim();
+      var token = (params.get("t") || "").trim();
+      var lastSummary = null;
+      var paymentInFlight = false;
+      var selectedMethodId = null;
+
+      var STR = {
+        ar: {
+          brand: "Point OS",
+          title: "دفع الفاتورة",
+          invoice: "فاتورة",
+          choose: "اختر طريقة الدفع",
+          methodCard: "فيزا / ماستركارد",
+          methodQi: "Qi Card",
+          redirecting: "جاري التحويل إلى بوابة الدفع…",
+          starting: "جاري تجهيز الدفع…",
+          submit: "متابعة إلى الدفع",
+          paid: "تم دفع هذه الفاتورة مسبقاً.",
+          invalid: "رابط الدفع غير صالح أو منتهي.",
+          unavailable: "لا توجد طرق دفع متاحة حالياً.",
+          error: "تعذّر تحميل بيانات الفاتورة. حاول لاحقاً.",
+        },
+        en: {
+          brand: "Point OS",
+          title: "Pay invoice",
+          invoice: "Invoice",
+          choose: "Choose a payment method",
+          methodCard: "Visa/Master Card",
+          methodQi: "Qi Card",
+          redirecting: "Redirecting to payment…",
+          starting: "Preparing checkout…",
+          submit: "Continue to payment",
+          paid: "This invoice has already been paid.",
+          invalid: "This payment link is invalid.",
+          unavailable: "No payment methods are available.",
+          error: "Could not load invoice details. Please try again.",
+        },
+      };
+
+      var chrome = shared.initToolbar({
+        onLangChange: function () {
+          document.getElementById("brand").textContent = t("brand");
+          renderSummary(lastSummary);
+        },
+        onThemeChange: function () {},
+      });
+
+      function t(key) {
+        var lang = chrome.getLang();
+        return (STR[lang] || STR.ar)[key] || key;
+      }
+
+      document.getElementById("brand").textContent = t("brand");
+
+      function summaryUrl() {
+        return (
+          shared.payLinkEndpoint +
+          "?p=" +
+          encodeURIComponent(projectId) +
+          "&t=" +
+          encodeURIComponent(token)
+        );
+      }
+
+      function formatAmount(amount, currency) {
+        var n = Number(amount);
+        if (!Number.isFinite(n)) return "";
+        var lang = chrome.getLang();
+        return (
+          n.toLocaleString(lang === "ar" ? "ar-IQ" : "en-US") +
+          " " +
+          (currency || "IQD")
+        );
+      }
+
+      function methodIcon(id) {
+        if (id === "qicard") return "assets/images/qicard.png";
+        if (id === "paytabs" || id === "alqaseh") return "assets/images/card.png";
+        return "";
+      }
+
+      function methodDisplayLabel(id) {
+        if (id === "qicard") return t("methodQi");
+        if (id === "paytabs" || id === "alqaseh") return t("methodCard");
+        return id;
+      }
+
+      function updateMethodSelectionUi() {
+        var card = document.getElementById("card");
+        var methods = card.querySelector(".methods");
+        if (!methods) return;
+        methods.querySelectorAll(".method-btn").forEach(function (btn) {
+          var on = btn.getAttribute("data-method") === selectedMethodId;
+          btn.classList.toggle("method-btn--selected", on);
+          btn.setAttribute("aria-checked", on ? "true" : "false");
+          btn.disabled = paymentInFlight;
+        });
+        var submit = document.getElementById("pay-submit-btn");
+        if (submit) {
+          submit.disabled = !selectedMethodId || paymentInFlight;
+        }
+      }
+
+      function setSubmitLoading(loading) {
+        var card = document.getElementById("card");
+        var submit = document.getElementById("pay-submit-btn");
+        if (!submit) return;
+        if (loading) {
+          card.setAttribute("aria-busy", "true");
+        } else {
+          card.removeAttribute("aria-busy");
+        }
+        submit.disabled = loading || !selectedMethodId;
+        submit.setAttribute("aria-busy", loading ? "true" : "false");
+        submit.setAttribute(
+          "aria-label",
+          loading ? t("starting") : t("submit")
+        );
+        submit.classList.toggle("pay-submit-btn--loading", loading);
+        var trailing = submit.querySelector(".pay-submit-trailing");
+        if (!trailing) return;
+        trailing.innerHTML = "";
+        if (loading) {
+          var s = document.createElement("div");
+          s.className = "spinner pay-submit-spinner";
+          s.setAttribute("aria-hidden", "true");
+          trailing.appendChild(s);
+        }
+      }
+
+      function bindMethodPicker(methods) {
+        if (!selectedMethodId && methods.length === 1) {
+          selectedMethodId = methods[0].id;
+        }
+        updateMethodSelectionUi();
+        var submit = document.getElementById("pay-submit-btn");
+        if (submit) {
+          submit.addEventListener("click", function () {
+            if (selectedMethodId) startPayment(selectedMethodId);
+          });
+        }
+        document.querySelectorAll(".method-btn").forEach(function (btn) {
+          btn.addEventListener("click", function () {
+            if (paymentInFlight) return;
+            selectedMethodId = btn.getAttribute("data-method");
+            updateMethodSelectionUi();
+          });
+        });
+      }
+
+      function renderSummary(data) {
+        var card = document.getElementById("card");
+        if (!data) {
+          card.innerHTML = '<p class="text-error">' + shared.escapeHtml(t("invalid")) + "</p>";
+          return;
+        }
+        if (data.paid) {
+          card.innerHTML =
+            "<h1>" +
+            shared.escapeHtml(t("title")) +
+            '</h1><p class="text-success">' +
+            shared.escapeHtml(t("paid")) +
+            "</p>";
+          return;
+        }
+        if (!data.methods || data.methods.length === 0) {
+          card.innerHTML =
+            "<h1>" +
+            shared.escapeHtml(t("title")) +
+            '</h1><p class="text-error">' +
+            shared.escapeHtml(t("unavailable")) +
+            "</p>";
+          return;
+        }
+        var html =
+          "<h1>" +
+          shared.escapeHtml(t("title")) +
+          "</h1>" +
+          '<p class="muted">' +
+          (data.agencyName ? shared.escapeHtml(data.agencyName) + " · " : "") +
+          shared.escapeHtml(t("invoice")) +
+          " " +
+          shared.escapeHtml(data.invoiceNumber || "") +
+          "</p>" +
+          '<div class="amount">' +
+          shared.escapeHtml(formatAmount(data.amount, data.currency)) +
+          "</div>";
+        html +=
+          '<p class="muted">' +
+          shared.escapeHtml(t("choose")) +
+          '</p><div class="methods" role="radiogroup" aria-label="' +
+          shared.escapeHtml(t("choose")) +
+          '">';
+        data.methods.forEach(function (m) {
+          html +=
+            '<button type="button" class="method-btn" role="radio" aria-checked="false" data-method="' +
+            shared.escapeHtml(m.id) +
+            '">';
+          html += '<span class="method-btn-main">';
+          var icon = methodIcon(m.id);
+          if (icon) {
+            html += '<img class="method-btn-icon" src="' + icon + '" alt="" />';
+          }
+          html +=
+            '<span class="method-btn-label">' +
+            shared.escapeHtml(methodDisplayLabel(m.id)) +
+            "</span></span></button>";
+        });
+        html +=
+          '</div><button type="button" class="pay-submit-btn" id="pay-submit-btn" disabled>' +
+          '<span class="pay-submit-label">' +
+          shared.escapeHtml(t("submit")) +
+          '</span><span class="pay-submit-trailing" aria-hidden="true"></span></button>';
+        card.innerHTML = html;
+        bindMethodPicker(data.methods);
+      }
+
+      function startPayment(method) {
+        if (paymentInFlight || !method) return;
+        paymentInFlight = true;
+        updateMethodSelectionUi();
+        setSubmitLoading(true);
+        fetch(summaryUrl(), {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Accept: "application/json" },
+          body: JSON.stringify({
+            method: method,
+            returnBaseUrl: location.origin,
+          }),
+        })
+          .then(function (res) {
+            return res.json().then(function (body) {
+              if (!res.ok) throw new Error(body.errorCode || "error");
+              return body;
+            });
+          })
+          .then(function (body) {
+            if (body.redirectUrl) {
+              location.href = body.redirectUrl;
+              return;
+            }
+            throw new Error("missing redirect");
+          })
+          .catch(function () {
+            paymentInFlight = false;
+            var card = document.getElementById("card");
+            if (lastSummary) {
+              renderSummary(lastSummary);
+              var err = document.createElement("p");
+              err.className = "text-error";
+              err.textContent = t("error");
+              err.setAttribute("role", "alert");
+              card.appendChild(err);
+            } else {
+              card.innerHTML =
+                '<p class="text-error">' + shared.escapeHtml(t("error")) + "</p>";
+            }
+          });
+      }
+
+      if (!projectId || !token) {
+        renderSummary(null);
+        return;
+      }
+
+      fetch(summaryUrl(), { headers: { Accept: "application/json" }, cache: "no-store" })
+        .then(function (res) {
+          if (!res.ok) throw new Error("status");
+          return res.json();
+        })
+        .then(function (data) {
+          lastSummary = data;
+          renderSummary(data);
+        })
+        .catch(function () {
+          document.getElementById("card").innerHTML =
+            '<p class="text-error">' + shared.escapeHtml(t("error")) + "</p>";
+        });
+    })();
+  </script>
+</body>
+</html>

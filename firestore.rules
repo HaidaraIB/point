@@ -1507,6 +1507,11 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    // Qi Card webhook idempotency events (Edge Function service account only)
+    match /os_qicard_events/{eventId} {
+      allow read, write: if false;
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }

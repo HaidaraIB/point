@@ -3,7 +3,7 @@
  * Supabase Edge Functions cannot render HTML on GET; the app serves the page.
  */
 
-const RELEASE_APP_BASE = "https://agency.point-iq.app";
+export const RELEASE_APP_BASE = "https://agency.point-iq.app";
 
 const ALLOWED_RETURN_HOSTS = new Set([
   "localhost",
@@ -33,34 +33,104 @@ export function normalizeReturnBaseUrl(input?: string): string | undefined {
   }
 }
 
+/** Adds stable pay.html context (p, t) for "choose another method" on the result page. */
+export function appendPayLinkContext(
+  params: URLSearchParams,
+  firebaseProjectId: string,
+  payLinkToken?: string,
+): void {
+  const projectId = firebaseProjectId.trim();
+  const token = (payLinkToken ?? "").trim();
+  if (projectId) {
+    if (!params.has("firebaseProjectId")) {
+      params.set("firebaseProjectId", projectId);
+    }
+    params.set("p", projectId);
+  }
+  if (token) params.set("t", token);
+}
+
+export function buildPayHtmlUrl(
+  firebaseProjectId: string,
+  payLinkToken: string,
+  returnBaseUrl?: string,
+): string {
+  const fromClient = normalizeReturnBaseUrl(returnBaseUrl);
+  const base = fromClient || RELEASE_APP_BASE;
+  const params = new URLSearchParams();
+  appendPayLinkContext(params, firebaseProjectId, payLinkToken);
+  return `${base}/pay.html?${params.toString()}`;
+}
+
+export function buildPaymentResultUrl(
+  options: {
+    provider: string;
+    firebaseProjectId?: string;
+    payLinkToken?: string;
+    returnBaseUrl?: string;
+    query?: Record<string, string>;
+  },
+): string {
+  const fromClient = normalizeReturnBaseUrl(options.returnBaseUrl);
+  const base = fromClient || RELEASE_APP_BASE;
+  const params = new URLSearchParams();
+  params.set("provider", options.provider.trim().toLowerCase());
+  if (options.firebaseProjectId) {
+    appendPayLinkContext(params, options.firebaseProjectId, options.payLinkToken);
+  }
+  if (options.query) {
+    for (const [key, value] of Object.entries(options.query)) {
+      const v = value.trim();
+      if (v) params.set(key, v);
+    }
+  }
+  return `${base}/payment-result.html?${params.toString()}`;
+}
+
 export function getAppCardPaymentReturnUrl(
   firebaseProjectId?: string,
   returnBaseUrl?: string,
+  payLinkToken?: string,
 ): string {
-  const projectId = (firebaseProjectId ?? "").trim();
-  const fromClient = normalizeReturnBaseUrl(returnBaseUrl);
-  const base = fromClient || RELEASE_APP_BASE;
+  return buildPaymentResultUrl({
+    provider: "alqaseh",
+    firebaseProjectId,
+    payLinkToken,
+    returnBaseUrl,
+  });
+}
 
-  const params = new URLSearchParams();
-  params.set("provider", "alqaseh");
-  if (projectId) params.set("firebaseProjectId", projectId);
-  return `${base}/payment-result.html?${params.toString()}`;
+export function buildQicardFinishPaymentUrl(
+  firebaseProjectId: string,
+  requestId: string,
+  payLinkToken: string,
+  returnBaseUrl?: string,
+): string {
+  return buildPaymentResultUrl({
+    provider: "qicard",
+    firebaseProjectId,
+    payLinkToken,
+    returnBaseUrl,
+    query: { ref: requestId.trim() },
+  });
 }
 
 export function buildPaytabsAppReturnRedirect(
   appBase: string | undefined,
   firebaseProjectId: string,
   fields: Record<string, string>,
+  payLinkToken?: string,
 ): string {
-  const base = normalizeReturnBaseUrl(appBase) || RELEASE_APP_BASE;
-  const params = new URLSearchParams();
-  params.set("provider", "paytabs");
-  if (firebaseProjectId.trim()) {
-    params.set("firebaseProjectId", firebaseProjectId.trim());
-  }
+  const params: Record<string, string> = {};
   const tranRef = (fields.tranRef ?? fields.tran_ref ?? "").trim();
-  if (tranRef) params.set("ref", tranRef);
+  if (tranRef) params.ref = tranRef;
   const cartId = (fields.cartId ?? fields.cart_id ?? "").trim();
-  if (cartId) params.set("order_id", cartId);
-  return `${base}/payment-result.html?${params.toString()}`;
+  if (cartId) params.order_id = cartId;
+  return buildPaymentResultUrl({
+    provider: "paytabs",
+    firebaseProjectId,
+    payLinkToken,
+    returnBaseUrl: appBase,
+    query: params,
+  });
 }

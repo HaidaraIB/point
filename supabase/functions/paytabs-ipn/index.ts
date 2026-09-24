@@ -71,6 +71,7 @@ async function handleReturn(req: Request): Promise<Response> {
   const url = new URL(req.url);
   const appBase = url.searchParams.get("appBase") ?? "";
   const firebaseProjectId = url.searchParams.get("firebaseProjectId") ?? "";
+  const payLinkToken = url.searchParams.get("t") ?? "";
   const fields = readReturnFields(req, url);
 
   if (req.method === "POST") {
@@ -91,6 +92,7 @@ async function handleReturn(req: Request): Promise<Response> {
     appBase,
     firebaseProjectId,
     fields,
+    payLinkToken,
   );
   return new Response(null, {
     status: 302,

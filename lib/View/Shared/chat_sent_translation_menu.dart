@@ -4,6 +4,9 @@ import 'package:point/Localization/AppLocaleKeys.dart';
 import 'package:point/Localization/SentTranslationController.dart';
 import 'package:point/Utils/app_theme_extension.dart';
 
+/// PopupMenuButton does not invoke [PopupMenuButton.onSelected] for `null` values.
+const _sentTranslationOffMenuValue = '';
+
 String _sentTranslationLabelFor(String? code) {
   switch (code) {
     case 'en':
@@ -17,10 +20,10 @@ String _sentTranslationLabelFor(String? code) {
   }
 }
 
-List<PopupMenuEntry<String?>> _sentTranslationMenuItems() {
+List<PopupMenuEntry<String>> _sentTranslationMenuItems() {
   return [
     PopupMenuItem(
-      value: null,
+      value: _sentTranslationOffMenuValue,
       child: Text(AppLocaleKeys.chatSentTranslationOff.tr),
     ),
     PopupMenuItem(
@@ -88,7 +91,7 @@ class ChatComposerSentTranslationBar extends StatelessWidget {
                     color: theme.accentText,
                   ),
                 ),
-                PopupMenuButton<String?>(
+                PopupMenuButton<String>(
                   tooltip: AppLocaleKeys.chatSentTranslationPreference.tr,
                   padding: EdgeInsets.zero,
                   constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
@@ -100,7 +103,10 @@ class ChatComposerSentTranslationBar extends StatelessWidget {
                     size: 20,
                   ),
                   onSelected: (code) async {
-                    await stc.changeTarget(code);
+                    final target = code == _sentTranslationOffMenuValue
+                        ? null
+                        : code;
+                    await stc.changeTarget(target);
                     onTargetChanged?.call();
                   },
                   itemBuilder: (context) => _sentTranslationMenuItems(),

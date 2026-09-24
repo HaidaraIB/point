@@ -22,7 +22,9 @@ import {
   loadActiveCardProvider,
   loadCardDefaultBankAccountId,
   OS_SETTINGS_DOC,
+  resolveSettlementBankAccountId,
 } from "./card-settings.ts";
+import { ensureInvoicePayLinkToken } from "./pay-link.ts";
 import { maskSecret } from "./paytabs.ts";
 
 export const ALQASEH_EVENTS_COLLECTION = "os_alqaseh_events";
@@ -93,8 +95,13 @@ import { getAppCardPaymentReturnUrl } from "./card-return-url.ts";
 export function getAlqasehReturnUrl(
   firebaseProjectId?: string,
   returnBaseUrl?: string,
+  payLinkToken?: string,
 ): string {
-  return getAppCardPaymentReturnUrl(firebaseProjectId, returnBaseUrl);
+  return getAppCardPaymentReturnUrl(
+    firebaseProjectId,
+    returnBaseUrl,
+    payLinkToken,
+  );
 }
 
 function basicAuthHeader(clientId: string, clientSecret: string): string {
@@ -489,6 +496,15 @@ export async function createAlqasehSession(
     }
   }
 
+  let payLinkToken = firestoreString(invoiceFields, "payLinkToken");
+  if (payLinkToken.length < 16) {
+    payLinkToken = await ensureInvoicePayLinkToken(
+      accessToken,
+      projectId,
+      invoiceId,
+    );
+  }
+
   const orderId = buildAlqasehOrderId(invoiceId, displayNumber);
   const checkoutAmount = normalizeCheckoutAmount(total, settings.currency);
   const description = buildPaymentDescription(displayNumber, invoiceId);
@@ -501,7 +517,7 @@ export async function createAlqasehSession(
     description,
     order_id: orderId,
     transaction_type: "Retail",
-    redirect_url: getAlqasehReturnUrl(projectId, returnBaseUrl),
+    redirect_url: getAlqasehReturnUrl(projectId, returnBaseUrl, payLinkToken),
     webhook_url: getAlqasehWebhookUrl(projectId),
     token_expiry_in_hour: tokenExpiryHours,
     country: "IQ",
@@ -614,9 +630,10 @@ export async function settleAlqasehInvoice(
   );
   if (claim === "duplicate") return "duplicate";
 
-  const bankAccountId = await loadCardDefaultBankAccountId(
+  const bankAccountId = await resolveSettlementBankAccountId(
     accessToken,
     projectId,
+    "alqaseh",
   );
   if (!bankAccountId) {
     throw new Error("Card payment bank account missing");

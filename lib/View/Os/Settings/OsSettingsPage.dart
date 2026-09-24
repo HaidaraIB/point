@@ -11,6 +11,7 @@ import 'package:point/Services/os_ai_service.dart';
 import 'package:point/Services/os_alqaseh_service.dart';
 import 'package:point/Services/os_card_payment_service.dart';
 import 'package:point/Services/os_paytabs_service.dart';
+import 'package:point/Services/os_qicard_service.dart';
 import 'package:point/Services/os_settings_tab_persistence.dart';
 import 'package:point/Services/os_whatsapp_service.dart';
 import 'package:point/Utils/AppColors.dart';
@@ -25,9 +26,7 @@ import 'package:point/View/Os/os_email_settings_panel.dart';
 import 'package:point/View/Os/os_print_contact_settings_panel.dart';
 import 'package:point/View/Os/os_quote_template_settings_panel.dart';
 import 'package:point/View/Os/os_snackbar.dart';
-import 'package:point/View/Os/os_alqaseh_settings_panel.dart';
-import 'package:point/View/Os/os_card_provider_selector.dart';
-import 'package:point/View/Os/os_paytabs_settings_panel.dart';
+import 'package:point/View/Os/Settings/os_payment_methods_tab.dart';
 import 'package:point/View/Os/os_whatsapp_settings_panel.dart';
 import 'package:point/View/Os/os_whatsapp_template_settings_panel.dart';
 import 'package:point/View/Os/os_stamp_settings_panel.dart';
@@ -114,6 +113,7 @@ class _OsSettingsPageState extends State<OsSettingsPage>
       OsCardPaymentService.instance.loadActiveProvider(),
       OsPaytabsService.instance.loadSettings(),
       OsAlqasehService.instance.loadSettings(),
+      OsQicardService.instance.loadSettings(),
     ]);
   }
 
@@ -426,28 +426,7 @@ class _OsSettingsPageState extends State<OsSettingsPage>
                           ),
                         ],
                       ),
-                      ListView(
-                        padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
-                        children: [
-                          _SettingsCard(
-                            icon: Icons.payment_outlined,
-                            title: AppLocaleKeys.osSettingsCardProviderSection.tr,
-                            child: const OsCardProviderSelector(embedded: true),
-                          ),
-                          const SizedBox(height: 16),
-                          _SettingsCard(
-                            icon: Icons.credit_card_outlined,
-                            title: AppLocaleKeys.osSettingsPaytabsSection.tr,
-                            child: const OsPaytabsSettingsPanel(embedded: true),
-                          ),
-                          const SizedBox(height: 16),
-                          _SettingsCard(
-                            icon: Icons.account_balance_outlined,
-                            title: AppLocaleKeys.osSettingsAlqasehSection.tr,
-                            child: const OsAlqasehSettingsPanel(embedded: true),
-                          ),
-                        ],
-                      ),
+                      const OsPaymentMethodsTab(),
                       ListView(
                         padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
                         children: [

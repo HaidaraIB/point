@@ -5,13 +5,17 @@ import {
 } from "../_shared/firebase-edge.ts";
 import { getAccessToken } from "../_shared/firestore-rest.ts";
 import { assertOsAdmin, assertOsAccess } from "../_shared/os-admin.ts";
-import { createAlqasehSession } from "../_shared/alqaseh.ts";
-import { createPaytabsSession } from "../_shared/paytabs.ts";
+import { createOnlinePaymentSession } from "../_shared/card-checkout.ts";
+import { buildPayHtmlUrl } from "../_shared/card-return-url.ts";
 import {
-  getActiveCardProviderStatus,
+  getPaymentMethodsStatus,
+  listEnabledPaymentMethods,
   parseActiveCardProvider,
   setActiveCardProvider,
+  setQicardEnabled,
 } from "../_shared/card-settings.ts";
+import { ensureInvoicePayLinkToken } from "../_shared/pay-link.ts";
+import { resolveCheckoutMethod } from "../_shared/online-payment-methods.ts";
 
 type CardPaymentBody = {
   action?: string;
@@ -20,6 +24,8 @@ type CardPaymentBody = {
   invoiceId?: string;
   firebaseProjectId?: string;
   returnBaseUrl?: string;
+  enabled?: boolean;
+  bankAccountId?: string;
 };
 
 function corsHeaders() {
@@ -67,7 +73,7 @@ Deno.serve(async (req: Request) => {
         caller.uid,
         "invoices",
       );
-      const status = await getActiveCardProviderStatus(
+      const status = await getPaymentMethodsStatus(
         saAccessToken,
         caller.firebaseProjectId,
       );
@@ -96,6 +102,62 @@ Deno.serve(async (req: Request) => {
       }
     }
 
+    if (action === "set-qicard") {
+      await assertOsAdmin(saAccessToken, caller.firebaseProjectId, caller.uid);
+      try {
+        const status = await setQicardEnabled(
+          {
+            enabled: body.enabled === true,
+            bankAccountId: body.bankAccountId,
+          },
+          saAccessToken,
+          caller.firebaseProjectId,
+          caller.uid,
+        );
+        return json({ success: true, ...status });
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        if (msg.startsWith("ERR_")) {
+          return json({ success: false, errorCode: msg }, 400);
+        }
+        throw e;
+      }
+    }
+
+    if (action === "get-pay-link") {
+      await assertOsAccess(
+        saAccessToken,
+        caller.firebaseProjectId,
+        caller.uid,
+        "invoices",
+      );
+      const invoiceId = (body.invoiceId ?? "").trim();
+      if (!invoiceId) {
+        return json({ success: false, errorCode: "ERR_INVOICE_ID_REQUIRED" }, 400);
+      }
+
+      const enabled = await listEnabledPaymentMethods(
+        saAccessToken,
+        caller.firebaseProjectId,
+      );
+      if (enabled.length === 0) {
+        return json({ success: false, errorCode: "ERR_CARD_PAYMENT_DISABLED" }, 400);
+      }
+
+      const returnBaseUrl = (body.returnBaseUrl ?? "").trim();
+      const token = await ensureInvoicePayLinkToken(
+        saAccessToken,
+        caller.firebaseProjectId,
+        invoiceId,
+      );
+      const payUrl = buildPayHtmlUrl(
+        caller.firebaseProjectId,
+        token,
+        returnBaseUrl,
+      );
+      return json({ success: true, payUrl, payLinkToken: token });
+    }
+
     if (action === "create-session") {
       await assertOsAccess(
         saAccessToken,
@@ -109,32 +171,22 @@ Deno.serve(async (req: Request) => {
       }
 
       const returnBaseUrl = (body.returnBaseUrl ?? "").trim();
-
-      const active = await getActiveCardProviderStatus(
+      const enabled = await listEnabledPaymentMethods(
         saAccessToken,
         caller.firebaseProjectId,
       );
-      if (active.provider === "none") {
+      if (enabled.length === 0) {
         return json({ success: false, errorCode: "ERR_CARD_PAYMENT_DISABLED" }, 400);
       }
 
-      try {
-        if (active.provider === "paytabs") {
-          const session = await createPaytabsSession(
-            saAccessToken,
-            caller.firebaseProjectId,
-            invoiceId,
-            returnBaseUrl,
-          );
-          return json({
-            success: true,
-            provider: session.provider,
-            redirectUrl: session.redirectUrl,
-            providerRef: session.providerRef,
-          });
-        }
+      const provider = resolveCheckoutMethod(body.provider ?? "", enabled);
+      if (!provider) {
+        return json({ success: false, errorCode: "ERR_PAYMENT_METHOD_REQUIRED" }, 400);
+      }
 
-        const session = await createAlqasehSession(
+      try {
+        const session = await createOnlinePaymentSession(
+          provider,
           saAccessToken,
           caller.firebaseProjectId,
           invoiceId,
@@ -142,7 +194,7 @@ Deno.serve(async (req: Request) => {
         );
         return json({
           success: true,
-          provider: "alqaseh",
+          provider: session.provider,
           redirectUrl: session.redirectUrl,
           providerRef: session.providerRef,
         });

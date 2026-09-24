@@ -19,7 +19,7 @@ export const INVOICES_COLLECTION = "os_invoices";
 export const BANK_ACCOUNTS_COLLECTION = "os_bank_accounts";
 export const VOUCHERS_COLLECTION = "os_vouchers";
 
-export type CardProvider = "paytabs" | "alqaseh";
+export type CardProvider = "paytabs" | "alqaseh" | "qicard";
 
 export function amountsMatch(expected: number, received: number): boolean {
   return Math.abs(expected - received) < 0.01;
@@ -158,6 +158,22 @@ export async function settleCardInvoice(
     if (byAlqasehOrder.length > 0) {
       invoiceId = byAlqasehOrder[0].id;
       invoiceDoc = byAlqasehOrder[0].fields;
+    }
+  }
+
+  if (!invoiceDoc) {
+    const byQicardRequest = await queryFirestoreCollection(
+      input.accessToken,
+      input.projectId,
+      INVOICES_COLLECTION,
+      "qicardRequestId",
+      "EQUAL",
+      input.invoiceLookupId,
+      1,
+    );
+    if (byQicardRequest.length > 0) {
+      invoiceId = byQicardRequest[0].id;
+      invoiceDoc = byQicardRequest[0].fields;
     }
   }
 

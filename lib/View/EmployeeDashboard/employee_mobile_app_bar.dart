@@ -2,19 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:get/get.dart';
 import 'package:point/Controller/HomeController.dart';
-import 'package:point/Localization/AppLocaleKeys.dart';
-import 'package:point/Localization/LanguageController.dart';
 import 'package:point/Services/FunHelper.dart';
 import 'package:point/Utils/AppConstants.dart';
 import 'package:point/Utils/AppNotificationInbox.dart';
 import 'package:point/View/Chats/MChatPage.dart';
 import 'package:point/View/EmployeeDashboard/employee_dashboard_dialogs.dart';
 import 'package:point/View/Shared/CustomHeader.dart';
-import 'package:point/View/Shared/app_theme_menu_button.dart';
-import 'package:point/View/Shared/chat_translation_language_menu.dart';
+import 'package:point/View/Shared/employee_header_more_menu_button.dart';
 import 'package:point/View/Shared/internet_status_badge.dart';
 import 'package:point/Utils/app_theme_extension.dart';
-import 'package:point/Utils/LibraryPermissions.dart';
 
 /// Shared white app bar for employee flows (dashboard, content management).
 class EmployeeMobileAppBar extends StatelessWidget implements PreferredSizeWidget {
@@ -32,7 +28,6 @@ class EmployeeMobileAppBar extends StatelessWidget implements PreferredSizeWidge
 
   @override
   Widget build(BuildContext context) {
-    final languageController = Get.find<LanguageController>();
     final theme = Theme.of(context);
     final appTheme = theme.colorScheme;
     return AppBar(
@@ -50,6 +45,10 @@ class EmployeeMobileAppBar extends StatelessWidget implements PreferredSizeWidge
             ),
       title: Row(
         children: [
+          const EmployeeHeaderMoreMenuButton(
+            includeAppLanguage: true,
+            includePreferences: true,
+          ),
           IconButton(
             tooltip: 'header.notifications'.tr,
             icon: Stack(
@@ -73,28 +72,6 @@ class EmployeeMobileAppBar extends StatelessWidget implements PreferredSizeWidge
               showEmployeeNotificationsDialog(Get.context!, controller);
             },
           ),
-          PopupMenuButton<String>(
-            tooltip: AppLocaleKeys.appLanguage.tr,
-            padding: EdgeInsets.zero,
-            icon: Icon(Icons.language, color: context.appTheme.accentText),
-            onSelected: (value) => languageController.changeLanguage(value),
-            itemBuilder:
-                (context) => [
-                  PopupMenuItem(
-                    value: 'ar',
-                    child: Text(AppLocaleKeys.appLanguageArabic.tr),
-                  ),
-                  PopupMenuItem(
-                    value: 'en',
-                    child: Text(AppLocaleKeys.appLanguageEnglish.tr),
-                  ),
-                ],
-          ),
-          ChatTranslationLanguageMenu(
-            iconColor: context.appTheme.accentText,
-            compact: true,
-          ),
-          const AppThemeMenuButton(compact: true),
           IconButton(
             tooltip: 'header.chat'.tr,
             icon: Stack(
@@ -114,22 +91,6 @@ class EmployeeMobileAppBar extends StatelessWidget implements PreferredSizeWidge
             ),
             onPressed: () => Get.to(() => ChatsListScreen(onMinimize: () {})),
           ),
-          Obx(() {
-            final emp =
-                controller.currentEmployee.value ??
-                controller.lastKnownEmployee.value;
-            if (!LibraryPermissions.canAccessLibrary(emp)) {
-              return const SizedBox.shrink();
-            }
-            return IconButton(
-              tooltip: 'library.sidebar'.tr,
-              icon: Icon(
-                Icons.folder_copy_outlined,
-                color: context.appTheme.accentText,
-              ),
-              onPressed: () => Get.toNamed('/library'),
-            );
-          }),
           if (kIsWeb) ...[
             const InternetStatusBadge(),
             const SizedBox(width: 6),
@@ -202,34 +163,10 @@ class EmployeeMobileAppBar extends StatelessWidget implements PreferredSizeWidge
                         Get.toNamed('/auth/resetPassword');
                       } else if (value == 2) {
                         Get.toNamed('/employeeProfile');
-                      } else if (value == 3) {
-                        Get.toNamed('/library');
                       }
                     },
                     itemBuilder:
                         (context) => [
-                          if (LibraryPermissions.canAccessLibrary(
-                            controller.effectiveEmployee,
-                          ))
-                            PopupMenuItem(
-                              value: 3,
-                              child: Row(
-                                children: [
-                                  Text(
-                                    'library.sidebar'.tr,
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.w500,
-                                      color: context.appTheme.primaryText,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Icon(
-                                    Icons.folder_copy_outlined,
-                                    color: context.appTheme.accentText,
-                                  ),
-                                ],
-                              ),
-                            ),
                           PopupMenuItem(
                             value: 2,
                             child: Row(

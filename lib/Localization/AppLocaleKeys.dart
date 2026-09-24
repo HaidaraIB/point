@@ -940,7 +940,53 @@ class AppLocaleKeys {
   static const osSettingsAlqasehSaved = 'os.settings.alqaseh.saved';
   static const osSettingsAlqasehActiveBadge =
       'os.settings.alqaseh.active_badge';
+  static const osSettingsPaymentMethodsGatewayHint =
+      'os.settings.payment_methods.gateway_hint';
+  static const osSettingsPaymentMethodsCredentials =
+      'os.settings.payment_methods.credentials';
+  static const osSettingsPaymentMethodsConfigure =
+      'os.settings.payment_methods.configure';
+  static const osSettingsPaymentMethodsPaytabsSubtitle =
+      'os.settings.payment_methods.paytabs_subtitle';
+  static const osSettingsPaymentMethodsAlqasehSubtitle =
+      'os.settings.payment_methods.alqaseh_subtitle';
+  static const osSettingsPaymentMethodsQicardSubtitle =
+      'os.settings.payment_methods.qicard_subtitle';
+  static const osSettingsLocalPaymentsSection =
+      'os.settings.local_payments.section';
+  static const osSettingsLocalPaymentsDescription =
+      'os.settings.local_payments.description';
+  static const osSettingsQicardSection = 'os.settings.qicard.section';
+  static const osSettingsQicardDescription = 'os.settings.qicard.description';
+  static const osSettingsQicardConfigured = 'os.settings.qicard.configured';
+  static const osSettingsQicardNotConfigured = 'os.settings.qicard.not_configured';
+  static const osSettingsQicardPasswordPreview = 'os.settings.qicard.password_preview';
+  static const osSettingsQicardUsername = 'os.settings.qicard.username';
+  static const osSettingsQicardPassword = 'os.settings.qicard.password';
+  static const osSettingsQicardPasswordHint = 'os.settings.qicard.password_hint';
+  static const osSettingsQicardTerminalId = 'os.settings.qicard.terminal_id';
+  static const osSettingsQicardLiveApiBase = 'os.settings.qicard.live_api_base';
+  static const osSettingsQicardLiveApiBaseHint =
+      'os.settings.qicard.live_api_base_hint';
+  static const osSettingsQicardCurrency = 'os.settings.qicard.currency';
+  static const osSettingsQicardWebhookKey = 'os.settings.qicard.webhook_key';
+  static const osSettingsQicardWebhookKeyHint =
+      'os.settings.qicard.webhook_key_hint';
+  static const osSettingsQicardWebhookKeyConfigured =
+      'os.settings.qicard.webhook_key_configured';
+  static const osSettingsQicardUseSandbox = 'os.settings.qicard.use_sandbox';
+  static const osSettingsQicardSave = 'os.settings.qicard.save';
+  static const osSettingsQicardSaved = 'os.settings.qicard.saved';
+  static const osSettingsQicardEnableLabel = 'os.settings.qicard.enable_label';
+  static const osSettingsQicardBankAccount = 'os.settings.qicard.bank_account';
+  static const osSettingsQicardBankRequired = 'os.settings.qicard.bank_required';
+  static const osSettingsQicardToggleSave = 'os.settings.qicard.toggle_save';
+  static const osSettingsQicardToggleSaved = 'os.settings.qicard.toggle_saved';
+  static const osSettingsQicardActiveBadge = 'os.settings.qicard.active_badge';
   static const errorsCardPaymentDisabled = 'errors.card_payment_disabled';
+  static const errorsQicardNotConfigured = 'errors.qicard_not_configured';
+  static const errorsQicardBankAccountRequired =
+      'errors.qicard_bank_account_required';
   static const osSettingsWhatsappSection = 'os.settings.whatsapp.section';
   static const osSettingsWhatsappDescription = 'os.settings.whatsapp.description';
   static const osSettingsWhatsappConfigured = 'os.settings.whatsapp.configured';

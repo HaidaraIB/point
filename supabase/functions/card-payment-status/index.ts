@@ -16,6 +16,11 @@ import {
   verifyAlqasehPayment,
 } from "../_shared/alqaseh.ts";
 import {
+  mapQicardPaymentStatus,
+  resolveQicardPaymentByRequestId,
+  settleQicardInvoice,
+} from "../_shared/qicard.ts";
+import {
   mapPaytabsResponseStatus,
   parsePaytabsNotification,
   queryPaytabsTransaction,
@@ -84,6 +89,17 @@ async function lookupInvoiceFields(
     1,
   );
   if (byAlqasehOrder.length > 0) return byAlqasehOrder[0].fields;
+
+  const byQicardRequest = await queryFirestoreCollection(
+    accessToken,
+    projectId,
+    INVOICES_COLLECTION,
+    "qicardRequestId",
+    "EQUAL",
+    id,
+    1,
+  );
+  if (byQicardRequest.length > 0) return byQicardRequest[0].fields;
 
   const byDisplay = await queryFirestoreCollection(
     accessToken,
@@ -154,6 +170,57 @@ async function resolveAlqasehStatus(
   return {
     state,
     ...invoiceSummary(invoiceFields, ctx.amount, ctx.currency),
+  };
+}
+
+async function resolveQicardStatus(
+  accessToken: string,
+  projectId: string,
+  requestId: string,
+): Promise<StatusResponse> {
+  let payment;
+  try {
+    payment = await resolveQicardPaymentByRequestId(
+      accessToken,
+      projectId,
+      requestId,
+    );
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    console.warn("QiCard resolve failed:", requestId, msg);
+    return { state: "failed" };
+  }
+
+  if (!payment) {
+    return { state: "pending" };
+  }
+
+  let state = mapQicardPaymentStatus(payment.status, payment.canceled);
+
+  if (state === "paid" && payment.paymentId) {
+    const result = await settleQicardInvoice(
+      accessToken,
+      projectId,
+      payment.paymentId,
+    );
+    if (result === "ignored") {
+      state = "failed";
+    }
+  }
+
+  const invoiceFields = await lookupInvoiceFields(
+    accessToken,
+    projectId,
+    requestId,
+  );
+
+  if (invoiceFields && firestoreString(invoiceFields, "status") === "PAID") {
+    state = "paid";
+  }
+
+  return {
+    state,
+    ...invoiceSummary(invoiceFields, payment.amount, payment.currency),
   };
 }
 
@@ -248,7 +315,8 @@ Deno.serve(async (req: Request) => {
     }
 
     if (provider === "qicard") {
-      return json({ errorCode: "ERR_PROVIDER_NOT_SUPPORTED" }, 501);
+      const status = await resolveQicardStatus(accessToken, projectId, ref);
+      return json(status);
     }
 
     return json({ errorCode: "ERR_INVALID_REQUEST" }, 400);

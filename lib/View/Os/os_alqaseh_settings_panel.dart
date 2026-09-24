@@ -2,19 +2,24 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:point/Localization/AppLocaleKeys.dart';
-import 'package:point/Models/Os/OsActiveCardProviderStatus.dart';
 import 'package:point/Models/Os/OsAlqasehSettingsStatus.dart';
 import 'package:point/Services/os_alqaseh_service.dart';
-import 'package:point/Services/os_card_payment_service.dart';
 import 'package:point/Utils/app_theme_extension.dart';
-import 'package:point/View/Os/os_button_styles.dart';
+import 'package:point/View/Os/Settings/os_payment_credentials_form.dart';
 import 'package:point/View/Os/os_form_dialog.dart';
 import 'package:point/View/Os/os_snackbar.dart';
 
 class OsAlqasehSettingsPanel extends StatefulWidget {
-  const OsAlqasehSettingsPanel({super.key, this.embedded = false});
+  const OsAlqasehSettingsPanel({
+    super.key,
+    this.embedded = false,
+    this.compact = false,
+    this.onSettingsSaved,
+  });
 
   final bool embedded;
+  final bool compact;
+  final ValueChanged<OsAlqasehSettingsStatus>? onSettingsSaved;
 
   @override
   State<OsAlqasehSettingsPanel> createState() => _OsAlqasehSettingsPanelState();
@@ -34,7 +39,6 @@ class _OsAlqasehSettingsPanelState extends State<OsAlqasehSettingsPanel>
   var _obscureSecret = true;
   var _environment = 'test';
   var _currency = 'IQD';
-  var _isActiveProvider = false;
   OsAlqasehSettingsStatus _status = OsAlqasehSettingsStatus.empty();
 
   static const _currencies = ['IQD', 'USD'];
@@ -46,7 +50,6 @@ class _OsAlqasehSettingsPanelState extends State<OsAlqasehSettingsPanel>
     if (cached != null) {
       _applyStatus(cached);
       _loading = false;
-      _loadActive();
       return;
     }
     _load();
@@ -69,27 +72,14 @@ class _OsAlqasehSettingsPanelState extends State<OsAlqasehSettingsPanel>
     _clientSecretCtrl.clear();
   }
 
-  Future<void> _loadActive() async {
-    final active = await OsCardPaymentService.instance.loadActiveProvider();
-    if (!mounted) return;
-    setState(() => _isActiveProvider = active?.provider == 'alqaseh');
-  }
-
   Future<void> _load() async {
     setState(() => _loading = true);
     try {
-      final results = await Future.wait([
-        OsAlqasehService.instance.loadSettings(force: true),
-        OsCardPaymentService.instance.loadActiveProvider(force: true),
-      ]);
+      final status =
+          await OsAlqasehService.instance.loadSettings(force: true);
       if (!mounted) return;
       setState(() {
-        _applyStatus(
-          (results[0] as OsAlqasehSettingsStatus?) ??
-              OsAlqasehSettingsStatus.empty(),
-        );
-        _isActiveProvider =
-            (results[1] as OsActiveCardProviderStatus?)?.provider == 'alqaseh';
+        _applyStatus(status ?? OsAlqasehSettingsStatus.empty());
       });
     } finally {
       if (mounted) setState(() => _loading = false);
@@ -128,6 +118,7 @@ class _OsAlqasehSettingsPanelState extends State<OsAlqasehSettingsPanel>
         return;
       }
       setState(() => _applyStatus(status));
+      widget.onSettingsSaved?.call(status);
       OsSnackbar.success(
         AppLocaleKeys.osSettingsAlqasehSection.tr,
         AppLocaleKeys.osSettingsAlqasehSaved.tr,
@@ -150,14 +141,31 @@ class _OsAlqasehSettingsPanelState extends State<OsAlqasehSettingsPanel>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        if (_isActiveProvider) ...[
+        if (!widget.compact) ...[
+          Text(
+            AppLocaleKeys.osSettingsAlqasehDescription.tr,
+            style: TextStyle(
+              fontSize: 13,
+              height: 1.5,
+              color: theme.secondaryText,
+            ),
+          ),
+          const SizedBox(height: 16),
           Row(
             children: [
-              Icon(Icons.star_outline, size: 18, color: theme.accentText),
+              Icon(
+                configured ? Icons.check_circle_outline : Icons.error_outline,
+                size: 18,
+                color: configured
+                    ? const Color(0xFF059669)
+                    : const Color(0xFFE11D48),
+              ),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  AppLocaleKeys.osSettingsAlqasehActiveBadge.tr,
+                  configured
+                      ? AppLocaleKeys.osSettingsAlqasehConfigured.tr
+                      : AppLocaleKeys.osSettingsAlqasehNotConfigured.tr,
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w700,
@@ -167,74 +175,31 @@ class _OsAlqasehSettingsPanelState extends State<OsAlqasehSettingsPanel>
               ),
             ],
           ),
-          const SizedBox(height: 12),
-        ],
-        Text(
-          AppLocaleKeys.osSettingsAlqasehDescription.tr,
-          style: TextStyle(
-            fontSize: 13,
-            height: 1.5,
-            color: theme.secondaryText,
-          ),
-        ),
-        const SizedBox(height: 16),
-        Row(
-          children: [
-            Icon(
-              configured ? Icons.check_circle_outline : Icons.error_outline,
-              size: 18,
-              color: configured
-                  ? const Color(0xFF059669)
-                  : const Color(0xFFE11D48),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                configured
-                    ? AppLocaleKeys.osSettingsAlqasehConfigured.tr
-                    : AppLocaleKeys.osSettingsAlqasehNotConfigured.tr,
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                  color: theme.primaryText,
-                ),
-              ),
+          if (_status.hasClientSecret &&
+              _status.clientSecretPreview.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Text(
+              AppLocaleKeys.osSettingsAlqasehSecretPreview.trParams({
+                'preview': _status.clientSecretPreview,
+              }),
+              style: TextStyle(fontSize: 12, color: theme.mutedText),
             ),
           ],
-        ),
-        if (_status.hasClientSecret && _status.clientSecretPreview.isNotEmpty) ...[
-          const SizedBox(height: 8),
-          Text(
+          const SizedBox(height: 16),
+        ] else if (_status.hasClientSecret &&
+            _status.clientSecretPreview.isNotEmpty) ...[
+          osPaymentCredentialsSecretPreview(
+            context,
             AppLocaleKeys.osSettingsAlqasehSecretPreview.trParams({
               'preview': _status.clientSecretPreview,
             }),
-            style: TextStyle(fontSize: 12, color: theme.mutedText),
           ),
+          const SizedBox(height: kOsPaymentCredentialsFieldGap),
         ],
-        const SizedBox(height: 16),
-        Text(
-          AppLocaleKeys.osSettingsEnvironmentLabel.tr,
-          style: TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w700,
-            color: theme.secondaryText,
-          ),
-        ),
-        const SizedBox(height: 8),
-        SegmentedButton<String>(
-          segments: [
-            ButtonSegment(
-              value: 'test',
-              label: Text(AppLocaleKeys.osSettingsEnvironmentTest.tr),
-            ),
-            ButtonSegment(
-              value: 'live',
-              label: Text(AppLocaleKeys.osSettingsEnvironmentLive.tr),
-            ),
-          ],
-          selected: {_environment},
-          onSelectionChanged: (values) async {
-            final next = values.first;
+        osPaymentCredentialsEnvironmentField(
+          context: context,
+          environment: _environment,
+          onEnvironmentSelected: (next) async {
             setState(() => _environment = next);
             final status = await OsAlqasehService.instance.loadSettings(
               force: true,
@@ -244,35 +209,28 @@ class _OsAlqasehSettingsPanelState extends State<OsAlqasehSettingsPanel>
             setState(() => _applyStatus(status));
           },
         ),
-        const SizedBox(height: 16),
-        _fieldLabel(context, AppLocaleKeys.osSettingsAlqasehClientId.tr),
-        const SizedBox(height: 8),
+        const SizedBox(height: kOsPaymentCredentialsFieldGap),
         osTypedTextField(
           controller: _clientIdCtrl,
           decoration: osDialogFieldDecoration(context).copyWith(
+            labelText: AppLocaleKeys.osSettingsAlqasehClientId.tr,
             hintText: AppLocaleKeys.osSettingsAlqasehClientIdHint.tr,
           ),
         ),
-        const SizedBox(height: 16),
-        _fieldLabel(context, AppLocaleKeys.osSettingsAlqasehClientSecret.tr),
-        const SizedBox(height: 8),
+        const SizedBox(height: kOsPaymentCredentialsFieldGap),
         osTypedTextField(
           controller: _clientSecretCtrl,
           obscureText: _obscureSecret,
           decoration: osDialogFieldDecoration(context).copyWith(
+            labelText: AppLocaleKeys.osSettingsAlqasehClientSecret.tr,
             hintText: AppLocaleKeys.osSettingsAlqasehClientSecretHint.tr,
-            suffixIcon: IconButton(
-              onPressed: () => setState(() => _obscureSecret = !_obscureSecret),
-              icon: Icon(
-                _obscureSecret
-                    ? Icons.visibility_outlined
-                    : Icons.visibility_off_outlined,
-                size: 18,
-              ),
+            suffixIcon: osPaymentCredentialsObscureToggle(
+              obscure: _obscureSecret,
+              onToggle: () => setState(() => _obscureSecret = !_obscureSecret),
             ),
           ),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: kOsPaymentCredentialsFieldGap),
         LayoutBuilder(
           builder: (context, constraints) {
             final narrow = constraints.maxWidth < 640;
@@ -300,7 +258,11 @@ class _OsAlqasehSettingsPanelState extends State<OsAlqasehSettingsPanel>
             );
             if (narrow) {
               return Column(
-                children: [currencyField, const SizedBox(height: 12), expiryField],
+                children: [
+                  currencyField,
+                  const SizedBox(height: kOsPaymentCredentialsFieldGap),
+                  expiryField,
+                ],
               );
             }
             return Row(
@@ -313,44 +275,21 @@ class _OsAlqasehSettingsPanelState extends State<OsAlqasehSettingsPanel>
           },
         ),
         if (_environment == 'test') ...[
-          const SizedBox(height: 12),
-          Align(
-            alignment: AlignmentDirectional.centerStart,
-            child: TextButton.icon(
-              onPressed: _applySandboxCredentials,
-              icon: const Icon(Icons.science_outlined, size: 18),
-              label: Text(AppLocaleKeys.osSettingsAlqasehUseSandbox.tr),
-            ),
+          const SizedBox(height: kOsPaymentCredentialsFieldGap),
+          osPaymentCredentialsSandboxButton(
+            context: context,
+            onPressed: _applySandboxCredentials,
+            label: AppLocaleKeys.osSettingsAlqasehUseSandbox.tr,
           ),
         ],
-        const SizedBox(height: 8),
-        Align(
-          alignment: AlignmentDirectional.centerEnd,
-          child: FilledButton.icon(
-            onPressed: _saving ? null : _save,
-            style: OsButtonStyles.primaryCompact(),
-            icon: _saving
-                ? const SizedBox(
-                    width: 18,
-                    height: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Icon(Icons.save_outlined, size: 18),
-            label: Text(AppLocaleKeys.osSettingsAlqasehSave.tr),
-          ),
+        const SizedBox(height: kOsPaymentCredentialsFieldGap),
+        osPaymentCredentialsSaveRow(
+          context: context,
+          saving: _saving,
+          onSave: _save,
+          label: AppLocaleKeys.osSettingsAlqasehSave.tr,
         ),
       ],
-    );
-  }
-
-  Widget _fieldLabel(BuildContext context, String text) {
-    return Text(
-      text,
-      style: TextStyle(
-        fontSize: 12,
-        fontWeight: FontWeight.w700,
-        color: context.appTheme.secondaryText,
-      ),
     );
   }
 }

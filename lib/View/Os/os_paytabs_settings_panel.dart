@@ -2,19 +2,24 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:point/Localization/AppLocaleKeys.dart';
-import 'package:point/Models/Os/OsActiveCardProviderStatus.dart';
 import 'package:point/Models/Os/OsPaytabsSettingsStatus.dart';
-import 'package:point/Services/os_card_payment_service.dart';
 import 'package:point/Services/os_paytabs_service.dart';
 import 'package:point/Utils/app_theme_extension.dart';
-import 'package:point/View/Os/os_button_styles.dart';
+import 'package:point/View/Os/Settings/os_payment_credentials_form.dart';
 import 'package:point/View/Os/os_form_dialog.dart';
 import 'package:point/View/Os/os_snackbar.dart';
 
 class OsPaytabsSettingsPanel extends StatefulWidget {
-  const OsPaytabsSettingsPanel({super.key, this.embedded = false});
+  const OsPaytabsSettingsPanel({
+    super.key,
+    this.embedded = false,
+    this.compact = false,
+    this.onSettingsSaved,
+  });
 
   final bool embedded;
+  final bool compact;
+  final ValueChanged<OsPaytabsSettingsStatus>? onSettingsSaved;
 
   @override
   State<OsPaytabsSettingsPanel> createState() => _OsPaytabsSettingsPanelState();
@@ -35,7 +40,6 @@ class _OsPaytabsSettingsPanelState extends State<OsPaytabsSettingsPanel>
   var _environment = 'test';
   var _region = 'IRQ';
   var _currency = 'IQD';
-  var _isActiveProvider = false;
   OsPaytabsSettingsStatus _status = OsPaytabsSettingsStatus.empty();
 
   static const _regions = ['IRQ', 'ARE', 'SAU', 'EGY', 'JOR'];
@@ -61,7 +65,6 @@ class _OsPaytabsSettingsPanelState extends State<OsPaytabsSettingsPanel>
     if (cached != null) {
       _applyStatus(cached);
       _loading = false;
-      _loadActive();
       return;
     }
     _load();
@@ -87,27 +90,14 @@ class _OsPaytabsSettingsPanelState extends State<OsPaytabsSettingsPanel>
     _clientKeyCtrl.clear();
   }
 
-  Future<void> _loadActive() async {
-    final active = await OsCardPaymentService.instance.loadActiveProvider();
-    if (!mounted) return;
-    setState(() => _isActiveProvider = active?.provider == 'paytabs');
-  }
-
   Future<void> _load() async {
     setState(() => _loading = true);
     try {
-      final results = await Future.wait([
-        OsPaytabsService.instance.loadSettings(force: true),
-        OsCardPaymentService.instance.loadActiveProvider(force: true),
-      ]);
+      final status =
+          await OsPaytabsService.instance.loadSettings(force: true);
       if (!mounted) return;
       setState(() {
-        _applyStatus(
-          (results[0] as OsPaytabsSettingsStatus?) ??
-              OsPaytabsSettingsStatus.empty(),
-        );
-        _isActiveProvider =
-            (results[1] as OsActiveCardProviderStatus?)?.provider == 'paytabs';
+        _applyStatus(status ?? OsPaytabsSettingsStatus.empty());
       });
     } finally {
       if (mounted) setState(() => _loading = false);
@@ -141,6 +131,7 @@ class _OsPaytabsSettingsPanelState extends State<OsPaytabsSettingsPanel>
         return;
       }
       setState(() => _applyStatus(status));
+      widget.onSettingsSaved?.call(status);
       OsSnackbar.success(
         AppLocaleKeys.osSettingsPaytabsSection.tr,
         AppLocaleKeys.osSettingsPaytabsSaved.tr,
@@ -159,17 +150,39 @@ class _OsPaytabsSettingsPanelState extends State<OsPaytabsSettingsPanel>
 
     final theme = context.appTheme;
 
+    final configured =
+        _status.hasServerKey && _status.profileId.isNotEmpty;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        if (_isActiveProvider) ...[
+        if (!widget.compact) ...[
+          Text(
+            AppLocaleKeys.osSettingsPaytabsDescription.tr,
+            style: TextStyle(
+              fontSize: 13,
+              height: 1.5,
+              color: theme.secondaryText,
+            ),
+          ),
+          const SizedBox(height: 16),
           Row(
             children: [
-              Icon(Icons.star_outline, size: 18, color: theme.accentText),
+              Icon(
+                configured
+                    ? Icons.check_circle_outline
+                    : Icons.error_outline,
+                size: 18,
+                color: configured
+                    ? const Color(0xFF059669)
+                    : const Color(0xFFE11D48),
+              ),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  AppLocaleKeys.osSettingsPaytabsActiveBadge.tr,
+                  configured
+                      ? AppLocaleKeys.osSettingsPaytabsConfigured.tr
+                      : AppLocaleKeys.osSettingsPaytabsNotConfigured.tr,
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w700,
@@ -179,76 +192,30 @@ class _OsPaytabsSettingsPanelState extends State<OsPaytabsSettingsPanel>
               ),
             ],
           ),
-          const SizedBox(height: 12),
-        ],
-        Text(
-          AppLocaleKeys.osSettingsPaytabsDescription.tr,
-          style: TextStyle(
-            fontSize: 13,
-            height: 1.5,
-            color: theme.secondaryText,
-          ),
-        ),
-        const SizedBox(height: 16),
-        Row(
-          children: [
-            Icon(
-              _status.hasServerKey && _status.profileId.isNotEmpty
-                  ? Icons.check_circle_outline
-                  : Icons.error_outline,
-              size: 18,
-              color: _status.hasServerKey && _status.profileId.isNotEmpty
-                  ? const Color(0xFF059669)
-                  : const Color(0xFFE11D48),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                _status.hasServerKey && _status.profileId.isNotEmpty
-                    ? AppLocaleKeys.osSettingsPaytabsConfigured.tr
-                    : AppLocaleKeys.osSettingsPaytabsNotConfigured.tr,
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                  color: theme.primaryText,
-                ),
-              ),
+          if (_status.hasServerKey && _status.serverKeyPreview.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Text(
+              AppLocaleKeys.osSettingsPaytabsServerKeyPreview.trParams({
+                'preview': _status.serverKeyPreview,
+              }),
+              style: TextStyle(fontSize: 12, color: theme.mutedText),
             ),
           ],
-        ),
-        if (_status.hasServerKey && _status.serverKeyPreview.isNotEmpty) ...[
-          const SizedBox(height: 8),
-          Text(
+          const SizedBox(height: 16),
+        ] else if (_status.hasServerKey &&
+            _status.serverKeyPreview.isNotEmpty) ...[
+          osPaymentCredentialsSecretPreview(
+            context,
             AppLocaleKeys.osSettingsPaytabsServerKeyPreview.trParams({
               'preview': _status.serverKeyPreview,
             }),
-            style: TextStyle(fontSize: 12, color: theme.mutedText),
           ),
+          const SizedBox(height: kOsPaymentCredentialsFieldGap),
         ],
-        const SizedBox(height: 16),
-        Text(
-          AppLocaleKeys.osSettingsEnvironmentLabel.tr,
-          style: TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w700,
-            color: theme.secondaryText,
-          ),
-        ),
-        const SizedBox(height: 8),
-        SegmentedButton<String>(
-          segments: [
-            ButtonSegment(
-              value: 'test',
-              label: Text(AppLocaleKeys.osSettingsEnvironmentTest.tr),
-            ),
-            ButtonSegment(
-              value: 'live',
-              label: Text(AppLocaleKeys.osSettingsEnvironmentLive.tr),
-            ),
-          ],
-          selected: {_environment},
-          onSelectionChanged: (values) async {
-            final next = values.first;
+        osPaymentCredentialsEnvironmentField(
+          context: context,
+          environment: _environment,
+          onEnvironmentSelected: (next) async {
             setState(() => _environment = next);
             final status = await OsPaytabsService.instance.loadSettings(
               force: true,
@@ -258,58 +225,45 @@ class _OsPaytabsSettingsPanelState extends State<OsPaytabsSettingsPanel>
             setState(() => _applyStatus(status));
           },
         ),
-        const SizedBox(height: 16),
-        _fieldLabel(context, AppLocaleKeys.osSettingsPaytabsProfileId.tr),
-        const SizedBox(height: 8),
+        const SizedBox(height: kOsPaymentCredentialsFieldGap),
         osTypedTextField(
           controller: _profileIdCtrl,
           keyboardType: TextInputType.number,
           inputFormatters: [FilteringTextInputFormatter.digitsOnly],
           decoration: osDialogFieldDecoration(context).copyWith(
+            labelText: AppLocaleKeys.osSettingsPaytabsProfileId.tr,
             hintText: AppLocaleKeys.osSettingsPaytabsProfileIdHint.tr,
           ),
         ),
-        const SizedBox(height: 16),
-        _fieldLabel(context, AppLocaleKeys.osSettingsPaytabsServerKey.tr),
-        const SizedBox(height: 8),
+        const SizedBox(height: kOsPaymentCredentialsFieldGap),
         osTypedTextField(
           controller: _serverKeyCtrl,
           obscureText: _obscureServerKey,
           decoration: osDialogFieldDecoration(context).copyWith(
+            labelText: AppLocaleKeys.osSettingsPaytabsServerKey.tr,
             hintText: AppLocaleKeys.osSettingsPaytabsServerKeyHint.tr,
-            suffixIcon: IconButton(
-              onPressed: () =>
+            suffixIcon: osPaymentCredentialsObscureToggle(
+              obscure: _obscureServerKey,
+              onToggle: () =>
                   setState(() => _obscureServerKey = !_obscureServerKey),
-              icon: Icon(
-                _obscureServerKey
-                    ? Icons.visibility_outlined
-                    : Icons.visibility_off_outlined,
-                size: 18,
-              ),
             ),
           ),
         ),
-        const SizedBox(height: 16),
-        _fieldLabel(context, AppLocaleKeys.osSettingsPaytabsClientKey.tr),
-        const SizedBox(height: 8),
+        const SizedBox(height: kOsPaymentCredentialsFieldGap),
         osTypedTextField(
           controller: _clientKeyCtrl,
           obscureText: _obscureClientKey,
           decoration: osDialogFieldDecoration(context).copyWith(
+            labelText: AppLocaleKeys.osSettingsPaytabsClientKey.tr,
             hintText: AppLocaleKeys.osSettingsPaytabsClientKeyHint.tr,
-            suffixIcon: IconButton(
-              onPressed: () =>
+            suffixIcon: osPaymentCredentialsObscureToggle(
+              obscure: _obscureClientKey,
+              onToggle: () =>
                   setState(() => _obscureClientKey = !_obscureClientKey),
-              icon: Icon(
-                _obscureClientKey
-                    ? Icons.visibility_outlined
-                    : Icons.visibility_off_outlined,
-                size: 18,
-              ),
             ),
           ),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: kOsPaymentCredentialsFieldGap),
         LayoutBuilder(
           builder: (context, constraints) {
             final narrow = constraints.maxWidth < 640;
@@ -353,7 +307,7 @@ class _OsPaytabsSettingsPanelState extends State<OsPaytabsSettingsPanel>
               return Column(
                 children: [
                   regionField,
-                  const SizedBox(height: 12),
+                  const SizedBox(height: kOsPaymentCredentialsFieldGap),
                   currencyField,
                 ],
               );
@@ -367,34 +321,14 @@ class _OsPaytabsSettingsPanelState extends State<OsPaytabsSettingsPanel>
             );
           },
         ),
-        const SizedBox(height: 8),
-        Align(
-          alignment: AlignmentDirectional.centerEnd,
-          child: FilledButton.icon(
-            onPressed: _saving ? null : _save,
-            style: OsButtonStyles.primaryCompact(),
-            icon: _saving
-                ? const SizedBox(
-                    width: 18,
-                    height: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Icon(Icons.save_outlined, size: 18),
-            label: Text(AppLocaleKeys.osSettingsPaytabsSave.tr),
-          ),
+        const SizedBox(height: kOsPaymentCredentialsFieldGap),
+        osPaymentCredentialsSaveRow(
+          context: context,
+          saving: _saving,
+          onSave: _save,
+          label: AppLocaleKeys.osSettingsPaytabsSave.tr,
         ),
       ],
-    );
-  }
-
-  Widget _fieldLabel(BuildContext context, String text) {
-    return Text(
-      text,
-      style: TextStyle(
-        fontSize: 12,
-        fontWeight: FontWeight.w700,
-        color: context.appTheme.secondaryText,
-      ),
     );
   }
 }

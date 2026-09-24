@@ -54,7 +54,7 @@ String localizedRoleWithDepartments(String role, List<String> departments) {
   return '$rolePart · $joined';
 }
 
-/// زر اللغة في شريط الويب لموظفي الأقسام (بجانب الإشعارات والمحادثات).
+/// App UI language control on the desktop employee web header.
 Widget _webEmployeeLanguageMenuButton() {
   final lc = Get.find<LanguageController>();
   final accent = resolveAppTheme().accentText;

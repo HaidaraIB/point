@@ -302,6 +302,8 @@ void showEmployeeProfileDialog(BuildContext context) {
       final h = MediaQuery.sizeOf(ctx).height;
       final dialogH = h < 600 ? h * 0.92 : (h * 0.9).clamp(400.0, 640.0);
       return Dialog(
+        backgroundColor: context.appTheme.cardSurface,
+        surfaceTintColor: Colors.transparent,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         clipBehavior: Clip.antiAlias,
         child: SizedBox(

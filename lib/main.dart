@@ -39,6 +39,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:point/firebase_app_options.dart';
 import 'package:point/fcm_background_handler.dart';
 import 'package:point/View/Shared/internet_offline_guard.dart';
+import 'package:point/Utils/point_run_app.dart';
 import 'package:point/View/Shared/web_update_banner.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
@@ -152,7 +153,7 @@ void main(List<String> args) async {
   // triggers TextPainter `debugSize == size` asserts on dense OS toolbars.
   await GoogleFonts.pendingFonts([GoogleFonts.almarai()]);
 
-  runApp(const App());
+  pointRunApp(const App());
 }
 
 Future<void> onUserLogin(String userId) async {

@@ -537,6 +537,7 @@ class AppTranslations extends Translations {
         'notifications.confirm_delete_bulk_message':
             'Delete @count notification(s)?',
         'header.chat': 'Chat',
+        'header.more': 'More',
         'content.empty_display': 'No content to display.',
         'chat.screen_title': 'Chats',
         'chat.folder_all': 'All',
@@ -1424,9 +1425,9 @@ class AppTranslations extends Translations {
             'Choose the bank account that receives card payments',
         'os.settings.paytabs.active_badge':
             'PayTabs is the active card payment provider',
-        'os.settings.card_provider.section': 'Card payments',
+        'os.settings.card_provider.section': 'International card gateway',
         'os.settings.card_provider.description':
-            'Choose which card payment provider is active for invoice checkout. Only one can be enabled at a time.',
+            'Choose PayTabs or Alqaseh for Visa/Mastercard checkout. Only one gateway can be active at a time (alongside local methods such as Qi Card).',
         'os.settings.card_provider.label': 'Active provider',
         'os.settings.card_provider.none': 'None',
         'os.settings.card_provider.paytabs': 'PayTabs',
@@ -1461,7 +1462,51 @@ class AppTranslations extends Translations {
         'os.settings.alqaseh.saved': 'Alqaseh settings saved',
         'os.settings.alqaseh.active_badge':
             'Alqaseh is the active card payment provider',
+        'os.settings.payment_methods.gateway_hint':
+            'Turn on each method you want on invoice payment links. PayTabs and Alqaseh cannot both be active; Qi Card can run alongside either gateway.',
+        'os.settings.payment_methods.credentials': 'Credentials',
+        'os.settings.payment_methods.configure': 'Configure credentials',
+        'os.settings.payment_methods.paytabs_subtitle':
+            'Visa and Mastercard checkout via PayTabs.',
+        'os.settings.payment_methods.alqaseh_subtitle':
+            'Visa and Mastercard checkout via Alqaseh.',
+        'os.settings.payment_methods.qicard_subtitle':
+            'Local Qi Card hosted checkout on payment links.',
+        'os.settings.local_payments.section': 'Local payment methods',
+        'os.settings.local_payments.description':
+            'Enable Iraqi local wallets and cards independently from the international gateway.',
+        'os.settings.qicard.section': 'Qi Card',
+        'os.settings.qicard.description':
+            'Accept payments through Qi Card hosted checkout on invoice payment links.',
+        'os.settings.qicard.configured': 'Qi Card credentials are configured',
+        'os.settings.qicard.not_configured': 'Qi Card is not configured yet',
+        'os.settings.qicard.password_preview': 'Saved password: @preview',
+        'os.settings.qicard.username': 'API username',
+        'os.settings.qicard.password': 'API password',
+        'os.settings.qicard.password_hint': 'Leave blank to keep the current password',
+        'os.settings.qicard.terminal_id': 'Terminal ID (X-Terminal-Id)',
+        'os.settings.qicard.live_api_base': 'Live API base URL',
+        'os.settings.qicard.live_api_base_hint': 'e.g. https://api.qi.iq/api/v1',
+        'os.settings.qicard.currency': 'Checkout currency',
+        'os.settings.qicard.webhook_key': 'Webhook public key (PEM)',
+        'os.settings.qicard.webhook_key_hint':
+            'Optional. Paste Qi public key to verify X-Signature on webhooks.',
+        'os.settings.qicard.webhook_key_configured':
+            'A webhook public key is saved on the server.',
+        'os.settings.qicard.use_sandbox': 'Fill sandbox test credentials',
+        'os.settings.qicard.save': 'Save Qi Card settings',
+        'os.settings.qicard.saved': 'Qi Card settings saved',
+        'os.settings.qicard.enable_label': 'Enable Qi Card on payment links',
+        'os.settings.qicard.bank_account': 'Qi Card collection account',
+        'os.settings.qicard.bank_required':
+            'Choose the bank account that receives Qi Card payments',
+        'os.settings.qicard.toggle_save': 'Save local payment settings',
+        'os.settings.qicard.toggle_saved': 'Local payment settings saved',
+        'os.settings.qicard.active_badge': 'Qi Card is offered on invoice payment links',
         'errors.card_payment_disabled': 'Card payments are not enabled',
+        'errors.qicard_not_configured': 'Qi Card is not configured',
+        'errors.qicard_bank_account_required':
+            'Choose a bank account for Qi Card settlements',
         'os.settings.whatsapp.section': 'WhatsApp Business API (Meta)',
         'os.settings.whatsapp.description':
             'Connect your WhatsApp Business number to send approved template messages from Point OS.',
@@ -3846,6 +3891,7 @@ class AppTranslations extends Translations {
         "notifications.confirm_delete_bulk_message":
             "هل تريد حذف @count إشعار/إشعارات؟",
         "header.chat": "الدردشة",
+        "header.more": "المزيد",
         "content.empty_display": "لا يوجد محتوى لعرضه.",
         "chat.screen_title": "المحادثات",
         "chat.folder_all": "الكل",
@@ -4569,9 +4615,9 @@ class AppTranslations extends Translations {
             "اختر الحساب البنكي الذي يستلم مدفوعات البطاقات",
         "os.settings.paytabs.active_badge":
             "PayTabs هو مزود الدفع بالبطاقة النشط",
-        "os.settings.card_provider.section": "الدفع بالبطاقة",
+        "os.settings.card_provider.section": "بوابة البطاقات الدولية",
         "os.settings.card_provider.description":
-            "اختر مزود الدفع بالبطاقة النشط لروابط دفع الفواتير. يمكن تفعيل مزود واحد فقط في كل مرة.",
+            "اختر PayTabs أو Alqaseh لفيزا/ماستركارد. بوابة واحدة فقط في كل مرة (يمكن تفعيل Qi Card معها).",
         "os.settings.card_provider.label": "المزود النشط",
         "os.settings.card_provider.none": "بدون",
         "os.settings.card_provider.paytabs": "PayTabs",
@@ -4606,7 +4652,51 @@ class AppTranslations extends Translations {
         "os.settings.alqaseh.saved": "تم حفظ إعدادات Alqaseh",
         "os.settings.alqaseh.active_badge":
             "Alqaseh هو مزود الدفع بالبطاقة النشط",
+        "os.settings.payment_methods.gateway_hint":
+            "فعّل كل طريقة تريد عرضها في روابط دفع الفواتير. لا يمكن تفعيل PayTabs وAlqaseh معاً؛ يمكن تفعيل Qi Card مع أي منهما.",
+        "os.settings.payment_methods.credentials": "بيانات الاعتماد",
+        "os.settings.payment_methods.configure": "إعداد بيانات الاعتماد",
+        "os.settings.payment_methods.paytabs_subtitle":
+            "دفع فيزا وماستركارد عبر PayTabs.",
+        "os.settings.payment_methods.alqaseh_subtitle":
+            "دفع فيزا وماستركارد عبر Alqaseh.",
+        "os.settings.payment_methods.qicard_subtitle":
+            "دفع Qi Card المحلي عبر صفحة الدفع الآمنة.",
+        "os.settings.local_payments.section": "طرق الدفع المحلية",
+        "os.settings.local_payments.description":
+            "تفعيل محافظ وبطاقات محلية بشكل مستقل عن البوابة الدولية.",
+        "os.settings.qicard.section": "Qi Card",
+        "os.settings.qicard.description":
+            "قبول المدفوعات عبر صفحة Qi Card الآمنة في روابط دفع الفواتير.",
+        "os.settings.qicard.configured": "تم إعداد بيانات Qi Card",
+        "os.settings.qicard.not_configured": "لم يتم إعداد Qi Card بعد",
+        "os.settings.qicard.password_preview": "كلمة المرور المحفوظة: @preview",
+        "os.settings.qicard.username": "اسم مستخدم API",
+        "os.settings.qicard.password": "كلمة مرور API",
+        "os.settings.qicard.password_hint": "اتركها فارغة للإبقاء على كلمة المرور الحالية",
+        "os.settings.qicard.terminal_id": "معرّف Terminal (X-Terminal-Id)",
+        "os.settings.qicard.live_api_base": "رابط API للإنتاج",
+        "os.settings.qicard.live_api_base_hint": "مثال: https://api.qi.iq/api/v1",
+        "os.settings.qicard.currency": "عملة الدفع",
+        "os.settings.qicard.webhook_key": "المفتاح العام للويب هوك (PEM)",
+        "os.settings.qicard.webhook_key_hint":
+            "اختياري. الصق المفتاح العام من Qi للتحقق من X-Signature.",
+        "os.settings.qicard.webhook_key_configured":
+            "تم حفظ مفتاح عام للويب هوك على الخادم.",
+        "os.settings.qicard.use_sandbox": "تعبئة بيانات الاختبار",
+        "os.settings.qicard.save": "حفظ إعدادات Qi Card",
+        "os.settings.qicard.saved": "تم حفظ إعدادات Qi Card",
+        "os.settings.qicard.enable_label": "تفعيل Qi Card في روابط الدفع",
+        "os.settings.qicard.bank_account": "حساب تحصيل Qi Card",
+        "os.settings.qicard.bank_required":
+            "اختر الحساب البنكي الذي يستلم مدفوعات Qi Card",
+        "os.settings.qicard.toggle_save": "حفظ إعدادات الدفع المحلي",
+        "os.settings.qicard.toggle_saved": "تم حفظ إعدادات الدفع المحلي",
+        "os.settings.qicard.active_badge": "Qi Card متاح في روابط دفع الفواتير",
         "errors.card_payment_disabled": "الدفع بالبطاقة غير مفعّل",
+        "errors.qicard_not_configured": "Qi Card غير مُعد",
+        "errors.qicard_bank_account_required":
+            "اختر حساباً بنكياً لتسوية مدفوعات Qi Card",
         "os.settings.whatsapp.section": "WhatsApp Business API (Meta)",
         "os.settings.whatsapp.description":
             "ربط رقم واتساب Business لإرسال قوالب معتمدة من نظام نقطة.",
