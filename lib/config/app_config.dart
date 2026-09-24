@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:point/Utils/AppConstants.dart';
 import 'package:point/firebase_app_options.dart';
 
@@ -40,6 +41,32 @@ class AppConfig {
     'R2_PUBLIC_BASE_URL',
     defaultValue: '',
   );
+
+  /// Base URL for hosted card payment return page (no trailing slash).
+  /// Provider redirect: `{base}/payment-result.html?provider=...&firebaseProjectId=...`
+  ///
+  /// Override with `--dart-define=CARD_PAYMENT_RETURN_BASE_URL=...`
+  /// Defaults: debug → localhost (web port), release → `https://agency.point-iq.app`
+  static const String cardPaymentReturnBaseUrl = String.fromEnvironment(
+    'CARD_PAYMENT_RETURN_BASE_URL',
+    defaultValue: '',
+  );
+
+  static const String _defaultReleaseCardPaymentReturnBase =
+      'https://agency.point-iq.app';
+
+  static String resolveCardPaymentReturnBaseUrl() {
+    final explicit = cardPaymentReturnBaseUrl.trim().replaceAll(RegExp(r'/+$'), '');
+    if (explicit.isNotEmpty) return explicit;
+    if (kDebugMode) {
+      if (kIsWeb) {
+        final origin = Uri.base.origin.trim();
+        if (origin.isNotEmpty) return origin;
+      }
+      return 'http://localhost:8080';
+    }
+    return _defaultReleaseCardPaymentReturnBase;
+  }
 
   /// Play / App Store listing URLs when Firestore `appVersionGate/mobile` omits them.
   static const String androidStoreUrlFallback = String.fromEnvironment(

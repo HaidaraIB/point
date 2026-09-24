@@ -5,44 +5,13 @@ import {
   type ServiceAccountJson,
 } from "../_shared/firebase-edge.ts";
 import { getAccessToken } from "../_shared/firestore-rest.ts";
+import { buildPaytabsAppReturnRedirect } from "../_shared/card-return-url.ts";
 import {
-  loadPaytabsSettings,
+  loadPaytabsServerKeys,
   parsePaytabsNotification,
   settlePaytabsInvoice,
   verifyPaytabsSignature,
 } from "../_shared/paytabs.ts";
-
-function htmlResponse(body: string, status = 200) {
-  return new Response(body, {
-    status,
-    headers: { "Content-Type": "text/html; charset=utf-8" },
-  });
-}
-
-function returnPage(success: boolean, message: string): Response {
-  const color = success ? "#059669" : "#e11d48";
-  const title = success ? "Payment received" : "Payment not completed";
-  return htmlResponse(`<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>${title}</title>
-  <style>
-    body { font-family: system-ui, sans-serif; background: #f8fafc; margin: 0; padding: 32px; }
-    .card { max-width: 480px; margin: 48px auto; background: #fff; border-radius: 16px; padding: 28px; border: 1px solid #e2e8f0; }
-    h1 { margin: 0 0 12px; font-size: 22px; color: ${color}; }
-    p { margin: 0; color: #475569; line-height: 1.6; }
-  </style>
-</head>
-<body>
-  <div class="card">
-    <h1>${title}</h1>
-    <p>${message}</p>
-  </div>
-</body>
-</html>`);
-}
 
 type ResolvedIpnProject = {
   sa: ServiceAccountJson;
@@ -68,50 +37,68 @@ async function resolveProjectForIpn(
   for (const projectId of candidates) {
     const sa = getServiceAccountForFirebaseProject(projectId);
     const accessToken = await getAccessToken(sa);
-    const settings = await loadPaytabsSettings(accessToken, projectId);
-    if (!settings?.serverKey) continue;
-    const valid = await verifyPaytabsSignature(
-      rawBody,
-      signature,
-      settings.serverKey,
-    );
-    if (valid) {
-      return { sa, projectId, accessToken };
+    const serverKeys = await loadPaytabsServerKeys(accessToken, projectId);
+    for (const serverKey of serverKeys) {
+      const valid = await verifyPaytabsSignature(
+        rawBody,
+        signature,
+        serverKey,
+      );
+      if (valid) {
+        return { sa, projectId, accessToken };
+      }
     }
   }
 
   return null;
 }
 
+function readReturnFields(req: Request, url: URL): Record<string, string> {
+  const fromQuery = (key: string, alt?: string): string =>
+    url.searchParams.get(key)?.trim() ??
+      (alt ? url.searchParams.get(alt)?.trim() : "") ??
+      "";
+
+  return {
+    respStatus: fromQuery("respStatus", "resp_status"),
+    respMessage: fromQuery("respMessage", "resp_message"),
+    tranRef: fromQuery("tranRef", "tran_ref"),
+    cartId: fromQuery("cartId", "cart_id"),
+  };
+}
+
 async function handleReturn(req: Request): Promise<Response> {
   const url = new URL(req.url);
-  const respStatus = url.searchParams.get("respStatus") ??
-    url.searchParams.get("resp_status") ?? "";
-  const respMessage = url.searchParams.get("respMessage") ??
-    url.searchParams.get("resp_message") ?? "";
+  const appBase = url.searchParams.get("appBase") ?? "";
+  const firebaseProjectId = url.searchParams.get("firebaseProjectId") ?? "";
+  const fields = readReturnFields(req, url);
 
   if (req.method === "POST") {
     const form = await req.formData().catch(() => null);
-    const status = form?.get("respStatus")?.toString() ??
-      form?.get("resp_status")?.toString() ?? respStatus;
-    const message = form?.get("respMessage")?.toString() ??
-      form?.get("resp_message")?.toString() ?? respMessage;
-    const ok = status === "A";
-    return returnPage(
-      ok,
-      ok
-        ? "Thank you. Your payment was submitted successfully. The invoice will be updated shortly."
-        : (message || "Your payment could not be completed. Please contact the agency."),
-    );
+    if (form) {
+      const pick = (primary: string, alt: string) =>
+        form.get(primary)?.toString().trim() ||
+        form.get(alt)?.toString().trim() ||
+        "";
+      fields.respStatus = pick("respStatus", "resp_status") || fields.respStatus;
+      fields.respMessage = pick("respMessage", "resp_message") || fields.respMessage;
+      fields.tranRef = pick("tranRef", "tran_ref") || fields.tranRef;
+      fields.cartId = pick("cartId", "cart_id") || fields.cartId;
+    }
   }
 
-  const ok = respStatus === "A";
-  return returnPage(
-    ok,
-    ok
-      ? "Thank you. Your payment was submitted successfully. The invoice will be updated shortly."
-      : (respMessage || "Your payment could not be completed. Please contact the agency."),
+  const location = buildPaytabsAppReturnRedirect(
+    appBase,
+    firebaseProjectId,
+    fields,
   );
+  return new Response(null, {
+    status: 302,
+    headers: {
+      Location: location,
+      "Cache-Control": "no-store, max-age=0",
+    },
+  });
 }
 
 async function handleIpnPost(req: Request): Promise<Response> {

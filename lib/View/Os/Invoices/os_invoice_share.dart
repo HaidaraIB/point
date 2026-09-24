@@ -8,7 +8,7 @@ import 'package:point/Models/Os/OsInvoiceModel.dart';
 import 'package:point/Services/email/os_email_html_composer.dart';
 import 'package:point/Services/firestore/firestore_os_email_api.dart';
 import 'package:point/Services/os_email_hub_service.dart';
-import 'package:point/Services/os_paytabs_service.dart';
+import 'package:point/Services/os_card_payment_service.dart';
 import 'package:point/Models/Os/os_email_enums.dart';
 import 'package:point/Utils/AppColors.dart';
 import 'package:point/Utils/AppFonts.dart';
@@ -21,7 +21,7 @@ import 'package:url_launcher/url_launcher.dart';
 final Map<String, Future<String?>> _paymentLinkFutures = {};
 final Set<String> _paymentLinkDialogInFlight = {};
 
-/// Resolves a hosted PayTabs payment URL for [invoice].
+/// Resolves a hosted card payment URL for [invoice].
 Future<String?> resolveOsInvoicePaymentLink(OsInvoiceModel invoice) async {
   if (invoice.isPaid) return null;
 
@@ -31,7 +31,8 @@ Future<String?> resolveOsInvoicePaymentLink(OsInvoiceModel invoice) async {
   final existing = _paymentLinkFutures[invoiceId];
   if (existing != null) return existing;
 
-  final future = OsPaytabsService.instance.resolveInvoicePaymentLink(invoice);
+  final future =
+      OsCardPaymentService.instance.resolveInvoicePaymentLink(invoice);
   _paymentLinkFutures[invoiceId] = future;
   try {
     return await future;

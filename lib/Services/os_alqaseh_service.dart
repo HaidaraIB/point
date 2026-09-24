@@ -1,35 +1,27 @@
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:point/Models/Os/OsPaytabsSettingsStatus.dart';
+import 'package:point/Models/Os/OsAlqasehSettingsStatus.dart';
 import 'package:point/Utils/EdgeFunctionRateLimiter.dart';
 import 'package:point/Utils/app_log.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-const String _functionName = 'paytabs';
+const String _functionName = 'alqaseh';
 
-/// Client for PayTabs settings via Edge Function.
-class OsPaytabsService {
-  OsPaytabsService._();
-  static final OsPaytabsService instance = OsPaytabsService._();
+/// Client for Alqaseh settings via Edge Function.
+class OsAlqasehService {
+  OsAlqasehService._();
+  static final OsAlqasehService instance = OsAlqasehService._();
 
-  OsPaytabsSettingsStatus? _cachedSettings;
-  OsPaytabsSettingsStatus? get cachedSettings => _cachedSettings;
+  OsAlqasehSettingsStatus? _cachedSettings;
+  OsAlqasehSettingsStatus? get cachedSettings => _cachedSettings;
 
-  static OsPaytabsSettingsStatus? parseSettingsFromResponse(dynamic data) {
+  static OsAlqasehSettingsStatus? parseSettingsFromResponse(dynamic data) {
     if (data is! Map) return null;
     final map = Map<String, dynamic>.from(data);
     if (map['success'] != true) return null;
-    return OsPaytabsSettingsStatus.fromJson(map);
+    return OsAlqasehSettingsStatus.fromJson(map);
   }
 
-  static String? parseErrorCode(dynamic data) {
-    if (data is! Map) return null;
-    final map = Map<String, dynamic>.from(data);
-    final code = map['errorCode'];
-    if (code is String && code.trim().isNotEmpty) return code.trim();
-    return null;
-  }
-
-  Future<OsPaytabsSettingsStatus?> loadSettings({
+  Future<OsAlqasehSettingsStatus?> loadSettings({
     bool force = false,
     String? environment,
   }) async {
@@ -45,36 +37,34 @@ class OsPaytabsService {
       if (status != null) _cachedSettings = status;
       return status;
     } catch (e, st) {
-      appLog('OsPaytabsService.loadSettings failed: $e\n$st');
+      appLog('OsAlqasehService.loadSettings failed: $e\n$st');
       return _cachedSettings;
     }
   }
 
-  Future<OsPaytabsSettingsStatus?> saveSettings({
+  Future<OsAlqasehSettingsStatus?> saveSettings({
     required String environment,
-    required String profileId,
-    String? serverKey,
-    String? clientKey,
-    required String region,
+    required String clientId,
+    String? clientSecret,
     required String currency,
+    required int tokenExpiryHours,
   }) async {
     try {
       final data = await _invokeRaw(
         body: {
           'action': 'save-settings',
           'environment': environment.trim(),
-          'profileId': profileId.trim(),
-          if (serverKey != null) 'serverKey': serverKey.trim(),
-          if (clientKey != null) 'clientKey': clientKey.trim(),
-          'region': region.trim(),
+          'clientId': clientId.trim(),
+          if (clientSecret != null) 'clientSecret': clientSecret.trim(),
           'currency': currency.trim(),
+          'tokenExpiryHours': tokenExpiryHours,
         },
       );
       final status = parseSettingsFromResponse(data);
       if (status != null) _cachedSettings = status;
       return status;
     } catch (e, st) {
-      appLog('OsPaytabsService.saveSettings failed: $e\n$st');
+      appLog('OsAlqasehService.saveSettings failed: $e\n$st');
       return null;
     }
   }

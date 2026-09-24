@@ -1502,6 +1502,11 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    // Alqaseh webhook idempotency events (Edge Function service account only)
+    match /os_alqaseh_events/{eventId} {
+      allow read, write: if false;
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }

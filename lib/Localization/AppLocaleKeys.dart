@@ -815,6 +815,8 @@ class AppLocaleKeys {
   static const osSettingsSubtitle = 'os.settings.subtitle';
   static const osSettingsTabGeneral = 'os.settings.tab.general';
   static const osSettingsTabIntegrations = 'os.settings.tab.integrations';
+  static const osSettingsTabPaymentMethods =
+      'os.settings.tab.payment_methods';
   static const osSettingsTabPrintBrand = 'os.settings.tab.print_brand';
   static const osSettingsTabLegal = 'os.settings.tab.legal';
   static const osSettingsAiSection = 'os.settings.ai.section';
@@ -879,6 +881,66 @@ class AppLocaleKeys {
       'os.settings.paytabs.server_key_required';
   static const osSettingsPaytabsBankRequired =
       'os.settings.paytabs.bank_required';
+  static const osSettingsPaytabsActiveBadge =
+      'os.settings.paytabs.active_badge';
+  static const osSettingsCardProviderSection =
+      'os.settings.card_provider.section';
+  static const osSettingsCardProviderDescription =
+      'os.settings.card_provider.description';
+  static const osSettingsCardProviderLabel =
+      'os.settings.card_provider.label';
+  static const osSettingsCardProviderNone =
+      'os.settings.card_provider.none';
+  static const osSettingsCardProviderPaytabs =
+      'os.settings.card_provider.paytabs';
+  static const osSettingsCardProviderAlqaseh =
+      'os.settings.card_provider.alqaseh';
+  static const osSettingsCardProviderDefaultAccount =
+      'os.settings.card_provider.default_account';
+  static const osSettingsCardProviderActive =
+      'os.settings.card_provider.active';
+  static const osSettingsCardProviderSave =
+      'os.settings.card_provider.save';
+  static const osSettingsCardProviderSaved =
+      'os.settings.card_provider.saved';
+  static const osSettingsCardProviderBankRequired =
+      'os.settings.card_provider.bank_required';
+  static const osSettingsCardProviderPaytabsNotConfigured =
+      'os.settings.card_provider.paytabs_not_configured';
+  static const osSettingsCardProviderAlqasehNotConfigured =
+      'os.settings.card_provider.alqaseh_not_configured';
+  static const osSettingsEnvironmentLabel =
+      'os.settings.environment.label';
+  static const osSettingsEnvironmentTest =
+      'os.settings.environment.test';
+  static const osSettingsEnvironmentLive =
+      'os.settings.environment.live';
+  static const osSettingsAlqasehSection = 'os.settings.alqaseh.section';
+  static const osSettingsAlqasehDescription =
+      'os.settings.alqaseh.description';
+  static const osSettingsAlqasehConfigured =
+      'os.settings.alqaseh.configured';
+  static const osSettingsAlqasehNotConfigured =
+      'os.settings.alqaseh.not_configured';
+  static const osSettingsAlqasehSecretPreview =
+      'os.settings.alqaseh.secret_preview';
+  static const osSettingsAlqasehClientId = 'os.settings.alqaseh.client_id';
+  static const osSettingsAlqasehClientIdHint =
+      'os.settings.alqaseh.client_id_hint';
+  static const osSettingsAlqasehClientSecret =
+      'os.settings.alqaseh.client_secret';
+  static const osSettingsAlqasehClientSecretHint =
+      'os.settings.alqaseh.client_secret_hint';
+  static const osSettingsAlqasehCurrency = 'os.settings.alqaseh.currency';
+  static const osSettingsAlqasehTokenExpiry =
+      'os.settings.alqaseh.token_expiry';
+  static const osSettingsAlqasehUseSandbox =
+      'os.settings.alqaseh.use_sandbox';
+  static const osSettingsAlqasehSave = 'os.settings.alqaseh.save';
+  static const osSettingsAlqasehSaved = 'os.settings.alqaseh.saved';
+  static const osSettingsAlqasehActiveBadge =
+      'os.settings.alqaseh.active_badge';
+  static const errorsCardPaymentDisabled = 'errors.card_payment_disabled';
   static const osSettingsWhatsappSection = 'os.settings.whatsapp.section';
   static const osSettingsWhatsappDescription = 'os.settings.whatsapp.description';
   static const osSettingsWhatsappConfigured = 'os.settings.whatsapp.configured';

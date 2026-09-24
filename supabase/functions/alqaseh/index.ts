@@ -6,18 +6,17 @@ import {
 import { getAccessToken } from "../_shared/firestore-rest.ts";
 import { assertOsAdmin } from "../_shared/os-admin.ts";
 import {
-  getPaytabsSettingsStatus,
-  savePaytabsSettings,
-} from "../_shared/paytabs.ts";
+  getAlqasehSettingsStatus,
+  saveAlqasehSettings,
+} from "../_shared/alqaseh.ts";
 
-type PaytabsBody = {
+type AlqasehBody = {
   action?: string;
   environment?: string;
-  profileId?: string;
-  serverKey?: string;
-  clientKey?: string;
-  region?: string;
+  clientId?: string;
+  clientSecret?: string;
   currency?: string;
+  tokenExpiryHours?: number;
 };
 
 function corsHeaders() {
@@ -55,13 +54,13 @@ Deno.serve(async (req: Request) => {
     const sa = getServiceAccountForFirebaseProject(caller.firebaseProjectId);
     const saAccessToken = await getAccessToken(sa);
 
-    const body = await req.json().catch(() => ({})) as PaytabsBody;
+    const body = await req.json().catch(() => ({})) as AlqasehBody;
     const action = (body.action ?? "").trim();
 
     if (action === "get-settings") {
       await assertOsAdmin(saAccessToken, caller.firebaseProjectId, caller.uid);
       const env = (body.environment ?? "").trim().toLowerCase();
-      const status = await getPaytabsSettingsStatus(
+      const status = await getAlqasehSettingsStatus(
         saAccessToken,
         caller.firebaseProjectId,
         env === "live" || env === "test" ? env : undefined,
@@ -72,14 +71,13 @@ Deno.serve(async (req: Request) => {
     if (action === "save-settings") {
       await assertOsAdmin(saAccessToken, caller.firebaseProjectId, caller.uid);
       try {
-        const status = await savePaytabsSettings(
+        const status = await saveAlqasehSettings(
           {
             environment: body.environment,
-            profileId: body.profileId,
-            serverKey: body.serverKey,
-            clientKey: body.clientKey,
-            region: body.region,
+            clientId: body.clientId,
+            clientSecret: body.clientSecret,
             currency: body.currency,
+            tokenExpiryHours: body.tokenExpiryHours,
           },
           saAccessToken,
           caller.firebaseProjectId,
@@ -88,7 +86,7 @@ Deno.serve(async (req: Request) => {
         return json({ success: true, ...status });
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
-        if (msg.startsWith("ERR_PAYTABS_")) {
+        if (msg.startsWith("ERR_")) {
           return json({ success: false, errorCode: msg }, 400);
         }
         throw e;
@@ -101,7 +99,7 @@ Deno.serve(async (req: Request) => {
     if (msg === "Forbidden") {
       return json({ errorCode: "ERR_FORBIDDEN" }, 403);
     }
-    console.error("paytabs error:", msg);
+    console.error("alqaseh error:", msg);
     return json({ errorCode: "ERR_INTERNAL", message: msg }, 500);
   }
 });

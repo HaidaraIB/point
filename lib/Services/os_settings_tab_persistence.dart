@@ -9,9 +9,16 @@ class OsSettingsTabPersistence {
   static const prefsKey = StorageKeys.prefsOsSettingsTabKey;
   static const general = 'general';
   static const integrations = 'integrations';
+  static const paymentMethods = 'payment_methods';
   static const printBrand = 'print_brand';
   static const legal = 'legal';
-  static const names = [general, integrations, printBrand, legal];
+  static const names = [
+    general,
+    integrations,
+    paymentMethods,
+    printBrand,
+    legal,
+  ];
 
   static int indexFromName(String? raw) {
     if (raw == null || raw.trim().isEmpty) return -1;

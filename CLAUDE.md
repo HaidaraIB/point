@@ -17,7 +17,7 @@ flutter test test/theme_controller_test.dart # run a single test file
 dart run tool/i18n_audit.dart                # audit translation key parity (run after adding UI strings)
 ```
 
-Optional dart-defines: `SUPABASE_STORAGE_BASE_URL`, `R2_SIGNER_URL`, `R2_PUBLIC_BASE_URL`, and (debug builds only) `TEST_ADMIN_PASSWORD` for the seeded `admin` test account (`ensureTestAdminUser` in `FireStoreServices`). See `lib/config/app_config.dart` for the full list.
+Optional dart-defines: `SUPABASE_STORAGE_BASE_URL`, `R2_SIGNER_URL`, `R2_PUBLIC_BASE_URL`, `CARD_PAYMENT_RETURN_BASE_URL` (hosted card payment return page; defaults debug→localhost, release→Hostinger), and (debug builds only) `TEST_ADMIN_PASSWORD` for the seeded `admin` test account (`ensureTestAdminUser` in `FireStoreServices`). See `lib/config/app_config.dart` for the full list.
 
 CI: `codemagic.yaml` / `codemagic-ios-config.example.env` for iOS builds; GitHub Actions builds Android → Google Drive on push to `master` (see `docs/GITHUB_ACTIONS_ANDROID_SETUP.md`).
 

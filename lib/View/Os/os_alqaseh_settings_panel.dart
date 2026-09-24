@@ -3,61 +3,46 @@ import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:point/Localization/AppLocaleKeys.dart';
 import 'package:point/Models/Os/OsActiveCardProviderStatus.dart';
-import 'package:point/Models/Os/OsPaytabsSettingsStatus.dart';
+import 'package:point/Models/Os/OsAlqasehSettingsStatus.dart';
+import 'package:point/Services/os_alqaseh_service.dart';
 import 'package:point/Services/os_card_payment_service.dart';
-import 'package:point/Services/os_paytabs_service.dart';
 import 'package:point/Utils/app_theme_extension.dart';
 import 'package:point/View/Os/os_button_styles.dart';
 import 'package:point/View/Os/os_form_dialog.dart';
 import 'package:point/View/Os/os_snackbar.dart';
 
-class OsPaytabsSettingsPanel extends StatefulWidget {
-  const OsPaytabsSettingsPanel({super.key, this.embedded = false});
+class OsAlqasehSettingsPanel extends StatefulWidget {
+  const OsAlqasehSettingsPanel({super.key, this.embedded = false});
 
   final bool embedded;
 
   @override
-  State<OsPaytabsSettingsPanel> createState() => _OsPaytabsSettingsPanelState();
+  State<OsAlqasehSettingsPanel> createState() => _OsAlqasehSettingsPanelState();
 }
 
-class _OsPaytabsSettingsPanelState extends State<OsPaytabsSettingsPanel>
+class _OsAlqasehSettingsPanelState extends State<OsAlqasehSettingsPanel>
     with AutomaticKeepAliveClientMixin {
   @override
   bool get wantKeepAlive => true;
-  final _profileIdCtrl = TextEditingController();
-  final _serverKeyCtrl = TextEditingController();
-  final _clientKeyCtrl = TextEditingController();
+
+  final _clientIdCtrl = TextEditingController();
+  final _clientSecretCtrl = TextEditingController();
+  final _tokenExpiryCtrl = TextEditingController(text: '72');
 
   var _loading = true;
   var _saving = false;
-  var _obscureServerKey = true;
-  var _obscureClientKey = true;
+  var _obscureSecret = true;
   var _environment = 'test';
-  var _region = 'IRQ';
   var _currency = 'IQD';
   var _isActiveProvider = false;
-  OsPaytabsSettingsStatus _status = OsPaytabsSettingsStatus.empty();
+  OsAlqasehSettingsStatus _status = OsAlqasehSettingsStatus.empty();
 
-  static const _regions = ['IRQ', 'ARE', 'SAU', 'EGY', 'JOR'];
-
-  static const _regionCurrencies = <String, List<String>>{
-    'IRQ': ['IQD', 'USD'],
-    'ARE': ['AED', 'USD'],
-    'SAU': ['SAR', 'USD'],
-    'EGY': ['EGP', 'USD'],
-    'JOR': ['JOD', 'USD'],
-  };
-
-  List<String> _currencyOptions() {
-    final base = _regionCurrencies[_region] ?? _regionCurrencies['IRQ']!;
-    if (base.contains(_currency)) return base;
-    return [...base, _currency];
-  }
+  static const _currencies = ['IQD', 'USD'];
 
   @override
   void initState() {
     super.initState();
-    final cached = OsPaytabsService.instance.cachedSettings;
+    final cached = OsAlqasehService.instance.cachedSettings;
     if (cached != null) {
       _applyStatus(cached);
       _loading = false;
@@ -69,81 +54,83 @@ class _OsPaytabsSettingsPanelState extends State<OsPaytabsSettingsPanel>
 
   @override
   void dispose() {
-    _profileIdCtrl.dispose();
-    _serverKeyCtrl.dispose();
-    _clientKeyCtrl.dispose();
+    _clientIdCtrl.dispose();
+    _clientSecretCtrl.dispose();
+    _tokenExpiryCtrl.dispose();
     super.dispose();
   }
 
-  void _applyStatus(OsPaytabsSettingsStatus status) {
+  void _applyStatus(OsAlqasehSettingsStatus status) {
     _status = status;
     _environment = status.environment.isEmpty ? 'test' : status.environment;
-    _profileIdCtrl.text = status.profileId;
-    _region = status.region.isEmpty ? 'IRQ' : status.region;
-    _currency = status.currency.isEmpty
-        ? (_regionCurrencies[_region]?.first ?? 'IQD')
-        : status.currency;
-    _serverKeyCtrl.clear();
-    _clientKeyCtrl.clear();
+    _currency = status.currency.isEmpty ? 'IQD' : status.currency;
+    _clientIdCtrl.text = status.clientId;
+    _tokenExpiryCtrl.text = status.tokenExpiryHours.toString();
+    _clientSecretCtrl.clear();
   }
 
   Future<void> _loadActive() async {
     final active = await OsCardPaymentService.instance.loadActiveProvider();
     if (!mounted) return;
-    setState(() => _isActiveProvider = active?.provider == 'paytabs');
+    setState(() => _isActiveProvider = active?.provider == 'alqaseh');
   }
 
   Future<void> _load() async {
     setState(() => _loading = true);
     try {
       final results = await Future.wait([
-        OsPaytabsService.instance.loadSettings(force: true),
+        OsAlqasehService.instance.loadSettings(force: true),
         OsCardPaymentService.instance.loadActiveProvider(force: true),
       ]);
       if (!mounted) return;
       setState(() {
         _applyStatus(
-          (results[0] as OsPaytabsSettingsStatus?) ??
-              OsPaytabsSettingsStatus.empty(),
+          (results[0] as OsAlqasehSettingsStatus?) ??
+              OsAlqasehSettingsStatus.empty(),
         );
         _isActiveProvider =
-            (results[1] as OsActiveCardProviderStatus?)?.provider == 'paytabs';
+            (results[1] as OsActiveCardProviderStatus?)?.provider == 'alqaseh';
       });
     } finally {
       if (mounted) setState(() => _loading = false);
     }
   }
 
+  void _applySandboxCredentials() {
+    setState(() {
+      _environment = 'test';
+      _clientIdCtrl.text = 'public_test';
+      _clientSecretCtrl.text = 'Lr10yWWmm1dXLoI7VgXCrQVnlq13c1G0';
+    });
+  }
+
   Future<void> _save() async {
-    final profileId = _profileIdCtrl.text.trim();
-    final currency = _currency;
+    final clientId = _clientIdCtrl.text.trim();
+    final tokenExpiry = int.tryParse(_tokenExpiryCtrl.text.trim()) ?? 72;
 
     setState(() => _saving = true);
     try {
-      final status = await OsPaytabsService.instance.saveSettings(
+      final status = await OsAlqasehService.instance.saveSettings(
         environment: _environment,
-        profileId: profileId,
-        serverKey: _serverKeyCtrl.text.trim().isEmpty
+        clientId: clientId,
+        clientSecret: _clientSecretCtrl.text.trim().isEmpty
             ? null
-            : _serverKeyCtrl.text.trim(),
-        clientKey: _clientKeyCtrl.text.trim().isEmpty
-            ? null
-            : _clientKeyCtrl.text.trim(),
-        region: _region,
-        currency: currency.isEmpty ? 'IQD' : currency,
+            : _clientSecretCtrl.text.trim(),
+        currency: _currency,
+        tokenExpiryHours: tokenExpiry,
       );
       if (!mounted) return;
       if (status == null) {
         OsSnackbar.error(
-          AppLocaleKeys.osSettingsPaytabsSection.tr,
+          AppLocaleKeys.osSettingsAlqasehSection.tr,
           AppLocaleKeys.errorsServer.tr,
         );
         return;
       }
       setState(() => _applyStatus(status));
       OsSnackbar.success(
-        AppLocaleKeys.osSettingsPaytabsSection.tr,
-        AppLocaleKeys.osSettingsPaytabsSaved.tr,
+        AppLocaleKeys.osSettingsAlqasehSection.tr,
+        AppLocaleKeys.osSettingsAlqasehSaved.tr,
       );
     } finally {
       if (mounted) setState(() => _saving = false);
@@ -158,6 +145,7 @@ class _OsPaytabsSettingsPanelState extends State<OsPaytabsSettingsPanel>
     }
 
     final theme = context.appTheme;
+    final configured = _status.hasClientSecret && _status.clientId.isNotEmpty;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -169,7 +157,7 @@ class _OsPaytabsSettingsPanelState extends State<OsPaytabsSettingsPanel>
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  AppLocaleKeys.osSettingsPaytabsActiveBadge.tr,
+                  AppLocaleKeys.osSettingsAlqasehActiveBadge.tr,
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w700,
@@ -182,7 +170,7 @@ class _OsPaytabsSettingsPanelState extends State<OsPaytabsSettingsPanel>
           const SizedBox(height: 12),
         ],
         Text(
-          AppLocaleKeys.osSettingsPaytabsDescription.tr,
+          AppLocaleKeys.osSettingsAlqasehDescription.tr,
           style: TextStyle(
             fontSize: 13,
             height: 1.5,
@@ -193,20 +181,18 @@ class _OsPaytabsSettingsPanelState extends State<OsPaytabsSettingsPanel>
         Row(
           children: [
             Icon(
-              _status.hasServerKey && _status.profileId.isNotEmpty
-                  ? Icons.check_circle_outline
-                  : Icons.error_outline,
+              configured ? Icons.check_circle_outline : Icons.error_outline,
               size: 18,
-              color: _status.hasServerKey && _status.profileId.isNotEmpty
+              color: configured
                   ? const Color(0xFF059669)
                   : const Color(0xFFE11D48),
             ),
             const SizedBox(width: 8),
             Expanded(
               child: Text(
-                _status.hasServerKey && _status.profileId.isNotEmpty
-                    ? AppLocaleKeys.osSettingsPaytabsConfigured.tr
-                    : AppLocaleKeys.osSettingsPaytabsNotConfigured.tr,
+                configured
+                    ? AppLocaleKeys.osSettingsAlqasehConfigured.tr
+                    : AppLocaleKeys.osSettingsAlqasehNotConfigured.tr,
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w700,
@@ -216,11 +202,11 @@ class _OsPaytabsSettingsPanelState extends State<OsPaytabsSettingsPanel>
             ),
           ],
         ),
-        if (_status.hasServerKey && _status.serverKeyPreview.isNotEmpty) ...[
+        if (_status.hasClientSecret && _status.clientSecretPreview.isNotEmpty) ...[
           const SizedBox(height: 8),
           Text(
-            AppLocaleKeys.osSettingsPaytabsServerKeyPreview.trParams({
-              'preview': _status.serverKeyPreview,
+            AppLocaleKeys.osSettingsAlqasehSecretPreview.trParams({
+              'preview': _status.clientSecretPreview,
             }),
             style: TextStyle(fontSize: 12, color: theme.mutedText),
           ),
@@ -250,7 +236,7 @@ class _OsPaytabsSettingsPanelState extends State<OsPaytabsSettingsPanel>
           onSelectionChanged: (values) async {
             final next = values.first;
             setState(() => _environment = next);
-            final status = await OsPaytabsService.instance.loadSettings(
+            final status = await OsAlqasehService.instance.loadSettings(
               force: true,
               environment: next,
             );
@@ -259,49 +245,26 @@ class _OsPaytabsSettingsPanelState extends State<OsPaytabsSettingsPanel>
           },
         ),
         const SizedBox(height: 16),
-        _fieldLabel(context, AppLocaleKeys.osSettingsPaytabsProfileId.tr),
+        _fieldLabel(context, AppLocaleKeys.osSettingsAlqasehClientId.tr),
         const SizedBox(height: 8),
         osTypedTextField(
-          controller: _profileIdCtrl,
-          keyboardType: TextInputType.number,
-          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+          controller: _clientIdCtrl,
           decoration: osDialogFieldDecoration(context).copyWith(
-            hintText: AppLocaleKeys.osSettingsPaytabsProfileIdHint.tr,
+            hintText: AppLocaleKeys.osSettingsAlqasehClientIdHint.tr,
           ),
         ),
         const SizedBox(height: 16),
-        _fieldLabel(context, AppLocaleKeys.osSettingsPaytabsServerKey.tr),
+        _fieldLabel(context, AppLocaleKeys.osSettingsAlqasehClientSecret.tr),
         const SizedBox(height: 8),
         osTypedTextField(
-          controller: _serverKeyCtrl,
-          obscureText: _obscureServerKey,
+          controller: _clientSecretCtrl,
+          obscureText: _obscureSecret,
           decoration: osDialogFieldDecoration(context).copyWith(
-            hintText: AppLocaleKeys.osSettingsPaytabsServerKeyHint.tr,
+            hintText: AppLocaleKeys.osSettingsAlqasehClientSecretHint.tr,
             suffixIcon: IconButton(
-              onPressed: () =>
-                  setState(() => _obscureServerKey = !_obscureServerKey),
+              onPressed: () => setState(() => _obscureSecret = !_obscureSecret),
               icon: Icon(
-                _obscureServerKey
-                    ? Icons.visibility_outlined
-                    : Icons.visibility_off_outlined,
-                size: 18,
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(height: 16),
-        _fieldLabel(context, AppLocaleKeys.osSettingsPaytabsClientKey.tr),
-        const SizedBox(height: 8),
-        osTypedTextField(
-          controller: _clientKeyCtrl,
-          obscureText: _obscureClientKey,
-          decoration: osDialogFieldDecoration(context).copyWith(
-            hintText: AppLocaleKeys.osSettingsPaytabsClientKeyHint.tr,
-            suffixIcon: IconButton(
-              onPressed: () =>
-                  setState(() => _obscureClientKey = !_obscureClientKey),
-              icon: Icon(
-                _obscureClientKey
+                _obscureSecret
                     ? Icons.visibility_outlined
                     : Icons.visibility_off_outlined,
                 size: 18,
@@ -313,60 +276,53 @@ class _OsPaytabsSettingsPanelState extends State<OsPaytabsSettingsPanel>
         LayoutBuilder(
           builder: (context, constraints) {
             final narrow = constraints.maxWidth < 640;
-            final regionField = DropdownButtonFormField<String>(
-              key: ValueKey(_region),
-              initialValue: _region,
-              decoration: osDialogFieldDecoration(context).copyWith(
-                labelText: AppLocaleKeys.osSettingsPaytabsRegion.tr,
-              ),
-              items: [
-                for (final r in _regions)
-                  DropdownMenuItem(value: r, child: Text(r)),
-              ],
-              onChanged: (v) {
-                final nextRegion = v ?? 'IRQ';
-                final options = _regionCurrencies[nextRegion] ??
-                    _regionCurrencies['IRQ']!;
-                setState(() {
-                  _region = nextRegion;
-                  if (!options.contains(_currency)) {
-                    _currency = options.first;
-                  }
-                });
-              },
-            );
             final currencyField = DropdownButtonFormField<String>(
-              key: ValueKey('$_region-$_currency'),
-              initialValue: _currencyOptions().contains(_currency)
+              key: ValueKey('alqaseh-$_currency'),
+              initialValue: _currencies.contains(_currency)
                   ? _currency
-                  : _currencyOptions().first,
+                  : _currencies.first,
               decoration: osDialogFieldDecoration(context).copyWith(
-                labelText: AppLocaleKeys.osSettingsPaytabsCurrency.tr,
+                labelText: AppLocaleKeys.osSettingsAlqasehCurrency.tr,
               ),
               items: [
-                for (final c in _currencyOptions())
+                for (final c in _currencies)
                   DropdownMenuItem(value: c, child: Text(c)),
               ],
               onChanged: (v) => setState(() => _currency = v ?? _currency),
             );
+            final expiryField = osTypedTextField(
+              controller: _tokenExpiryCtrl,
+              keyboardType: TextInputType.number,
+              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+              decoration: osDialogFieldDecoration(context).copyWith(
+                labelText: AppLocaleKeys.osSettingsAlqasehTokenExpiry.tr,
+              ),
+            );
             if (narrow) {
               return Column(
-                children: [
-                  regionField,
-                  const SizedBox(height: 12),
-                  currencyField,
-                ],
+                children: [currencyField, const SizedBox(height: 12), expiryField],
               );
             }
             return Row(
               children: [
-                Expanded(child: regionField),
-                const SizedBox(width: 12),
                 Expanded(child: currencyField),
+                const SizedBox(width: 12),
+                Expanded(child: expiryField),
               ],
             );
           },
         ),
+        if (_environment == 'test') ...[
+          const SizedBox(height: 12),
+          Align(
+            alignment: AlignmentDirectional.centerStart,
+            child: TextButton.icon(
+              onPressed: _applySandboxCredentials,
+              icon: const Icon(Icons.science_outlined, size: 18),
+              label: Text(AppLocaleKeys.osSettingsAlqasehUseSandbox.tr),
+            ),
+          ),
+        ],
         const SizedBox(height: 8),
         Align(
           alignment: AlignmentDirectional.centerEnd,
@@ -380,7 +336,7 @@ class _OsPaytabsSettingsPanelState extends State<OsPaytabsSettingsPanel>
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
                 : const Icon(Icons.save_outlined, size: 18),
-            label: Text(AppLocaleKeys.osSettingsPaytabsSave.tr),
+            label: Text(AppLocaleKeys.osSettingsAlqasehSave.tr),
           ),
         ),
       ],

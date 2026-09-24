@@ -27,11 +27,17 @@ class OsInvoiceModel {
   final String? notes;
   /// Source quotation when created via quote → invoice.
   final String? quotationId;
-  /// PayTabs hosted-page session fields (server-written).
+  /// PayTabs hosted-page session fields (server-written, legacy).
   final String? paytabsCartId;
   final String? paytabsTranRef;
   final String? paytabsRedirectUrl;
   final double? paytabsSessionAmount;
+  /// Generic card payment session fields (server-written).
+  final String? cardProvider;
+  final String? cardPaymentUrl;
+  final double? cardSessionAmount;
+  final String? cardProviderRef;
+  final String? alqasehOrderId;
   final DateTime createdAt;
 
   const OsInvoiceModel({
@@ -59,6 +65,11 @@ class OsInvoiceModel {
     this.paytabsTranRef,
     this.paytabsRedirectUrl,
     this.paytabsSessionAmount,
+    this.cardProvider,
+    this.cardPaymentUrl,
+    this.cardSessionAmount,
+    this.cardProviderRef,
+    this.alqasehOrderId,
     required this.createdAt,
   });
 
@@ -107,6 +118,11 @@ class OsInvoiceModel {
       paytabsTranRef: json['paytabsTranRef'] as String?,
       paytabsRedirectUrl: json['paytabsRedirectUrl'] as String?,
       paytabsSessionAmount: (json['paytabsSessionAmount'] as num?)?.toDouble(),
+      cardProvider: json['cardProvider'] as String?,
+      cardPaymentUrl: json['cardPaymentUrl'] as String?,
+      cardSessionAmount: (json['cardSessionAmount'] as num?)?.toDouble(),
+      cardProviderRef: json['cardProviderRef'] as String?,
+      alqasehOrderId: json['alqasehOrderId'] as String?,
       createdAt: _parseDateTime(json['createdAt']) ?? DateTime.now(),
     );
   }
@@ -138,6 +154,11 @@ class OsInvoiceModel {
         if (paytabsRedirectUrl != null) 'paytabsRedirectUrl': paytabsRedirectUrl,
         if (paytabsSessionAmount != null)
           'paytabsSessionAmount': paytabsSessionAmount,
+        if (cardProvider != null) 'cardProvider': cardProvider,
+        if (cardPaymentUrl != null) 'cardPaymentUrl': cardPaymentUrl,
+        if (cardSessionAmount != null) 'cardSessionAmount': cardSessionAmount,
+        if (cardProviderRef != null) 'cardProviderRef': cardProviderRef,
+        if (alqasehOrderId != null) 'alqasehOrderId': alqasehOrderId,
         'createdAt': Timestamp.fromDate(createdAt),
       };
 
@@ -168,6 +189,11 @@ class OsInvoiceModel {
     String? paytabsTranRef,
     String? paytabsRedirectUrl,
     double? paytabsSessionAmount,
+    String? cardProvider,
+    String? cardPaymentUrl,
+    double? cardSessionAmount,
+    String? cardProviderRef,
+    String? alqasehOrderId,
     DateTime? createdAt,
   }) {
     return OsInvoiceModel(
@@ -197,6 +223,11 @@ class OsInvoiceModel {
       paytabsTranRef: paytabsTranRef ?? this.paytabsTranRef,
       paytabsRedirectUrl: paytabsRedirectUrl ?? this.paytabsRedirectUrl,
       paytabsSessionAmount: paytabsSessionAmount ?? this.paytabsSessionAmount,
+      cardProvider: cardProvider ?? this.cardProvider,
+      cardPaymentUrl: cardPaymentUrl ?? this.cardPaymentUrl,
+      cardSessionAmount: cardSessionAmount ?? this.cardSessionAmount,
+      cardProviderRef: cardProviderRef ?? this.cardProviderRef,
+      alqasehOrderId: alqasehOrderId ?? this.alqasehOrderId,
       createdAt: createdAt ?? this.createdAt,
     );
   }

@@ -4,6 +4,21 @@
 
   <!-- Self-host Firebase JS SDK (see web/firebasejs/ and scripts/sync-firebase-web-sdk.ps1).
        Import map redirects FlutterFire's gstatic dynamic imports to local copies when CDN is blocked. -->
+  <script>
+    (function () {
+      var params = new URLSearchParams(location.search);
+      if (params.get('ptCardReturn') !== '1') return;
+      if (location.pathname.endsWith('payment-result.html')) return;
+      var target = new URL('/payment-result.html', location.origin);
+      params.forEach(function (value, key) {
+        if (key !== 'ptCardReturn') target.searchParams.set(key, value);
+      });
+      if (!target.searchParams.has('provider')) {
+        target.searchParams.set('provider', 'alqaseh');
+      }
+      location.replace(target.pathname + target.search);
+    })();
+  </script>
   <script type="importmap">
   {
     "imports": {

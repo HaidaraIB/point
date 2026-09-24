@@ -1,3 +1,11 @@
 # PayTabs IPN/callback must be callable without a Supabase JWT.
 [functions.paytabs-ipn]
 verify_jwt = false
+
+# Alqaseh webhook/redirect must be callable without a Supabase JWT.
+[functions.alqaseh-webhook]
+verify_jwt = false
+
+# Public read-only payment status for hosted return page (no JWT).
+[functions.card-payment-status]
+verify_jwt = false

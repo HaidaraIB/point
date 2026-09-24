@@ -1,5 +1,6 @@
 class OsPaytabsSettingsStatus {
   const OsPaytabsSettingsStatus({
+    required this.environment,
     required this.profileId,
     required this.region,
     required this.currency,
@@ -12,6 +13,7 @@ class OsPaytabsSettingsStatus {
     required this.configuredInFirestore,
   });
 
+  final String environment;
   final String profileId;
   final String region;
   final String currency;
@@ -24,6 +26,7 @@ class OsPaytabsSettingsStatus {
   final bool configuredInFirestore;
 
   factory OsPaytabsSettingsStatus.empty() => const OsPaytabsSettingsStatus(
+        environment: 'test',
         profileId: '',
         region: 'IRQ',
         currency: 'IQD',
@@ -39,6 +42,8 @@ class OsPaytabsSettingsStatus {
   factory OsPaytabsSettingsStatus.fromJson(Map<String, dynamic>? json) {
     if (json == null) return OsPaytabsSettingsStatus.empty();
     return OsPaytabsSettingsStatus(
+      environment: (json['environment'] as String?)?.trim().toLowerCase() ??
+          'test',
       profileId: (json['profileId'] as String?)?.trim() ?? '',
       region: (json['region'] as String?)?.trim().toUpperCase() ?? 'IRQ',
       currency: (json['currency'] as String?)?.trim().toUpperCase() ?? 'IQD',

@@ -8,6 +8,8 @@ import 'package:point/Controller/OsLegalContractsController.dart';
 import 'package:point/Localization/AppLocaleKeys.dart';
 import 'package:point/Models/Os/OsAiSettingsStatus.dart';
 import 'package:point/Services/os_ai_service.dart';
+import 'package:point/Services/os_alqaseh_service.dart';
+import 'package:point/Services/os_card_payment_service.dart';
 import 'package:point/Services/os_paytabs_service.dart';
 import 'package:point/Services/os_settings_tab_persistence.dart';
 import 'package:point/Services/os_whatsapp_service.dart';
@@ -23,6 +25,8 @@ import 'package:point/View/Os/os_email_settings_panel.dart';
 import 'package:point/View/Os/os_print_contact_settings_panel.dart';
 import 'package:point/View/Os/os_quote_template_settings_panel.dart';
 import 'package:point/View/Os/os_snackbar.dart';
+import 'package:point/View/Os/os_alqaseh_settings_panel.dart';
+import 'package:point/View/Os/os_card_provider_selector.dart';
 import 'package:point/View/Os/os_paytabs_settings_panel.dart';
 import 'package:point/View/Os/os_whatsapp_settings_panel.dart';
 import 'package:point/View/Os/os_whatsapp_template_settings_panel.dart';
@@ -45,6 +49,7 @@ class _OsSettingsPageState extends State<OsSettingsPage>
   OsAiSettingsStatus _status = OsAiSettingsStatus.empty();
   late final TabController _tabController;
   var _integrationsPrefetched = false;
+  var _paymentMethodsPrefetched = false;
   var _restoringPrefs = false;
 
   @override
@@ -52,7 +57,7 @@ class _OsSettingsPageState extends State<OsSettingsPage>
     super.initState();
     final initial = OsSettingsTabPersistence.indexFromRoute();
     _tabController = TabController(
-      length: 4,
+      length: 5,
       vsync: this,
       initialIndex: initial,
     );
@@ -64,6 +69,8 @@ class _OsSettingsPageState extends State<OsSettingsPage>
     }
     if (initial == 1) {
       _prefetchIntegrations();
+    } else if (initial == 2) {
+      _prefetchPaymentMethods();
     }
     Get.find<OsGeneralSettingsController>();
     Get.find<OsEmailHubController>();
@@ -79,6 +86,8 @@ class _OsSettingsPageState extends State<OsSettingsPage>
     _restoringPrefs = false;
     if (saved == 1) {
       _prefetchIntegrations();
+    } else if (saved == 2) {
+      _prefetchPaymentMethods();
     }
   }
 
@@ -87,15 +96,24 @@ class _OsSettingsPageState extends State<OsSettingsPage>
     OsSettingsTabPersistence.saveIndex(_tabController.index);
     if (_tabController.index == 1) {
       _prefetchIntegrations();
+    } else if (_tabController.index == 2) {
+      _prefetchPaymentMethods();
     }
   }
 
   Future<void> _prefetchIntegrations() async {
     if (_integrationsPrefetched) return;
     _integrationsPrefetched = true;
+    await OsWhatsappService.instance.loadSettings();
+  }
+
+  Future<void> _prefetchPaymentMethods() async {
+    if (_paymentMethodsPrefetched) return;
+    _paymentMethodsPrefetched = true;
     await Future.wait([
+      OsCardPaymentService.instance.loadActiveProvider(),
       OsPaytabsService.instance.loadSettings(),
-      OsWhatsappService.instance.loadSettings(),
+      OsAlqasehService.instance.loadSettings(),
     ]);
   }
 
@@ -212,6 +230,7 @@ class _OsSettingsPageState extends State<OsSettingsPage>
               tabs: [
                 Tab(text: AppLocaleKeys.osSettingsTabGeneral.tr),
                 Tab(text: AppLocaleKeys.osSettingsTabIntegrations.tr),
+                Tab(text: AppLocaleKeys.osSettingsTabPaymentMethods.tr),
                 Tab(text: AppLocaleKeys.osSettingsTabPrintBrand.tr),
                 Tab(text: AppLocaleKeys.osSettingsTabLegal.tr),
               ],
@@ -394,12 +413,6 @@ class _OsSettingsPageState extends State<OsSettingsPage>
                           ),
                           const SizedBox(height: 16),
                           _SettingsCard(
-                            icon: Icons.credit_card_outlined,
-                            title: AppLocaleKeys.osSettingsPaytabsSection.tr,
-                            child: const OsPaytabsSettingsPanel(embedded: true),
-                          ),
-                          const SizedBox(height: 16),
-                          _SettingsCard(
                             icon: Icons.chat_outlined,
                             title: AppLocaleKeys.osSettingsWhatsappSection.tr,
                             child: const OsWhatsappSettingsPanel(),
@@ -410,6 +423,28 @@ class _OsSettingsPageState extends State<OsSettingsPage>
                             title:
                                 AppLocaleKeys.osSettingsWhatsappTemplatesSection.tr,
                             child: const OsWhatsappTemplateSettingsPanel(),
+                          ),
+                        ],
+                      ),
+                      ListView(
+                        padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+                        children: [
+                          _SettingsCard(
+                            icon: Icons.payment_outlined,
+                            title: AppLocaleKeys.osSettingsCardProviderSection.tr,
+                            child: const OsCardProviderSelector(embedded: true),
+                          ),
+                          const SizedBox(height: 16),
+                          _SettingsCard(
+                            icon: Icons.credit_card_outlined,
+                            title: AppLocaleKeys.osSettingsPaytabsSection.tr,
+                            child: const OsPaytabsSettingsPanel(embedded: true),
+                          ),
+                          const SizedBox(height: 16),
+                          _SettingsCard(
+                            icon: Icons.account_balance_outlined,
+                            title: AppLocaleKeys.osSettingsAlqasehSection.tr,
+                            child: const OsAlqasehSettingsPanel(embedded: true),
                           ),
                         ],
                       ),

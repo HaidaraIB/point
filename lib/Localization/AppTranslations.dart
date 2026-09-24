@@ -1359,6 +1359,7 @@ class AppTranslations extends Translations {
             'Manage finance, email delivery, stamp, legal agency info, and AI integrations for Point OS.',
         'os.settings.tab.general': 'General',
         'os.settings.tab.integrations': 'Integrations',
+        'os.settings.tab.payment_methods': 'Payment methods',
         'os.settings.tab.print_brand': 'Print & branding',
         'os.settings.tab.legal': 'Legal',
         'os.settings.ai.section': 'Gemini AI',
@@ -1421,6 +1422,46 @@ class AppTranslations extends Translations {
         'os.settings.paytabs.server_key_required': 'Server key is required when PayTabs is enabled',
         'os.settings.paytabs.bank_required':
             'Choose the bank account that receives card payments',
+        'os.settings.paytabs.active_badge':
+            'PayTabs is the active card payment provider',
+        'os.settings.card_provider.section': 'Card payments',
+        'os.settings.card_provider.description':
+            'Choose which card payment provider is active for invoice checkout. Only one can be enabled at a time.',
+        'os.settings.card_provider.label': 'Active provider',
+        'os.settings.card_provider.none': 'None',
+        'os.settings.card_provider.paytabs': 'PayTabs',
+        'os.settings.card_provider.alqaseh': 'Alqaseh',
+        'os.settings.card_provider.default_account': 'Default collection account',
+        'os.settings.card_provider.active': '@provider is active for invoice checkout',
+        'os.settings.card_provider.save': 'Save card provider',
+        'os.settings.card_provider.saved': 'Card provider settings saved',
+        'os.settings.card_provider.bank_required':
+            'Choose the bank account that receives card payments',
+        'os.settings.card_provider.paytabs_not_configured':
+            'Configure PayTabs credentials for the selected environment first',
+        'os.settings.card_provider.alqaseh_not_configured':
+            'Configure Alqaseh credentials for the selected environment first',
+        'os.settings.environment.label': 'Environment',
+        'os.settings.environment.test': 'Test',
+        'os.settings.environment.live': 'Live',
+        'os.settings.alqaseh.section': 'Alqaseh (Visa / Mastercard)',
+        'os.settings.alqaseh.description':
+            'Accept card payments on invoices through Alqaseh hosted checkout.',
+        'os.settings.alqaseh.configured': 'Alqaseh credentials are configured',
+        'os.settings.alqaseh.not_configured': 'Alqaseh is not configured yet',
+        'os.settings.alqaseh.secret_preview': 'Saved secret: @preview',
+        'os.settings.alqaseh.client_id': 'Client ID',
+        'os.settings.alqaseh.client_id_hint': 'Merchant username from Alqaseh',
+        'os.settings.alqaseh.client_secret': 'Client secret',
+        'os.settings.alqaseh.client_secret_hint': 'Leave blank to keep the current secret',
+        'os.settings.alqaseh.currency': 'Checkout currency',
+        'os.settings.alqaseh.token_expiry': 'Payment link expiry (hours)',
+        'os.settings.alqaseh.use_sandbox': 'Use sandbox credentials',
+        'os.settings.alqaseh.save': 'Save Alqaseh settings',
+        'os.settings.alqaseh.saved': 'Alqaseh settings saved',
+        'os.settings.alqaseh.active_badge':
+            'Alqaseh is the active card payment provider',
+        'errors.card_payment_disabled': 'Card payments are not enabled',
         'os.settings.whatsapp.section': 'WhatsApp Business API (Meta)',
         'os.settings.whatsapp.description':
             'Connect your WhatsApp Business number to send approved template messages from Point OS.',
@@ -4461,6 +4502,7 @@ class AppTranslations extends Translations {
             "إدارة المالية والبريد والختم والبيانات القانونية للوكالة وتكاملات الذكاء الاصطناعي في نظام نقطة.",
         "os.settings.tab.general": "عام",
         "os.settings.tab.integrations": "التكاملات",
+        "os.settings.tab.payment_methods": "طرق الدفع",
         "os.settings.tab.print_brand": "الطباعة والهوية",
         "os.settings.tab.legal": "قانوني",
         "os.settings.ai.section": "ذكاء Gemini",
@@ -4525,6 +4567,46 @@ class AppTranslations extends Translations {
             "مفتاح الخادم مطلوب عند تفعيل PayTabs",
         "os.settings.paytabs.bank_required":
             "اختر الحساب البنكي الذي يستلم مدفوعات البطاقات",
+        "os.settings.paytabs.active_badge":
+            "PayTabs هو مزود الدفع بالبطاقة النشط",
+        "os.settings.card_provider.section": "الدفع بالبطاقة",
+        "os.settings.card_provider.description":
+            "اختر مزود الدفع بالبطاقة النشط لروابط دفع الفواتير. يمكن تفعيل مزود واحد فقط في كل مرة.",
+        "os.settings.card_provider.label": "المزود النشط",
+        "os.settings.card_provider.none": "بدون",
+        "os.settings.card_provider.paytabs": "PayTabs",
+        "os.settings.card_provider.alqaseh": "Alqaseh",
+        "os.settings.card_provider.default_account": "حساب التحصيل الافتراضي",
+        "os.settings.card_provider.active": "@provider نشط لدفع الفواتير",
+        "os.settings.card_provider.save": "حفظ مزود الدفع",
+        "os.settings.card_provider.saved": "تم حفظ إعدادات مزود الدفع",
+        "os.settings.card_provider.bank_required":
+            "اختر الحساب البنكي الذي يستلم مدفوعات البطاقات",
+        "os.settings.card_provider.paytabs_not_configured":
+            "أكمل إعداد بيانات PayTabs للبيئة المحددة أولاً",
+        "os.settings.card_provider.alqaseh_not_configured":
+            "أكمل إعداد بيانات Alqaseh للبيئة المحددة أولاً",
+        "os.settings.environment.label": "البيئة",
+        "os.settings.environment.test": "اختبار",
+        "os.settings.environment.live": "إنتاج",
+        "os.settings.alqaseh.section": "Alqaseh (فيزا / ماستركارد)",
+        "os.settings.alqaseh.description":
+            "قبول مدفوعات البطاقة على الفواتير عبر صفحة Alqaseh الآمنة.",
+        "os.settings.alqaseh.configured": "تم إعداد بيانات Alqaseh",
+        "os.settings.alqaseh.not_configured": "لم يتم إعداد Alqaseh بعد",
+        "os.settings.alqaseh.secret_preview": "السر المحفوظ: @preview",
+        "os.settings.alqaseh.client_id": "معرّف العميل",
+        "os.settings.alqaseh.client_id_hint": "اسم المستخدم من Alqaseh",
+        "os.settings.alqaseh.client_secret": "سر العميل",
+        "os.settings.alqaseh.client_secret_hint": "اتركه فارغاً للإبقاء على السر الحالي",
+        "os.settings.alqaseh.currency": "عملة الدفع",
+        "os.settings.alqaseh.token_expiry": "صلاحية رابط الدفع (ساعات)",
+        "os.settings.alqaseh.use_sandbox": "استخدام بيانات الاختبار",
+        "os.settings.alqaseh.save": "حفظ إعدادات Alqaseh",
+        "os.settings.alqaseh.saved": "تم حفظ إعدادات Alqaseh",
+        "os.settings.alqaseh.active_badge":
+            "Alqaseh هو مزود الدفع بالبطاقة النشط",
+        "errors.card_payment_disabled": "الدفع بالبطاقة غير مفعّل",
         "os.settings.whatsapp.section": "WhatsApp Business API (Meta)",
         "os.settings.whatsapp.description":
             "ربط رقم واتساب Business لإرسال قوالب معتمدة من نظام نقطة.",
