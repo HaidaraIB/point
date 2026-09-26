@@ -312,6 +312,15 @@ Future<void> _quickSend(_OsWhatsappQuickSendPayload initial) async {
   }
 
   final lockedTemplate = template;
+  if (payload.purpose == OsWhatsappTemplatePurpose.invoice &&
+      osWhatsappHasStaticPayHtmlButton(lockedTemplate)) {
+    OsSnackbar.error(
+      AppLocaleKeys.osMessagingHubTitle.tr,
+      AppLocaleKeys.osMessagingHubInvoiceTemplateStaticPayButton.tr,
+    );
+    return;
+  }
+
   final built = osWhatsappBuildGraphParameters(lockedTemplate, effectiveValues);
   String? documentBase64;
   String? documentFilename;

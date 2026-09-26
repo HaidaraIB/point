@@ -1597,6 +1597,8 @@ class AppTranslations extends Translations {
             'No approved invoice templates. Use a Meta template with a Document header and no call-permission button.',
         'os.messaging_hub.invoice_template_document_required':
             'Choose a template with a document header and no call-permission button.',
+        'os.messaging_hub.invoice_template_static_pay_button':
+            'The Pay button URL in Meta must include a variable, e.g. https://agency.point-iq.app/pay.html?t={{1}}, and map {{1}} to Payment link in template settings.',
         'os.messaging_hub.error_call_permission':
             'This template includes a call-permission button, which Meta rejected for this recipient. Use an invoice template without that button, or pick another customer.',
         'os.messaging_hub.log_type.invoice': 'Invoice',
@@ -4816,6 +4818,8 @@ class AppTranslations extends Translations {
             "لا توجد قوالب مناسبة للفواتير. استخدم قالباً بترويسة Document بدون زر طلب إذن المكالمة.",
         "os.messaging_hub.invoice_template_document_required":
             "اختر قالباً بترويسة مستند وبدون زر طلب إذن المكالمة.",
+        "os.messaging_hub.invoice_template_static_pay_button":
+            "يجب أن يتضمن رابط زر الدفع في Meta متغيراً، مثل https://agency.point-iq.app/pay.html?t={{1}}، واربط {{1}} بـ «رابط الدفع» في إعدادات القالب.",
         "os.messaging_hub.error_call_permission":
             "القالب يتضمن زر طلب إذن المكالمة ورفضه Meta لهذا المستلم. استخدم قالب فاتورة بدون هذا الزر أو عميلاً آخر.",
         "os.messaging_hub.log_type.invoice": "فاتورة",

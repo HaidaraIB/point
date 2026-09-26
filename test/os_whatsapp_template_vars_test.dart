@@ -14,6 +14,32 @@ OsWhatsappTemplateModel _templateWithBody(String bodyText) {
   });
 }
 
+OsWhatsappTemplateModel _templateWithPayUrlButton({
+  String bodyText = 'Pay: {{1}}',
+  String buttonUrl =
+      'https://agency.point-iq.app/pay.html?t={{1}}',
+}) {
+  return OsWhatsappTemplateModel.fromJson({
+    'name': 'invoice_pay',
+    'status': 'APPROVED',
+    'category': 'UTILITY',
+    'language': 'ar',
+    'components': [
+      {'type': 'BODY', 'text': bodyText},
+      {
+        'type': 'BUTTONS',
+        'buttons': [
+          {
+            'type': 'URL',
+            'text': 'Pay',
+            'url': buttonUrl,
+          },
+        ],
+      },
+    ],
+  });
+}
+
 void main() {
   test('extracts named and numbered placeholders', () {
     final t = _templateWithBody(
@@ -52,5 +78,37 @@ void main() {
     expect(out, contains('Sara'));
     expect(out, contains('500 IQD'));
     expect(out, isNot(contains('{{')));
+  });
+
+  test('url button parameter uses pay token suffix from full payment link', () {
+    const templateUrl = 'https://agency.point-iq.app/pay.html?t={{1}}';
+    const fullLink =
+        'https://agency.point-iq.app/pay.html?t=AbCdEfGh12';
+    final suffix = osWhatsappUrlButtonParameterValue(
+      templateButtonUrl: templateUrl,
+      token: '1',
+      resolvedValue: fullLink,
+    );
+    expect(suffix, 'AbCdEfGh12');
+  });
+
+  test('buildGraphParameters keeps full pay URL in body and token on button',
+      () {
+    final t = _templateWithPayUrlButton();
+    const fullLink =
+        'https://agency.point-iq.app/pay.html?t=TokenXyZ99';
+    final built = osWhatsappBuildGraphParameters(t, {'1': fullLink});
+    expect(built.body.single.text, fullLink);
+    expect(built.buttonUrlByIndex[0]!.single.text, 'TokenXyZ99');
+  });
+
+  test('static pay.html button is detected when URL has no placeholder', () {
+    final staticBtn = _templateWithPayUrlButton(
+      buttonUrl: 'https://agency.point-iq.app/pay.html?t=FixedSample',
+    );
+    expect(osWhatsappHasStaticPayHtmlButton(staticBtn), isTrue);
+
+    final dynamicBtn = _templateWithPayUrlButton();
+    expect(osWhatsappHasStaticPayHtmlButton(dynamicBtn), isFalse);
   });
 }

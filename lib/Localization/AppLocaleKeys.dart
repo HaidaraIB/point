@@ -1093,6 +1093,8 @@ class AppLocaleKeys {
       'os.messaging_hub.no_invoice_templates';
   static const osMessagingHubInvoiceTemplateDocumentRequired =
       'os.messaging_hub.invoice_template_document_required';
+  static const osMessagingHubInvoiceTemplateStaticPayButton =
+      'os.messaging_hub.invoice_template_static_pay_button';
   static const osMessagingHubErrorCallPermission =
       'os.messaging_hub.error_call_permission';
   static const osMessagingHubLogTypeInvoice =

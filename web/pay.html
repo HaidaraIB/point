@@ -99,12 +99,8 @@
       function formatAmount(amount, currency) {
         var n = Number(amount);
         if (!Number.isFinite(n)) return "";
-        var lang = chrome.getLang();
-        return (
-          n.toLocaleString(lang === "ar" ? "ar-IQ" : "en-US") +
-          " " +
-          (currency || "IQD")
-        );
+        // Always Western digits (0-9), including Arabic UI locale.
+        return n.toLocaleString("en-US") + " " + (currency || "IQD");
       }
 
       function methodIcon(id) {

@@ -896,6 +896,15 @@ class OsWhatsappHubController extends GetxController {
       return;
     }
 
+    if (entry.purpose == OsWhatsappTemplatePurpose.invoice &&
+        osWhatsappHasStaticPayHtmlButton(template)) {
+      OsSnackbar.error(
+        AppLocaleKeys.osMessagingHubTitle.tr,
+        AppLocaleKeys.osMessagingHubInvoiceTemplateStaticPayButton.tr,
+      );
+      return;
+    }
+
     await _refreshParameterValues();
 
     final built = osWhatsappBuildGraphParameters(

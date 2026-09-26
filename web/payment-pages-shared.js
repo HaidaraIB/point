@@ -17,7 +17,7 @@
   function detectTheme() {
     var stored = localStorage.getItem(THEME_KEY);
     if (stored === "light" || stored === "dark") return stored;
-    return "dark";
+    return "light";
   }
 
   function setDocumentLocale(lang) {

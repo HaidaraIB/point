@@ -107,6 +107,82 @@ Map<String, dynamic>? _componentMap(dynamic raw) {
   return null;
 }
 
+/// Approved Meta URL per button index (only `URL` buttons).
+Map<int, String> osWhatsappUrlButtonTemplateUrls(
+  OsWhatsappTemplateModel template,
+) {
+  final out = <int, String>{};
+  var buttonIdx = 0;
+  for (final raw in template.components) {
+    final map = _componentMap(raw);
+    if (map == null) continue;
+    final type = (map['type'] as String?)?.toUpperCase() ?? '';
+    if (type != 'BUTTONS') continue;
+    final buttons = map['buttons'];
+    if (buttons is! List) continue;
+    for (final btn in buttons) {
+      final btnMap = _componentMap(btn);
+      if (btnMap == null) {
+        buttonIdx++;
+        continue;
+      }
+      final btnType = (btnMap['type'] as String?)?.toUpperCase() ?? '';
+      if (btnType == 'URL') {
+        final url = (btnMap['url'] as String?)?.trim() ?? '';
+        if (url.isNotEmpty) out[buttonIdx] = url;
+      }
+      buttonIdx++;
+    }
+  }
+  return out;
+}
+
+/// Meta URL buttons must pass only the dynamic suffix, not the full pay URL.
+String osWhatsappUrlButtonParameterValue({
+  required String templateButtonUrl,
+  required String token,
+  required String resolvedValue,
+}) {
+  final value = resolvedValue.trim();
+  if (value.isEmpty) return value;
+
+  final placeholder = '{{$token}}';
+  final phIdx = templateButtonUrl.indexOf(placeholder);
+  if (phIdx < 0) return value;
+
+  final prefix = templateButtonUrl.substring(0, phIdx);
+  final suffix = templateButtonUrl.substring(phIdx + placeholder.length);
+
+  if (!value.contains('://') && !value.toLowerCase().contains('pay.html')) {
+    return value;
+  }
+
+  if (prefix.isNotEmpty && value.startsWith(prefix)) {
+    var rest = value.substring(prefix.length);
+    if (suffix.isNotEmpty && rest.endsWith(suffix)) {
+      rest = rest.substring(0, rest.length - suffix.length);
+    }
+    if (rest.isNotEmpty) return rest;
+  }
+
+  try {
+    final uri = Uri.parse(value);
+    final t = uri.queryParameters['t']?.trim();
+    if (t != null && t.isNotEmpty) return t;
+  } catch (_) {}
+
+  return value;
+}
+
+/// Invoice templates with a fixed `pay.html` button cannot vary per invoice.
+bool osWhatsappHasStaticPayHtmlButton(OsWhatsappTemplateModel template) {
+  for (final url in osWhatsappUrlButtonTemplateUrls(template).values) {
+    if (!url.toLowerCase().contains('pay.html')) continue;
+    if (!_whatsappPlaceholderToken.hasMatch(url)) return true;
+  }
+  return false;
+}
+
 /// Graph API template parameter (numbered or named).
 class OsWhatsappGraphTextParameter {
   const OsWhatsappGraphTextParameter({
@@ -168,22 +244,32 @@ OsWhatsappBuiltTemplateParameters osWhatsappBuildGraphParameters(
   Map<String, String> valuesByToken,
 ) {
   final placeholders = osWhatsappExtractPlaceholders(template);
+  final buttonUrls = osWhatsappUrlButtonTemplateUrls(template);
   final header = <OsWhatsappGraphTextParameter>[];
   final body = <OsWhatsappGraphTextParameter>[];
   final buttonUrlByIndex = <int, List<OsWhatsappGraphTextParameter>>{};
 
   for (final p in placeholders) {
-    final text = valuesByToken[p.token] ?? '';
-    final param = OsWhatsappGraphTextParameter(text: text, token: p.token);
+    var text = valuesByToken[p.token] ?? '';
     switch (p.component) {
       case OsWhatsappPlaceholderComponent.header:
-        header.add(param);
+        header.add(OsWhatsappGraphTextParameter(text: text, token: p.token));
         break;
       case OsWhatsappPlaceholderComponent.body:
-        body.add(param);
+        body.add(OsWhatsappGraphTextParameter(text: text, token: p.token));
         break;
       case OsWhatsappPlaceholderComponent.buttonUrl:
-        buttonUrlByIndex.putIfAbsent(p.buttonIndex, () => []).add(param);
+        final templateUrl = buttonUrls[p.buttonIndex];
+        if (templateUrl != null) {
+          text = osWhatsappUrlButtonParameterValue(
+            templateButtonUrl: templateUrl,
+            token: p.token,
+            resolvedValue: text,
+          );
+        }
+        buttonUrlByIndex
+            .putIfAbsent(p.buttonIndex, () => [])
+            .add(OsWhatsappGraphTextParameter(text: text, token: p.token));
         break;
     }
   }
