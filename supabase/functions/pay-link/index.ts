@@ -15,7 +15,10 @@ import {
   OS_SETTINGS_DOC,
 } from "../_shared/card-settings.ts";
 import { createOnlinePaymentSession } from "../_shared/card-checkout.ts";
-import { resolveInvoiceByPayLinkToken } from "../_shared/pay-link.ts";
+import {
+  resolveInvoiceByPayLinkToken,
+  resolveInvoiceByPayLinkTokenAcrossProjects,
+} from "../_shared/pay-link.ts";
 import { onlinePaymentMethodLabel, resolveCheckoutMethod } from "../_shared/online-payment-methods.ts";
 
 const throttle = new Map<string, number>();
@@ -92,38 +95,61 @@ Deno.serve(async (req: Request) => {
   }
 
   const url = new URL(req.url);
-  const projectId = (url.searchParams.get("p") ?? "").trim();
+  const projectIdParam = (url.searchParams.get("p") ?? "").trim();
   const token = (url.searchParams.get("t") ?? "").trim();
 
-  if (!projectId || !token) {
+  if (!token) {
     return json({ errorCode: "ERR_INVALID_REQUEST" }, 400);
   }
 
   const allowed = listAllowedFirebaseProjectIds();
-  if (!allowed.includes(projectId)) {
-    return json({ errorCode: "ERR_FORBIDDEN" }, 403);
-  }
 
   try {
-    getServiceAccountForFirebaseProject(projectId);
-    const accessToken = await getAccessToken(
-      getServiceAccountForFirebaseProject(projectId),
-    );
+    let projectId = projectIdParam;
+    let invoiceId: string;
+    let fields: Record<string, unknown>;
+    let accessToken: string;
 
-    if (!checkThrottle(projectId, token)) {
-      return json({ errorCode: "ERR_RATE_LIMITED" }, 429);
+    if (projectId) {
+      if (!allowed.includes(projectId)) {
+        return json({ errorCode: "ERR_FORBIDDEN" }, 403);
+      }
+      getServiceAccountForFirebaseProject(projectId);
+      accessToken = await getAccessToken(
+        getServiceAccountForFirebaseProject(projectId),
+      );
+
+      if (!checkThrottle(projectId, token)) {
+        return json({ errorCode: "ERR_RATE_LIMITED" }, 429);
+      }
+
+      const resolved = await resolveInvoiceByPayLinkToken(
+        accessToken,
+        projectId,
+        token,
+      );
+      if (!resolved) {
+        return json({ errorCode: "ERR_PAY_LINK_NOT_FOUND" }, 404);
+      }
+      invoiceId = resolved.invoiceId;
+      fields = resolved.fields;
+    } else {
+      if (!checkThrottle("_any_", token)) {
+        return json({ errorCode: "ERR_RATE_LIMITED" }, 429);
+      }
+
+      const resolved = await resolveInvoiceByPayLinkTokenAcrossProjects(token);
+      if (!resolved) {
+        return json({ errorCode: "ERR_PAY_LINK_NOT_FOUND" }, 404);
+      }
+      projectId = resolved.projectId;
+      invoiceId = resolved.invoiceId;
+      fields = resolved.fields;
+      getServiceAccountForFirebaseProject(projectId);
+      accessToken = await getAccessToken(
+        getServiceAccountForFirebaseProject(projectId),
+      );
     }
-
-    const resolved = await resolveInvoiceByPayLinkToken(
-      accessToken,
-      projectId,
-      token,
-    );
-    if (!resolved) {
-      return json({ errorCode: "ERR_PAY_LINK_NOT_FOUND" }, 404);
-    }
-
-    const { invoiceId, fields } = resolved;
     const status = firestoreString(fields, "status");
     const paid = status === "PAID";
     const total = firestoreNumber(fields, "total");

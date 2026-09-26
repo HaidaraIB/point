@@ -63,7 +63,10 @@ void main() {
     expect(html, contains('ملاحظة مخصصة'));
     expect(html, contains('https://pay.example.com/inv-001'));
     expect(html, contains('ادفع الآن'));
+    expect(html, contains('align="center"'));
+    expect(html, contains('background-color:${EmailBrand.primaryDark}'));
     expect(html, contains('مع التحية'));
+    expect(html, isNot(contains('بيانات التحويل')));
     expect(html, isNot(contains('<script>')));
   });
 

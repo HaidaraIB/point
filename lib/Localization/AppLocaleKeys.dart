@@ -632,8 +632,6 @@ class AppLocaleKeys {
   static const osEmailHubSentSuccess = 'os.email_hub.sent_success';
   static const osEmailHubRecipientEmail = 'os.email_hub.recipient_email';
   static const osEmailHubCustomNote = 'os.email_hub.custom_note';
-  static const osEmailHubIncludeBankDetails = 'os.email_hub.include_bank_details';
-  static const osEmailHubBankDetails = 'os.email_hub.bank_details';
   static const osEmailHubPaymentLink = 'os.email_hub.payment_link';
   static const osEmailHubAcceptLink = 'os.email_hub.accept_link';
   static const osEmailHubInvoiceSubtitle = 'os.email_hub.invoice_subtitle';
@@ -762,7 +760,6 @@ class AppLocaleKeys {
   static const emailTemplateInvoiceColQty = 'email.template.invoice.col_qty';
   static const emailTemplateInvoiceColTotal = 'email.template.invoice.col_total';
   static const emailTemplateInvoiceTotalDue = 'email.template.invoice.total_due';
-  static const emailTemplateInvoiceBankTitle = 'email.template.invoice.bank_title';
   static const emailTemplateInvoicePayCta = 'email.template.invoice.pay_cta';
   static const emailTemplateQuotationHeading = 'email.template.quotation.heading';
   static const emailTemplateQuotationTotal = 'email.template.quotation.total';

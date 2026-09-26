@@ -42,22 +42,56 @@
     return '<div class="' + cls + '" aria-hidden="true"></div>';
   }
 
+  /**
+   * ZainCash appends `?token=<jwt>` to successUrl, which can glue onto `ref`.
+   * @returns {{ ref: string, token: string }}
+   */
+  function parseZaincashReturnParams(search) {
+    var qs = search || "";
+    var params = new URLSearchParams(qs.startsWith("?") ? qs : "?" + qs);
+    var rawRef = (params.get("ref") || "").trim();
+    var token = (params.get("token") || "").trim();
+    var ref = rawRef;
+    var tokenIdx = rawRef.search(/\?token=/i);
+    if (tokenIdx >= 0) {
+      ref = rawRef.slice(0, tokenIdx).trim();
+      if (!token) {
+        token = rawRef.slice(tokenIdx + "?token=".length).trim();
+      }
+    }
+    if (!token) {
+      var raw = qs.startsWith("?") ? qs.slice(1) : qs;
+      var m = raw.match(/(?:^|[&?])token=([^&]*)/i);
+      if (m && m[1]) {
+        try {
+          token = decodeURIComponent(m[1]).trim();
+        } catch (e) {
+          token = m[1].trim();
+        }
+      }
+    }
+    return { ref: ref, token: token };
+  }
+
   function payLinkBackUrl(params) {
+    var t = (params.get("t") || "").trim();
+    if (!t) return "";
     var p = (
       params.get("p") ||
       params.get("firebaseProjectId") ||
       params.get("firebase_project_id") ||
       ""
     ).trim();
-    var t = (params.get("t") || "").trim();
-    if (!p || !t) return "";
-    return (
-      location.origin +
-      "/pay.html?p=" +
-      encodeURIComponent(p) +
-      "&t=" +
-      encodeURIComponent(t)
-    );
+    if (p) {
+      return (
+        location.origin +
+        "/pay.html?p=" +
+        encodeURIComponent(p) +
+        "&t=" +
+        encodeURIComponent(t)
+      );
+    }
+    return location.origin + "/pay.html?t=" + encodeURIComponent(t);
   }
 
   /**
@@ -136,6 +170,7 @@
     spinnerHtml: spinnerHtml,
     initToolbar: initToolbar,
     payLinkBackUrl: payLinkBackUrl,
+    parseZaincashReturnParams: parseZaincashReturnParams,
     statusEndpoint: SUPABASE_FUNCTIONS_BASE + "/card-payment-status",
     payLinkEndpoint: SUPABASE_FUNCTIONS_BASE + "/pay-link",
   };

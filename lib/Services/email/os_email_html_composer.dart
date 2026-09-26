@@ -1,7 +1,6 @@
 import 'package:get/get.dart';
 import 'package:point/Localization/AppLocaleKeys.dart';
 import 'package:point/Models/EmployeeModel.dart';
-import 'package:point/Models/Os/OsBankAccountModel.dart';
 import 'package:point/Models/Os/OsEmailSettings.dart';
 import 'package:point/Models/Os/OsInvoiceModel.dart';
 import 'package:point/Models/Os/OsLegalContractModel.dart';
@@ -29,8 +28,6 @@ class OsEmailHtmlComposer {
     required OsInvoiceModel invoice,
     required OsEmailSettings settings,
     String customNote = '',
-    bool includeBankDetails = false,
-    OsBankAccountModel? bank,
     String paymentLink = '',
   }) {
     final locale = _locale();
@@ -59,13 +56,6 @@ class OsEmailHtmlComposer {
       colQty: AppLocaleKeys.emailTemplateInvoiceColQty.tr,
       colTotal: AppLocaleKeys.emailTemplateInvoiceColTotal.tr,
       customNote: customNote,
-      bankTitle: includeBankDetails && bank != null
-          ? AppLocaleKeys.emailTemplateInvoiceBankTitle.tr
-          : '',
-      bankName: bank?.name ?? '',
-      bankAccount: bank == null
-          ? ''
-          : OsFinanceFormat.accountNumberLabel(bank.accountNumber),
       paymentLink: paymentLink,
       payCtaLabel: paymentLink.isNotEmpty
           ? AppLocaleKeys.emailTemplateInvoicePayCta.tr

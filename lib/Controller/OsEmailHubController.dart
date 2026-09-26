@@ -36,9 +36,7 @@ class OsEmailHubController extends GetxController {
 
   final invoiceRecipientEmail = ''.obs;
   final invoiceCustomNote = ''.obs;
-  final invoiceIncludeBankDetails = true.obs;
   final selectedInvoiceId = RxnString();
-  final selectedBankAccountId = RxnString();
 
   final quoteRecipientEmail = ''.obs;
   final quoteIntroMessage = ''.obs;
@@ -94,9 +92,7 @@ class OsEmailHubController extends GetxController {
   Map<String, dynamic> _draftToMap() => {
         'invoiceRecipientEmail': invoiceRecipientEmail.value,
         'invoiceCustomNote': invoiceCustomNote.value,
-        'invoiceIncludeBankDetails': invoiceIncludeBankDetails.value,
         'selectedInvoiceId': selectedInvoiceId.value,
-        'selectedBankAccountId': selectedBankAccountId.value,
         'quoteRecipientEmail': quoteRecipientEmail.value,
         'quoteIntroMessage': quoteIntroMessage.value,
         'selectedQuoteId': selectedQuoteId.value,
@@ -128,10 +124,7 @@ class OsEmailHubController extends GetxController {
     invoiceRecipientEmail.value =
         map['invoiceRecipientEmail'] as String? ?? '';
     invoiceCustomNote.value = map['invoiceCustomNote'] as String? ?? '';
-    invoiceIncludeBankDetails.value =
-        map['invoiceIncludeBankDetails'] as bool? ?? true;
     selectedInvoiceId.value = map['selectedInvoiceId'] as String?;
-    selectedBankAccountId.value = map['selectedBankAccountId'] as String?;
 
     quoteRecipientEmail.value = map['quoteRecipientEmail'] as String? ?? '';
     quoteIntroMessage.value = map['quoteIntroMessage'] as String? ?? '';
@@ -366,26 +359,10 @@ class OsEmailHubController extends GetxController {
     return '$name — $pos ($salary)';
   }
 
-  OsBankAccountModel? get selectedBank {
-    final id = selectedBankAccountId.value;
-    if (id != null) {
-      for (final b in bankAccounts) {
-        if (b.id == id) return b;
-      }
-    }
-    return bankAccounts.isNotEmpty ? bankAccounts.first : null;
-  }
-
   void syncInvoiceRecipient() {
     final inv = selectedInvoice;
     if (inv == null) return;
-    final email = inv.clientEmail?.trim() ?? '';
-    if (email.isNotEmpty) {
-      invoiceRecipientEmail.value = email;
-      return;
-    }
-    final client = osInvoiceClient(inv);
-    invoiceRecipientEmail.value = client?.email?.trim() ?? '';
+    invoiceRecipientEmail.value = osInvoiceRecipientEmail(inv);
   }
 
   void syncQuoteRecipient() {
@@ -414,9 +391,6 @@ class OsEmailHubController extends GetxController {
   void selectInvoice(String? id) {
     selectedInvoiceId.value = id;
     syncInvoiceRecipient();
-    if (selectedBankAccountId.value == null && bankAccounts.isNotEmpty) {
-      selectedBankAccountId.value = bankAccounts.first.id;
-    }
   }
 
   void selectQuote(String? id) {
@@ -546,15 +520,6 @@ class OsEmailHubController extends GetxController {
     if (note.isNotEmpty) {
       body = '$body\n\n$note';
     }
-    if (invoiceIncludeBankDetails.value) {
-      final bank = selectedBank;
-      if (bank != null) {
-        body = '$body\n\n${AppLocaleKeys.osEmailHubBankDetails.trParams({
-              'name': bank.name,
-              'number': OsFinanceFormat.accountNumberLabel(bank.accountNumber),
-            })}';
-      }
-    }
     if (!inv.isPaid) {
       final link = await resolveOsInvoicePaymentLink(inv);
       if (link != null && link.isNotEmpty) {
@@ -665,18 +630,10 @@ class OsEmailHubController extends GetxController {
   Future<String> invoiceEmailHtml() async {
     final inv = selectedInvoice;
     if (inv == null) return '';
-    var paymentLink = '';
-    if (!inv.isPaid) {
-      final link = await resolveOsInvoicePaymentLink(inv);
-      if (link != null && link.isNotEmpty) paymentLink = link;
-    }
-    return OsEmailHtmlComposer.invoice(
+    return buildOsInvoiceEmailHtml(
       invoice: inv,
       settings: settings.value,
-      customNote: invoiceCustomNote.value.trim(),
-      includeBankDetails: invoiceIncludeBankDetails.value,
-      bank: selectedBank,
-      paymentLink: paymentLink,
+      customNote: invoiceCustomNote.value,
     );
   }
 

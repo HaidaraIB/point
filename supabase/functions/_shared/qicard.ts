@@ -470,7 +470,7 @@ export async function createQicardSession(
   const clientEmail = firestoreString(invoiceFields, "clientEmail");
   const clientPhone = firestoreString(invoiceFields, "clientPhone");
   let payLinkToken = firestoreString(invoiceFields, "payLinkToken");
-  if (payLinkToken.length < 16) {
+  if (payLinkToken.length < 8) {
     payLinkToken = await ensureInvoicePayLinkToken(
       accessToken,
       projectId,

@@ -497,7 +497,7 @@ export async function createAlqasehSession(
   }
 
   let payLinkToken = firestoreString(invoiceFields, "payLinkToken");
-  if (payLinkToken.length < 16) {
+  if (payLinkToken.length < 8) {
     payLinkToken = await ensureInvoicePayLinkToken(
       accessToken,
       projectId,

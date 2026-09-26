@@ -40,6 +40,6 @@ Store live API base URL in settings (`qicardLiveApiBase`). Qi provides productio
 
 ## Client payment flow
 
-Stable link: `https://agency.point-iq.app/pay.html?p=<firebaseProjectId>&t=<payLinkToken>`
+Stable link: `https://agency.point-iq.app/pay.html?t=<payLinkToken>` (legacy URLs with `p=` still work)
 
 Return URL after Qi checkout: `payment-result.html?provider=qicard&ref=<requestId>&p=...&t=...`

@@ -3,7 +3,6 @@ import 'package:get/get.dart';
 import 'package:point/Controller/OsEmailHubController.dart';
 import 'package:point/Models/EmployeeModel.dart';
 import 'package:point/Localization/AppLocaleKeys.dart';
-import 'package:point/Models/Os/OsBankAccountModel.dart';
 import 'package:point/View/Os/EmailHub/os_email_hub_form_widgets.dart';
 import 'package:point/View/Os/EmailHub/os_email_hub_helpers.dart';
 import 'package:point/View/Os/EmailHub/os_email_payslip_options.dart';
@@ -68,35 +67,10 @@ class OsEmailHubInvoicesTab extends StatelessWidget {
             onChanged: (v) => hub.invoiceCustomNote.value = v,
             maxLines: 3,
           ),
-          const SizedBox(height: 12),
-          osEmailHubSwitchRow(
-            context,
-            label: AppLocaleKeys.osEmailHubIncludeBankDetails.tr,
-            value: hub.invoiceIncludeBankDetails.value,
-            onChanged: (v) => hub.invoiceIncludeBankDetails.value = v,
-          ),
-          if (hub.invoiceIncludeBankDetails.value &&
-              hub.bankAccounts.isNotEmpty) ...[
-            const SizedBox(height: 12),
-            _bankDropdown(context),
-          ],
         ],
         preview: OsEmailHubInvoicePreview(hub: hub),
       );
     });
-  }
-
-  Widget _bankDropdown(BuildContext context) {
-    final accounts = hub.bankAccounts;
-    final selected = hub.selectedBank;
-    return osEmailHubDocumentDropdown<OsBankAccountModel>(
-      context: context,
-      label: AppLocaleKeys.osInvoicesCollectionAccount.tr,
-      value: selected,
-      items: accounts,
-      itemLabel: (b) => b.name,
-      onChanged: (b) => hub.selectedBankAccountId.value = b?.id,
-    );
   }
 
   Future<void> _send(BuildContext context) async {

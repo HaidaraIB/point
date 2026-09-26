@@ -24,9 +24,6 @@ class EmailHtmlBuilders {
     required String colQty,
     required String colTotal,
     String customNote = '',
-    String bankTitle = '',
-    String bankName = '',
-    String bankAccount = '',
     String paymentLink = '',
     String payCtaLabel = '',
     OsEmailSettings? settings,
@@ -60,17 +57,10 @@ class EmailHtmlBuilders {
         secondaryLabel: dueDateLabel,
         secondaryValue: dueDate,
       ),
-      if (bankTitle.isNotEmpty && bankName.isNotEmpty)
-        EmailHtmlShell.infoBox(
-          '<strong>${EmailHtmlShell.escape(bankTitle)}</strong><br/>'
-          '<span dir="auto">${EmailHtmlShell.escape(bankName)} — ${EmailHtmlShell.escape(bankAccount)}</span>',
-          align: align,
-        ),
       if (paymentLink.trim().isNotEmpty && payCtaLabel.trim().isNotEmpty)
         EmailHtmlShell.ctaButton(
           label: payCtaLabel,
           href: paymentLink.trim(),
-          align: align,
         ),
       EmailHtmlShell.paragraph(reference, align: align),
     ].join();
@@ -119,7 +109,6 @@ class EmailHtmlBuilders {
         EmailHtmlShell.ctaButton(
           label: acceptCtaLabel,
           href: acceptLink.trim(),
-          align: align,
         ),
       EmailHtmlShell.paragraph(reference, align: align),
     ].join();

@@ -465,7 +465,7 @@ export async function createZaincashSession(
 
   const total = firestoreNumber(invoiceFields, "total");
   let payLinkToken = firestoreString(invoiceFields, "payLinkToken");
-  if (payLinkToken.length < 16) {
+  if (payLinkToken.length < 8) {
     payLinkToken = await ensureInvoicePayLinkToken(
       accessToken,
       projectId,
@@ -665,6 +665,68 @@ export async function settleZaincashInvoice(
     },
     claimEvent: false,
   });
+}
+
+/** Strip ZainCash `?token=` suffix wrongly glued to `ref` query value. */
+export function normalizeZaincashRef(ref: string): string {
+  const trimmed = ref.trim();
+  if (!trimmed) return "";
+  const idx = trimmed.search(/\?token=/i);
+  if (idx >= 0) return trimmed.slice(0, idx).trim();
+  return trimmed;
+}
+
+/** Read callback JWT from redirect query (handles extra `?` before token). */
+export function extractZaincashTokenFromSearch(search: string): string {
+  const fromParams = new URLSearchParams(
+    search.startsWith("?") ? search : `?${search}`,
+  ).get("token");
+  if (fromParams?.trim()) return fromParams.trim();
+
+  const raw = search.startsWith("?") ? search.slice(1) : search;
+  const match = raw.match(/(?:^|[&?])token=([^&]*)/i);
+  if (!match?.[1]) return "";
+  try {
+    return decodeURIComponent(match[1]).trim();
+  } catch {
+    return match[1].trim();
+  }
+}
+
+export type ZaincashCallbackInfo = {
+  transactionId: string;
+  orderId: string;
+  currentStatus: string;
+};
+
+export function parseZaincashCallbackPayload(
+  payload: Record<string, unknown>,
+): ZaincashCallbackInfo | null {
+  const data = (payload.data as Record<string, unknown> | undefined) ?? {};
+  const transactionId = String(
+    data.transactionId ?? payload.transactionId ?? "",
+  ).trim();
+  const orderId = String(data.orderId ?? "").trim();
+  const currentStatus = String(
+    data.currentStatus ?? data.status ?? "",
+  ).trim().toUpperCase();
+  if (!transactionId && !orderId) return null;
+  return { transactionId, orderId, currentStatus };
+}
+
+/** Decode JWT payload without signature verification (fallback only). */
+export function decodeZaincashCallbackJwtPayload(
+  token: string,
+): Record<string, unknown> | null {
+  const parts = token.trim().split(".");
+  if (parts.length !== 3) return null;
+  try {
+    return JSON.parse(
+      new TextDecoder().decode(base64UrlToBytes(parts[1])),
+    ) as Record<string, unknown>;
+  } catch {
+    return null;
+  }
 }
 
 export async function resolveZaincashTransactionForInvoice(

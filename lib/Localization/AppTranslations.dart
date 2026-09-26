@@ -1022,13 +1022,10 @@ class AppTranslations extends Translations {
         'os.email_hub.sent_success': 'Email sent to @email',
         'os.email_hub.recipient_email': 'Recipient email',
         'os.email_hub.custom_note': 'Custom note',
-        'os.email_hub.include_bank_details': 'Include bank account details',
-        'os.email_hub.bank_details':
-            'Bank: @name — Account: @number',
         'os.email_hub.payment_link': 'Payment link: @link',
         'os.email_hub.accept_link': 'Accept quotation: @link',
         'os.email_hub.invoice_subtitle':
-            'Email an official invoice with optional bank details and payment link.',
+            'Email an official invoice with an optional payment link.',
         'os.email_hub.quote_subtitle':
             'Send a quotation with a digital acceptance link.',
         'os.email_hub.payslip_subtitle':
@@ -1172,7 +1169,6 @@ class AppTranslations extends Translations {
         'email.template.invoice.col_qty': 'Qty',
         'email.template.invoice.col_total': 'Total',
         'email.template.invoice.total_due': 'Total amount due',
-        'email.template.invoice.bank_title': 'Approved bank transfer details',
         'email.template.invoice.pay_cta': 'Pay invoice online',
         'email.template.quotation.heading': 'Quotation @ref',
         'email.template.quotation.total': 'Total quotation value',
@@ -4387,12 +4383,10 @@ class AppTranslations extends Translations {
         "os.email_hub.sent_success": "تم إرسال البريد إلى @email",
         "os.email_hub.recipient_email": "بريد المستلم",
         "os.email_hub.custom_note": "ملاحظة مخصصة",
-        "os.email_hub.include_bank_details": "إرفاق تفاصيل الحساب البنكي",
-        "os.email_hub.bank_details": "البنك: @name — الحساب: @number",
         "os.email_hub.payment_link": "رابط الدفع: @link",
         "os.email_hub.accept_link": "رابط قبول العرض: @link",
         "os.email_hub.invoice_subtitle":
-            "إرسال فاتورة رسمية مع تفاصيل بنكية ورابط دفع اختياري.",
+            "إرسال فاتورة رسمية مع رابط دفع اختياري.",
         "os.email_hub.quote_subtitle":
             "إرسال عرض سعر مع رابط قبول رقمي.",
         "os.email_hub.payslip_subtitle":
@@ -4531,7 +4525,6 @@ class AppTranslations extends Translations {
         "email.template.invoice.col_qty": "الكمية",
         "email.template.invoice.col_total": "الإجمالي",
         "email.template.invoice.total_due": "المبلغ الإجمالي المستحق",
-        "email.template.invoice.bank_title": "بيانات التحويل البنكي المعتمدة",
         "email.template.invoice.pay_cta": "دفع الفاتورة إلكترونياً",
         "email.template.quotation.heading": "عرض سعر @ref",
         "email.template.quotation.total": "القيمة الإجمالية للعرض",

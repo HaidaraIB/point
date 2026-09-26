@@ -21,9 +21,15 @@ import {
   settleQicardInvoice,
 } from "../_shared/qicard.ts";
 import {
+  decodeZaincashCallbackJwtPayload,
+  extractZaincashTokenFromSearch,
+  loadZaincashSettings,
   mapZaincashPaymentStatus,
+  normalizeZaincashRef,
+  parseZaincashCallbackPayload,
   resolveZaincashTransactionForInvoice,
   settleZaincashInvoice,
+  verifyZaincashCallbackJwt,
 } from "../_shared/zaincash.ts";
 import {
   mapPaytabsResponseStatus,
@@ -178,25 +184,129 @@ async function resolveAlqasehStatus(
   };
 }
 
+type ZaincashCallbackSettleResult = {
+  invoiceId: string;
+  settleResult?: "settled" | "ignored" | "duplicate";
+  callbackStatus: string;
+};
+
+async function trySettleFromZaincashCallbackToken(
+  accessToken: string,
+  projectId: string,
+  callbackToken: string,
+): Promise<ZaincashCallbackSettleResult | null> {
+  const token = callbackToken.trim();
+  if (!token) return null;
+
+  const settings = await loadZaincashSettings(accessToken, projectId);
+  const verifyKey = settings?.apiKey?.trim() ||
+    settings?.clientSecret?.trim() ||
+    "";
+
+  let payload: Record<string, unknown> | null = null;
+  if (verifyKey) {
+    try {
+      const decoded = await verifyZaincashCallbackJwt(token, verifyKey);
+      payload = decoded.payload;
+    } catch {
+      payload = decodeZaincashCallbackJwtPayload(token);
+    }
+  } else {
+    payload = decodeZaincashCallbackJwtPayload(token);
+  }
+
+  if (!payload) return null;
+  const info = parseZaincashCallbackPayload(payload);
+  if (!info) return null;
+
+  let settleResult: "settled" | "ignored" | "duplicate" | undefined;
+  if (
+    mapZaincashPaymentStatus(info.currentStatus) === "paid" &&
+    info.transactionId
+  ) {
+    try {
+      settleResult = await settleZaincashInvoice(
+        accessToken,
+        projectId,
+        info.transactionId,
+      );
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      console.warn("ZainCash token settle failed:", info.transactionId, msg);
+    }
+  }
+
+  return {
+    invoiceId: info.orderId || normalizeZaincashRef(info.transactionId),
+    settleResult,
+    callbackStatus: info.currentStatus,
+  };
+}
+
 async function resolveZaincashStatus(
   accessToken: string,
   projectId: string,
   invoiceId: string,
+  callbackToken?: string,
 ): Promise<StatusResponse> {
+  let normalizedInvoiceId = normalizeZaincashRef(invoiceId);
+
+  if (callbackToken?.trim()) {
+    const fromToken = await trySettleFromZaincashCallbackToken(
+      accessToken,
+      projectId,
+      callbackToken,
+    );
+    if (fromToken?.invoiceId) {
+      normalizedInvoiceId = fromToken.invoiceId;
+    }
+    if (fromToken?.settleResult === "ignored") {
+      const invoiceFields = normalizedInvoiceId
+        ? await lookupInvoiceFields(
+          accessToken,
+          projectId,
+          normalizedInvoiceId,
+        )
+        : null;
+      if (
+        !invoiceFields ||
+        firestoreString(invoiceFields, "status") !== "PAID"
+      ) {
+        return {
+          state: "failed",
+          ...invoiceSummary(invoiceFields),
+        };
+      }
+    }
+  }
+
   let txn;
   try {
     txn = await resolveZaincashTransactionForInvoice(
       accessToken,
       projectId,
-      invoiceId,
+      normalizedInvoiceId,
     );
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
-    console.warn("ZainCash resolve failed:", invoiceId, msg);
+    console.warn("ZainCash resolve failed:", normalizedInvoiceId, msg);
     return { state: "failed" };
   }
 
   if (!txn) {
+    const invoiceFields = normalizedInvoiceId
+      ? await lookupInvoiceFields(
+        accessToken,
+        projectId,
+        normalizedInvoiceId,
+      )
+      : null;
+    if (invoiceFields && firestoreString(invoiceFields, "status") === "PAID") {
+      return {
+        state: "paid",
+        ...invoiceSummary(invoiceFields),
+      };
+    }
     return { state: "pending" };
   }
 
@@ -216,7 +326,7 @@ async function resolveZaincashStatus(
   const invoiceFields = await lookupInvoiceFields(
     accessToken,
     projectId,
-    invoiceId,
+    normalizedInvoiceId,
   );
 
   if (invoiceFields && firestoreString(invoiceFields, "status") === "PAID") {
@@ -338,12 +448,19 @@ Deno.serve(async (req: Request) => {
   const url = new URL(req.url);
   const provider = (url.searchParams.get("provider") ?? "").trim().toLowerCase();
   const projectId = (url.searchParams.get("firebaseProjectId") ?? "").trim();
-  const ref = (url.searchParams.get("ref") ??
+  const rawRef = (url.searchParams.get("ref") ??
     url.searchParams.get("payment_id") ??
     url.searchParams.get("paymentId") ??
     url.searchParams.get("tranRef") ??
     url.searchParams.get("tran_ref") ??
     "").trim();
+  const ref = provider === "zaincash"
+    ? normalizeZaincashRef(rawRef)
+    : rawRef;
+  let zaincashToken = (url.searchParams.get("token") ?? "").trim();
+  if (provider === "zaincash" && !zaincashToken) {
+    zaincashToken = extractZaincashTokenFromSearch(url.search);
+  }
 
   if (!provider || !projectId || !ref) {
     return json({ errorCode: "ERR_INVALID_REQUEST" }, 400);
@@ -376,7 +493,12 @@ Deno.serve(async (req: Request) => {
     }
 
     if (provider === "zaincash") {
-      const status = await resolveZaincashStatus(accessToken, projectId, ref);
+      const status = await resolveZaincashStatus(
+        accessToken,
+        projectId,
+        ref,
+        zaincashToken,
+      );
       return json(status);
     }
 

@@ -50,15 +50,17 @@ export function appendPayLinkContext(
   if (token) params.set("t", token);
 }
 
+/** Public share link for pay.html (token only; project resolved server-side). */
 export function buildPayHtmlUrl(
-  firebaseProjectId: string,
+  _firebaseProjectId: string,
   payLinkToken: string,
   returnBaseUrl?: string,
 ): string {
   const fromClient = normalizeReturnBaseUrl(returnBaseUrl);
   const base = fromClient || RELEASE_APP_BASE;
+  const token = payLinkToken.trim();
   const params = new URLSearchParams();
-  appendPayLinkContext(params, firebaseProjectId, payLinkToken);
+  if (token) params.set("t", token);
   return `${base}/pay.html?${params.toString()}`;
 }
 

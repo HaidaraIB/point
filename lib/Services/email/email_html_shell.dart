@@ -259,15 +259,15 @@ ${row.map((cell) => '<td style="padding:10px 12px;border-bottom:1px solid ${Emai
   static String ctaButton({
     required String label,
     required String href,
-    required String align,
+    String backgroundColor = EmailBrand.primaryDark,
   }) {
     final safeHref = escape(href);
     final safeLabel = escape(label);
     return '''
-<table role="presentation" cellpadding="0" cellspacing="0" style="margin:18px 0;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:18px 0;">
   <tr>
-    <td align="$align">
-      <a href="$safeHref" style="display:inline-block;padding:12px 22px;background-color:${EmailBrand.primary};color:#FFFFFF;text-decoration:none;border-radius:8px;font-size:14px;font-weight:700;">
+    <td align="center">
+      <a href="$safeHref" style="display:inline-block;padding:12px 22px;background-color:$backgroundColor;color:#FFFFFF;text-decoration:none;border-radius:8px;font-size:14px;font-weight:700;">
         $safeLabel
       </a>
     </td>

@@ -55,6 +55,7 @@
       var POLL_MS = 3000;
       var POLL_MAX = 20;
       var params = new URLSearchParams(location.search);
+      var zaincashReturn = null;
       var currentView = "verifying";
       var pendingFinal = false;
       var failedIsError = false;
@@ -151,7 +152,14 @@
         return "";
       }
 
+      if (provider() === "zaincash") {
+        zaincashReturn = shared.parseZaincashReturnParams(location.search);
+      }
+
       function paymentRef() {
+        if (zaincashReturn && zaincashReturn.ref) {
+          return zaincashReturn.ref.trim();
+        }
         return (
           params.get("ref") ||
           params.get("payment_id") ||
@@ -222,6 +230,9 @@
         q.set("provider", provider());
         q.set("firebaseProjectId", projectId());
         q.set("ref", paymentRef());
+        if (zaincashReturn && zaincashReturn.token) {
+          q.set("token", zaincashReturn.token);
+        }
         return STATUS_ENDPOINT + "?" + q.toString();
       }
 

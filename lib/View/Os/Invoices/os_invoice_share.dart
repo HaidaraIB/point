@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import 'package:point/Controller/HomeController.dart';
 import 'package:point/Localization/AppLocaleKeys.dart';
 import 'package:point/Models/ClientModel.dart';
+import 'package:point/Models/Os/OsEmailSettings.dart';
 import 'package:point/Models/Os/OsInvoiceModel.dart';
 import 'package:point/Services/email/os_email_html_composer.dart';
 import 'package:point/Services/firestore/firestore_os_email_api.dart';
@@ -119,6 +120,13 @@ ClientModel? osInvoiceClient(OsInvoiceModel invoice) {
     if (name.isNotEmpty && name == invoice.clientName.trim()) return c;
   }
   return null;
+}
+
+/// Invoice email first (supports custom/ad-hoc clients), then linked client.
+String osInvoiceRecipientEmail(OsInvoiceModel invoice) {
+  final onInvoice = invoice.clientEmail?.trim() ?? '';
+  if (onInvoice.isNotEmpty) return onInvoice;
+  return osInvoiceClient(invoice)?.email?.trim() ?? '';
 }
 
 String osInvoiceItemsCountLabel(int count) {
@@ -332,9 +340,27 @@ Future<void> shareOsInvoiceWhatsApp(OsInvoiceModel invoice) async {
   }
 }
 
+/// Builds invoice email HTML (same content as Email Hub send).
+Future<String> buildOsInvoiceEmailHtml({
+  required OsInvoiceModel invoice,
+  required OsEmailSettings settings,
+  required String customNote,
+}) async {
+  var paymentLink = '';
+  if (!invoice.isPaid) {
+    final link = await resolveOsInvoicePaymentLink(invoice);
+    if (link != null && link.isNotEmpty) paymentLink = link;
+  }
+  return OsEmailHtmlComposer.invoice(
+    invoice: invoice,
+    settings: settings,
+    customNote: customNote.trim(),
+    paymentLink: paymentLink,
+  );
+}
+
 Future<void> sendOsInvoiceEmail(OsInvoiceModel invoice) async {
-  final client = osInvoiceClient(invoice);
-  final email = client?.email?.trim() ?? '';
+  final email = osInvoiceRecipientEmail(invoice);
   if (email.isEmpty) {
     OsSnackbar.error(
       AppLocaleKeys.osInvoicesTitle.tr,
@@ -347,18 +373,13 @@ Future<void> sendOsInvoiceEmail(OsInvoiceModel invoice) async {
 
   final ref = OsFinanceFormat.invoiceRef(invoice);
   final subject = AppLocaleKeys.osInvoicesEmailSubject.trParams({'ref': ref});
-  var paymentLink = '';
-  if (!invoice.isPaid) {
-    final link = await resolveOsInvoicePaymentLink(invoice);
-    if (link != null && link.isNotEmpty) paymentLink = link;
-  }
 
   try {
     final settings = await FirestoreOsEmailApi.loadSettings();
-    final html = OsEmailHtmlComposer.invoice(
+    final html = await buildOsInvoiceEmailHtml(
       invoice: invoice,
       settings: settings,
-      paymentLink: paymentLink,
+      customNote: AppLocaleKeys.osEmailHubInvoiceDefaultNote.tr,
     );
     final ok = await OsEmailHubService.sendAndLog(
       type: OsEmailCategory.invoice,
