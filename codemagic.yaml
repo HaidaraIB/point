@@ -116,9 +116,8 @@ workflows:
       - name: Flutter build ipa
         script: |
           cd "$CM_BUILD_DIR"
-          # cloud_firestore 6.3.x + firebase-ios-sdk 12.14.0 via SPM fails in FLTPipelineParser; 6.5.0 pins SDK 12.13.0.
-          rm -rf build/ios/SourcePackages
-          rm -rf ~/Library/Caches/org.swift.swiftpm
+          # iOS native deps via CocoaPods (SPM disabled) — avoids dl.google.com Firebase binary timeouts on CI.
+          flutter config --no-enable-swift-package-manager
           unset FLUTTER_BUILD_NAME FLUTTER_BUILD_NUMBER
           set +e
           flutter build ipa \
