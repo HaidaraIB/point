@@ -7,6 +7,7 @@ import 'package:point/Utils/app_theme_extension.dart';
 import 'package:point/Utils/whatsapp_phone.dart';
 import 'package:point/Utils/os_whatsapp_template_vars.dart';
 import 'package:point/View/Os/Messaging/os_whatsapp_log_display.dart';
+import 'package:point/View/Shared/content_text.dart';
 
 class WhatsappTemplateButtonPreview {
   const WhatsappTemplateButtonPreview({
@@ -202,7 +203,7 @@ class OsWhatsappMessagePreview extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         if (hasBody)
-                          Text(
+                          ContentText(
                             content.bodyText.trim(),
                             style: TextStyle(
                               fontSize: 14.5,
@@ -212,7 +213,7 @@ class OsWhatsappMessagePreview extends StatelessWidget {
                           ),
                         if (hasFooter) ...[
                           if (hasBody) const SizedBox(height: 6),
-                          Text(
+                          ContentText(
                             content.footerText!.trim(),
                             style: TextStyle(
                               fontSize: 12,
@@ -305,7 +306,7 @@ class _HeaderSection extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
+                  ContentText(
                     name,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
@@ -342,7 +343,7 @@ class _HeaderSection extends StatelessWidget {
     }
     return Padding(
       padding: const EdgeInsets.fromLTRB(10, 10, 10, 0),
-      child: Text(
+      child: ContentText(
         content.headerText!.trim(),
         style: TextStyle(
           fontSize: 15,

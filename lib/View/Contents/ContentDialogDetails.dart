@@ -10,6 +10,7 @@ import 'package:point/Utils/ContentPermissions.dart';
 import 'package:point/Utils/media_url_opener.dart';
 import 'package:point/View/Tasks/DetailsDialogs/TaskDetailsDialogHelpers.dart';
 import 'package:point/Utils/AppConstants.dart';
+import 'package:point/View/Shared/content_text.dart';
 import 'package:point/View/Shared/task_status_visuals.dart';
 
 void showContentDialogDetails(
@@ -306,7 +307,7 @@ class _ContentDialogDetailsState extends State<ContentDialogDetails> {
             border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
           ),
           child: widget.task.notes?.trim().isNotEmpty == true
-              ? Text(
+              ? ContentText(
                   widget.task.notes!,
                   style: TextStyle(
                     fontSize: 12,

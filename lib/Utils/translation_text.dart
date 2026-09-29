@@ -69,7 +69,7 @@ TextDirection textDirectionForTranslation(
   if (langCode != null && langCode.isNotEmpty) {
     return textDirectionForLangCode(langCode);
   }
-  return chatMessageTextDirectionFromFirstWord(text) ?? TextDirection.ltr;
+  return contentParagraphTextDirection(text);
 }
 
 /// Uppercase chip label for a language code.

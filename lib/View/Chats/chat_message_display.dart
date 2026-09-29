@@ -803,9 +803,11 @@ Widget messageTextRich(
               text,
               style: style,
               textAlign: TextAlign.start,
+              textDirection: resolvedDirection,
             )
           : RichText(
               textAlign: TextAlign.start,
+              textDirection: resolvedDirection,
               text: TextSpan(
                 children: buildMessageSpans(
                   text,

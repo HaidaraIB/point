@@ -24,6 +24,7 @@ import 'package:point/View/Contents/Shared/content_library_attachment_picker.dar
 import 'package:point/View/EmployeeDashboard/EmployeeContentDashboard.dart';
 import 'package:point/View/Mobile/ContentStatusCard.dart';
 import 'package:point/View/Publish/publish_add_dialog.dart';
+import 'package:point/View/Shared/content_text.dart';
 import 'package:point/View/Shared/CustomHeader.dart';
 import 'package:point/View/Shared/CustomDropDown.dart';
 import 'package:point/View/Shared/InputText.dart';

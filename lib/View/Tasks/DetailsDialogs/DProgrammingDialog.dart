@@ -6,6 +6,7 @@ import 'package:point/Models/TaskModel.dart';
 import 'package:point/Services/FunHelper.dart';
 import 'package:point/Services/task_client_name_resolver.dart';
 import 'package:point/Utils/media_url_opener.dart';
+import 'package:point/View/Shared/content_text.dart';
 import 'package:point/View/Shared/responsive.dart';
 import 'package:point/View/Tasks/DetailsDialogs/GenericTaskDetailsDialog.dart';
 import 'package:point/View/Tasks/DetailsDialogs/TaskDetailsDialogHelpers.dart';
@@ -129,7 +130,7 @@ class ProgrammingDetailsSection extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 8),
-                    SelectableText(
+                    ContentSelectableText(
                       task.programmingModel!.aboutTask,
                       style: TextStyle(
                         fontSize: 13,

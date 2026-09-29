@@ -9,6 +9,7 @@ import 'package:point/Services/StorageKeys.dart';
 import 'package:point/Utils/attachment_download.dart';
 import 'package:point/Utils/media_url_opener.dart';
 import 'package:point/Utils/app_theme_extension.dart';
+import 'package:point/View/Shared/content_text.dart';
 import 'package:point/View/Tasks/Shared/task_attachment_gallery.dart';
 
 /// Shared management/rejection banners and deadline-extension panel for
@@ -210,7 +211,7 @@ class TaskDetailsFeedbackWidgets {
               if (t.deadlineExtensionReason.trim().isNotEmpty)
                 Padding(
                   padding: const EdgeInsets.only(top: 6),
-                  child: SelectableText(t.deadlineExtensionReason.trim()),
+                  child: ContentSelectableText(t.deadlineExtensionReason.trim()),
                 ),
               const SizedBox(height: 10),
               Wrap(

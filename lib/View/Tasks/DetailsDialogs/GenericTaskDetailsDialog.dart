@@ -17,6 +17,7 @@ import 'package:point/View/Tasks/Shared/request_task_modification_dialog.dart';
 import 'package:point/View/Tasks/Shared/task_attachment_gallery.dart';
 import 'package:point/View/Tasks/Shared/task_note_body.dart';
 import 'package:point/View/Tasks/Shared/task_voice_details_tile.dart';
+import 'package:point/View/Shared/content_text.dart';
 import 'package:point/View/Shared/task_status_visuals.dart';
 import 'package:point/Utils/AppColors.dart';
 import 'package:point/Utils/app_theme_extension.dart';
@@ -346,7 +347,7 @@ class _GenericTaskDetailsDialogState extends State<GenericTaskDetailsDialog> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                SelectableText(
+                ContentSelectableText(
                   displayTitle,
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.w700,

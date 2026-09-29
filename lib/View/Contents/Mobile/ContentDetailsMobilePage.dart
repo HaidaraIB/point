@@ -14,6 +14,7 @@ import 'package:point/Utils/media_url_opener.dart';
 import 'package:point/View/Contents/Mobile/ContentFormMobilePage.dart';
 import 'package:point/View/Publish/publish_add_dialog.dart';
 import 'package:point/View/Tasks/DetailsDialogs/TaskDetailsDialogHelpers.dart';
+import 'package:point/View/Shared/content_text.dart';
 import 'package:point/View/Shared/task_status_visuals.dart';
 import 'package:point/Utils/app_theme_extension.dart';
 
@@ -525,9 +526,8 @@ class _ContentDetailsMobilePageState extends State<ContentDetailsMobilePage> {
             Row(
               children: [
                 Expanded(
-                  child: Text(
+                  child: ContentText(
                     value,
-                    textAlign: isRtl ? TextAlign.right : TextAlign.left,
                     style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.w700,
@@ -608,11 +608,10 @@ class _ContentDetailsMobilePageState extends State<ContentDetailsMobilePage> {
                 : MainAxisAlignment.start,
             children: [
               Flexible(
-                child: Text(
+                child: ContentText(
                   value,
-                  textAlign: centerValue
-                      ? TextAlign.center
-                      : (isRtl ? TextAlign.right : TextAlign.left),
+                  textAlign:
+                      centerValue ? TextAlign.center : TextAlign.start,
                   style: TextStyle(
                     fontSize: centerValue ? 16 : 20,
                     fontWeight: centerValue ? FontWeight.w500 : FontWeight.w700,

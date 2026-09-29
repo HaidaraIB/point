@@ -6,7 +6,9 @@ import {
 import { getAccessToken } from "../_shared/firestore-rest.ts";
 import { assertOsAdmin } from "../_shared/os-admin.ts";
 import {
+  cancelQicardPayment,
   getQicardSettingsStatus,
+  refundQicardPayment,
   saveQicardSettings,
 } from "../_shared/qicard.ts";
 
@@ -19,6 +21,9 @@ type QicardBody = {
   currency?: string;
   liveApiBase?: string;
   webhookPublicKey?: string;
+  paymentId?: string;
+  amount?: number;
+  message?: string;
 };
 
 function corsHeaders() {
@@ -88,6 +93,53 @@ Deno.serve(async (req: Request) => {
           caller.uid,
         );
         return json({ success: true, ...status });
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        if (msg.startsWith("ERR_")) {
+          return json({ success: false, errorCode: msg }, 400);
+        }
+        throw e;
+      }
+    }
+
+    if (action === "refund") {
+      await assertOsAdmin(saAccessToken, caller.firebaseProjectId, caller.uid);
+      const paymentId = (body.paymentId ?? "").trim();
+      const amount = body.amount;
+      if (!paymentId || amount == null || !Number.isFinite(amount)) {
+        return json({ errorCode: "ERR_QICARD_REFUND_INVALID_INPUT" }, 400);
+      }
+      try {
+        const result = await refundQicardPayment(
+          saAccessToken,
+          caller.firebaseProjectId,
+          paymentId,
+          amount,
+          body.message,
+        );
+        return json({ success: true, result });
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        if (msg.startsWith("ERR_")) {
+          return json({ success: false, errorCode: msg }, 400);
+        }
+        throw e;
+      }
+    }
+
+    if (action === "cancel") {
+      await assertOsAdmin(saAccessToken, caller.firebaseProjectId, caller.uid);
+      const paymentId = (body.paymentId ?? "").trim();
+      if (!paymentId) {
+        return json({ errorCode: "ERR_QICARD_PAYMENT_ID_REQUIRED" }, 400);
+      }
+      try {
+        const result = await cancelQicardPayment(
+          saAccessToken,
+          caller.firebaseProjectId,
+          paymentId,
+        );
+        return json({ success: true, result });
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
         if (msg.startsWith("ERR_")) {

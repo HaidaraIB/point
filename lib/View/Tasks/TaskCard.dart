@@ -20,6 +20,7 @@ import 'package:point/View/Tasks/Shared/task_client_display_name.dart';
 import 'package:point/View/Tasks/Shared/task_details_feedback_widgets.dart';
 import 'package:point/View/Shared/task_status_visuals.dart';
 import 'package:point/View/Shared/app_user_avatar.dart';
+import 'package:point/View/Shared/content_text.dart';
 import 'package:point/Utils/app_theme_extension.dart';
 
 bool _taskInManagementReview(TaskModel task) {
@@ -96,7 +97,7 @@ class TaskCard extends StatelessWidget {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Expanded(
-                            child: Text(
+                            child: ContentText(
                               task.localizedTitle(
                                 Get.locale?.languageCode ?? 'ar',
                               ),
@@ -727,7 +728,7 @@ class TaskCard extends StatelessWidget {
                   }),
 
                   // --- الوصف ---
-                  Text(
+                  ContentText(
                     task.localizedDescription(
                       Get.locale?.languageCode ?? 'ar',
                     ),

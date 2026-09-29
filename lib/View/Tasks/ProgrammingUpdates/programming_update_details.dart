@@ -9,6 +9,7 @@ import 'package:point/Services/task_client_name_resolver.dart';
 import 'package:point/Utils/AppColors.dart';
 import 'package:point/Utils/media_url_opener.dart';
 import 'package:point/View/Shared/attachment_thumbnail_tile.dart';
+import 'package:point/View/Shared/content_text.dart';
 import 'package:point/View/Shared/responsive.dart';
 import 'package:point/View/Shared/voice_message_row.dart';
 import 'package:point/View/Tasks/DetailsDialogs/DProgrammingDialog.dart';
@@ -245,7 +246,7 @@ class ProgrammingUpdateDetailsBody extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                SelectableText(
+                ContentSelectableText(
                   _displayTitle(u),
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.w700,
@@ -484,7 +485,7 @@ class ProgrammingUpdateDetailsBody extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 8),
-                SelectableText(
+                ContentSelectableText(
                   u.aboutTask.trim(),
                   style: TextStyle(
                     fontSize: 13,
@@ -616,7 +617,7 @@ class ProgrammingUpdateDetailsBody extends StatelessWidget {
           const SizedBox(height: 4),
           InkWell(
             onTap: () => openUrlPreferInAppMedia(value),
-            child: Text(
+            child: ContentText(
               value,
               style: TextStyle(
                 fontSize: 14,

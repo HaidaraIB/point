@@ -22,6 +22,10 @@
 - استخدم طبقة mapping إلى مفاتيح `errors.*`.
 - خدمات الباك إند ترجع `errorCode` ثابتة بدل رسائل خام.
 
+## اتجاه النص (محتوى المستخدم)
+- نصوص الواجهة من مفاتيح الترجمة (`.tr`) تتبع لغة التطبيق (RTL للعربية).
+- النصوص الحرة أو المخزّنة (وصف مهمة، ملاحظات، محتوى عميل، معاينة رسائل): استخدم `ContentText` / `ContentSelectableText` أو `LinkifiedText` أو حقول `typedDirectionTextField` — لا تستخدم `Text(متغير)` بدون اتجاه من المحتوى (`contentParagraphTextDirection`).
+
 ## فحوصات الجودة
 - شغّل:
   - `dart run tool/i18n_audit.dart`

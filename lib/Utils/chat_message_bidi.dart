@@ -1,6 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart' show Bidi;
 
+/// Read-only paragraph direction from **content** (first strong character), not UI locale.
+/// Use for user-generated / stored free-form strings — not for `.tr` labels.
+TextDirection contentParagraphTextDirection(String text) {
+  final trimmed = text.trimLeft();
+  if (trimmed.isEmpty) return TextDirection.ltr;
+  if (Bidi.startsWithRtl(trimmed)) return TextDirection.rtl;
+  return TextDirection.ltr;
+}
+
 /// Paragraph direction per message/content: derive from **first word** script.
 /// Matches chat bubble + tile preview behavior on all platforms (web, mobile).
 ///

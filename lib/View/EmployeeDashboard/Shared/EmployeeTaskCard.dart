@@ -10,6 +10,7 @@ import 'package:point/Services/StorageKeys.dart';
 import 'package:point/Utils/AppConstants.dart';
 import 'package:point/View/EmployeeDashboard/Shared/AddContentEmployeeDialog.dart';
 import 'package:point/View/Shared/app_user_avatar.dart';
+import 'package:point/View/Shared/content_text.dart';
 import 'package:point/View/Shared/responsive.dart';
 import 'package:point/View/Shared/task_status_visuals.dart';
 import 'package:point/View/Tasks/Shared/add_task_comment_dialog.dart';
@@ -109,7 +110,7 @@ class EmployeeTaskCard extends StatelessWidget {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Expanded(
-                            child: Text(
+                            child: ContentText(
                               task.localizedTitle(
                                 Get.locale?.languageCode ?? 'ar',
                               ),
@@ -308,7 +309,7 @@ class EmployeeTaskCard extends StatelessWidget {
                       const SizedBox(height: 8),
 
                       // --- الوصف ---
-                      Text(
+                      ContentText(
                         task.localizedDescription(
                           Get.locale?.languageCode ?? 'ar',
                         ),

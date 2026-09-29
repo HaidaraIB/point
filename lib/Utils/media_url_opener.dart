@@ -1,4 +1,5 @@
 import 'package:flutter/gestures.dart';
+import 'package:point/Utils/chat_message_bidi.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:point/Services/FunHelper.dart';
@@ -122,6 +123,7 @@ class LinkifiedText extends StatefulWidget {
   final TextOverflow? overflow;
   final bool selectable;
   final Future<void> Function(String url)? onOpenUrl;
+  final TextDirection? textDirection;
 
   const LinkifiedText(
     this.text, {
@@ -133,6 +135,7 @@ class LinkifiedText extends StatefulWidget {
     this.overflow,
     this.selectable = false,
     this.onOpenUrl,
+    this.textDirection,
   });
 
   @override
@@ -152,6 +155,8 @@ class _LinkifiedTextState extends State<LinkifiedText> {
 
   @override
   Widget build(BuildContext context) {
+    final resolvedDirection =
+        widget.textDirection ?? contentParagraphTextDirection(widget.text);
     final matches = _urlRegex.allMatches(widget.text).toList();
     if (matches.isEmpty) {
       if (widget.selectable) {
@@ -160,6 +165,7 @@ class _LinkifiedTextState extends State<LinkifiedText> {
           textAlign: widget.textAlign,
           maxLines: widget.maxLines,
           style: widget.style,
+          textDirection: resolvedDirection,
         );
       }
       return Text(
@@ -168,6 +174,7 @@ class _LinkifiedTextState extends State<LinkifiedText> {
         maxLines: widget.maxLines,
         overflow: widget.overflow,
         style: widget.style,
+        textDirection: resolvedDirection,
       );
     }
 
@@ -217,6 +224,7 @@ class _LinkifiedTextState extends State<LinkifiedText> {
         rich,
         textAlign: widget.textAlign,
         maxLines: widget.maxLines,
+        textDirection: resolvedDirection,
       );
     }
     return Text.rich(
@@ -224,6 +232,7 @@ class _LinkifiedTextState extends State<LinkifiedText> {
       textAlign: widget.textAlign,
       maxLines: widget.maxLines,
       overflow: widget.overflow,
+      textDirection: resolvedDirection,
     );
   }
 }

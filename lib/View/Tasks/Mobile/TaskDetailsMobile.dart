@@ -33,6 +33,7 @@ import 'package:point/View/Tasks/Shared/reject_task_dialog.dart';
 import 'package:point/View/Tasks/Shared/request_task_modification_dialog.dart';
 import 'package:point/View/Shared/task_status_visuals.dart';
 import 'package:point/View/Shared/app_user_avatar.dart';
+import 'package:point/View/Shared/content_text.dart';
 import 'package:point/Utils/app_theme_extension.dart';
 
 bool _taskInManagementReviewMobile(TaskModel task) {
@@ -104,7 +105,7 @@ class TaskDetailsMobilePage extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    SelectableText(
+                    ContentSelectableText(
                       task.localizedTitle(Get.locale?.languageCode ?? 'ar'),
                       style: TextStyle(
                         fontSize: 18,
@@ -518,7 +519,7 @@ class TaskDetailsMobilePage extends StatelessWidget {
           const SizedBox(height: 4),
           InkWell(
             onTap: () => _launchAttachmentUrl(value),
-            child: Text(
+            child: ContentText(
               value,
               style: TextStyle(
                 fontSize: 13,

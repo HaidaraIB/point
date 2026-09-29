@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:point/Models/TaskModel.dart';
 import 'package:point/Utils/app_theme_extension.dart';
 import 'package:point/Utils/media_url_opener.dart';
+import 'package:point/View/Shared/content_text.dart';
 import 'package:point/View/Shared/voice_message_row.dart';
 
 /// Text + optional voice playback for a task [NoteModel].
@@ -60,12 +61,12 @@ class TaskNoteBody extends StatelessWidget {
                   style: resolvedStyle,
                 )
               : selectable
-                  ? SelectableText(
+                  ? ContentSelectableText(
                       text,
                       maxLines: maxLines,
                       style: resolvedStyle,
                     )
-                  : Text(
+                  : ContentText(
                       text,
                       maxLines: maxLines,
                       overflow: overflow ??

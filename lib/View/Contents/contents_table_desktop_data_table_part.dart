@@ -917,7 +917,7 @@ void _showLongTextPopup(
       title: Text(title),
       content: SizedBox(
         width: 520,
-        child: SingleChildScrollView(child: Text(value.trim())),
+        child: SingleChildScrollView(child: ContentText(value.trim())),
       ),
       actions: [TextButton(onPressed: Get.back, child: Text('app.close'.tr))],
     ),

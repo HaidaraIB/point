@@ -23,6 +23,8 @@ import 'package:point/View/Os/os_document_action_button.dart';
 import 'package:point/View/Os/os_print_pdf_button.dart';
 import 'package:point/View/Os/os_finance_status_widgets.dart';
 import 'package:point/View/Os/os_invoice_stamp.dart';
+import 'package:point/View/Shared/content_text.dart';
+import 'package:point/Utils/chat_message_bidi.dart';
 
 Future<void> showOsLegalContractPreviewDialog(
   BuildContext context,
@@ -835,7 +837,8 @@ class _OsLegalContractPreviewDialogState
             ),
           ],
         ),
-        textDirection: ltr ? TextDirection.ltr : null,
+        textDirection:
+            ltr ? TextDirection.ltr : contentParagraphTextDirection(value),
       ),
     );
   }
@@ -1043,7 +1046,7 @@ class _OsLegalContractPreviewDialogState
                   for (final p in contract.paymentTerms)
                     DataRow(
                       cells: [
-                        DataCell(Text(p.milestone)),
+                        DataCell(ContentText(p.milestone)),
                         DataCell(Text('${p.percentage.toStringAsFixed(0)}%')),
                         DataCell(
                           Text(
@@ -1057,7 +1060,7 @@ class _OsLegalContractPreviewDialogState
                             ),
                           ),
                         ),
-                        DataCell(Text(p.dueDateDescription)),
+                        DataCell(ContentText(p.dueDateDescription)),
                         DataCell(
                           Text(
                             p.isPaid
@@ -1129,7 +1132,7 @@ class _OsLegalContractPreviewDialogState
                     ),
                     const SizedBox(width: 8),
                     Expanded(
-                      child: Text(
+                      child: ContentText(
                         clause.title,
                         style: TextStyle(
                           fontWeight: FontWeight.w900,
@@ -1141,7 +1144,7 @@ class _OsLegalContractPreviewDialogState
                   ],
                 ),
                 const SizedBox(height: 8),
-                Text(
+                ContentText(
                   clause.content,
                   style: TextStyle(
                     fontSize: 11,
@@ -1177,7 +1180,7 @@ class _OsLegalContractPreviewDialogState
             ),
           ),
           const SizedBox(height: 8),
-          Text(
+          ContentText(
             text,
             style: TextStyle(
               fontSize: 11,
@@ -1300,7 +1303,7 @@ class _OsLegalContractPreviewDialogState
       ),
       child: Column(
         children: [
-          Text(
+          ContentText(
             title,
             textAlign: TextAlign.center,
             style: TextStyle(
@@ -1310,7 +1313,7 @@ class _OsLegalContractPreviewDialogState
             ),
           ),
           const SizedBox(height: 4),
-          Text(
+          ContentText(
             subtitle,
             textAlign: TextAlign.center,
             style: TextStyle(fontSize: 10, color: theme.mutedText),
@@ -1380,7 +1383,7 @@ class _OsLegalContractPreviewDialogState
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: theme.border),
       ),
-      child: Text(
+      child: ContentText(
         text,
         style: TextStyle(
           fontSize: 11,

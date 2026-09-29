@@ -434,6 +434,82 @@ export async function getQicardPaymentStatus(
   return parsePaymentObject(data);
 }
 
+export async function refundQicardPayment(
+  accessToken: string,
+  projectId: string,
+  paymentId: string,
+  amount: number,
+  message?: string,
+): Promise<Record<string, unknown>> {
+  const settings = await loadQicardSettings(accessToken, projectId);
+  if (!settings) throw new Error("ERR_QICARD_NOT_CONFIGURED");
+
+  const pid = paymentId.trim();
+  if (!pid) throw new Error("ERR_QICARD_PAYMENT_ID_REQUIRED");
+
+  const checkoutAmount = normalizeCheckoutAmount(amount, settings.currency);
+  const body: Record<string, unknown> = {
+    requestId: crypto.randomUUID(),
+    amount: checkoutAmount,
+  };
+  const note = (message ?? "").trim();
+  if (note) body.message = note;
+
+  const apiBase = qicardApiBaseUrl(settings);
+  const res = await fetch(
+    `${apiBase}/payment/${encodeURIComponent(pid)}/refund`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: basicAuthHeader(settings.username, settings.password),
+        "X-Terminal-Id": settings.terminalId,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(body),
+    },
+  );
+
+  const data = await parseQicardResponse(res);
+  if (!res.ok) {
+    console.error("QiCard refund failed:", res.status, JSON.stringify(data));
+    throw new Error("ERR_QICARD_REFUND_FAILED");
+  }
+  return data;
+}
+
+export async function cancelQicardPayment(
+  accessToken: string,
+  projectId: string,
+  paymentId: string,
+): Promise<QicardPaymentObject> {
+  const settings = await loadQicardSettings(accessToken, projectId);
+  if (!settings) throw new Error("ERR_QICARD_NOT_CONFIGURED");
+
+  const pid = paymentId.trim();
+  if (!pid) throw new Error("ERR_QICARD_PAYMENT_ID_REQUIRED");
+
+  const apiBase = qicardApiBaseUrl(settings);
+  const res = await fetch(
+    `${apiBase}/payment/${encodeURIComponent(pid)}/cancel`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: basicAuthHeader(settings.username, settings.password),
+        "X-Terminal-Id": settings.terminalId,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ requestId: crypto.randomUUID() }),
+    },
+  );
+
+  const data = await parseQicardResponse(res);
+  if (!res.ok) {
+    console.error("QiCard cancel failed:", res.status, JSON.stringify(data));
+    throw new Error("ERR_QICARD_CANCEL_FAILED");
+  }
+  return parsePaymentObject(data);
+}
+
 const REUSABLE_STATUSES = new Set(["CREATED"]);
 
 export type CreateQicardSessionResult = {
