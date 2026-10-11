@@ -237,7 +237,7 @@ class FirestoreOsFinanceApi {
                 accountSnap.id,
               );
               final nextBalance =
-                  (account.balance - current.total).clamp(0.0, double.infinity);
+                  (account.balance - current.total);
               tx.set(
                 accountRef,
                 account.copyWith(balance: nextBalance).toJson(),
@@ -437,7 +437,7 @@ class FirestoreOsFinanceApi {
               accountSnap.id,
             );
             final nextBalance =
-                (account.balance - current.total).clamp(0.0, double.infinity);
+                (account.balance - current.total);
             tx.set(
               accountRef,
               account.copyWith(balance: nextBalance).toJson(),
@@ -816,26 +816,45 @@ class FirestoreOsFinanceApi {
           applyLegs: applyLegs,
         );
 
-        final balances = <String, double>{};
+        // Firestore transactions require every read before the first write,
+        // so load all accounts (including every net-delta target) up front.
+        accountIdsToRead.addAll(netDeltas.keys);
+        final accountsById = <String, OsBankAccountModel>{};
         for (final accountId in accountIdsToRead) {
           final id = accountId.trim();
-          if (id.isEmpty || balances.containsKey(id)) continue;
+          if (id.isEmpty || accountsById.containsKey(id)) continue;
           final accountRef =
               firestore.collection(bankAccountsCollection).doc(id);
           final accountSnap = await tx.get(accountRef);
           if (!accountSnap.exists) {
+            // The previously linked account was deleted: nothing to reverse
+            // there, so just re-post onto the newly chosen account.
+            if (source != OsVoucherSource.transfer &&
+                id == fresh.bankAccountId.trim() &&
+                id != updated.bankAccountId.trim()) {
+              netDeltas.remove(id);
+              continue;
+            }
             throw OsFinanceException('os.invoices.error.account_missing');
           }
-          balances[id] = OsBankAccountModel.fromJson(
+          accountsById[id] = OsBankAccountModel.fromJson(
             accountSnap.data()!,
             accountSnap.id,
-          ).balance;
+          );
         }
+        final balances = <String, double>{
+          for (final e in accountsById.entries) e.key: e.value.balance,
+        };
 
-        final blocked = findOsInsufficientBalanceAccount(
-          balancesByAccountId: balances,
-          netDeltasByAccountId: netDeltas,
-        );
+        // Only transfers require funds (same as [transferBetweenAccounts]);
+        // other vouchers may overdraw on create, so edits must not be stricter
+        // or moving an expense to its correct account gets blocked.
+        final blocked = source == OsVoucherSource.transfer
+            ? findOsInsufficientBalanceAccount(
+                balancesByAccountId: balances,
+                netDeltasByAccountId: netDeltas,
+              )
+            : null;
         if (blocked != null) {
           throw OsFinanceException('os.accounts.transfer.error.insufficient');
         }
@@ -843,11 +862,7 @@ class FirestoreOsFinanceApi {
         for (final entry in netDeltas.entries) {
           final accountRef =
               firestore.collection(bankAccountsCollection).doc(entry.key);
-          final accountSnap = await tx.get(accountRef);
-          final account = OsBankAccountModel.fromJson(
-            accountSnap.data()!,
-            accountSnap.id,
-          );
+          final account = accountsById[entry.key.trim()]!;
           tx.set(
             accountRef,
             account.copyWith(balance: account.balance + entry.value).toJson(),
@@ -865,20 +880,9 @@ class FirestoreOsFinanceApi {
             pair: freshPair,
           );
 
-          final sourceRef =
-              firestore.collection(bankAccountsCollection).doc(transfer.sourceAccountId);
-          final destRef =
-              firestore.collection(bankAccountsCollection).doc(transfer.destAccountId);
-          final sourceSnap = await tx.get(sourceRef);
-          final destSnap = await tx.get(destRef);
-          final sourceName = OsBankAccountModel.fromJson(
-            sourceSnap.data()!,
-            sourceSnap.id,
-          ).name;
-          final destName = OsBankAccountModel.fromJson(
-            destSnap.data()!,
-            destSnap.id,
-          ).name;
+          final sourceName =
+              accountsById[transfer.sourceAccountId.trim()]!.name;
+          final destName = accountsById[transfer.destAccountId.trim()]!.name;
 
           tx.set(
             firestore.collection(vouchersCollection).doc(oldPayment.id),
@@ -1158,7 +1162,7 @@ class FirestoreOsFinanceApi {
         destSnap.id,
       );
       final nextDest =
-          (dest.balance - amount).clamp(0.0, double.infinity);
+          (dest.balance - amount);
       tx.set(
         sourceRef,
         source.copyWith(balance: source.balance + amount).toJson(),
@@ -1358,6 +1362,35 @@ class FirestoreOsFinanceApi {
         existingSnap.id,
       );
       final voucherId = existing.voucherId?.trim() ?? '';
+      final accountId = expense.bankAccountId?.trim() ?? '';
+
+      if (voucherId.isEmpty && accountId.isNotEmpty) {
+        // Expense had no posted voucher (e.g. saved before an account was
+        // chosen) — post one now so the selected account is debited.
+        final payee = (expense.vendor?.trim().isNotEmpty ?? false)
+            ? expense.vendor!.trim()
+            : expense.paidBy;
+        final newVoucherId = newId();
+        final ok = await createVoucher(
+          OsVoucherModel(
+            id: newVoucherId,
+            type: OsVoucherType.payment,
+            amount: expense.amount,
+            date: expense.date,
+            payeeOrPayer: payee,
+            description: voucherDescription,
+            bankAccountId: accountId,
+            source: OsVoucherSource.expense,
+            createdAt: DateTime.now(),
+          ),
+        );
+        if (!ok) return false;
+        await expenseRef.set(
+          expense.copyWith(voucherId: newVoucherId).toJson(),
+          SetOptions(merge: true),
+        );
+        return true;
+      }
 
       if (voucherId.isNotEmpty) {
         final voucherSnap =

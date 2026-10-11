@@ -77,153 +77,158 @@ class _VoiceMessageRowState extends State<VoiceMessageRow> {
           ? Colors.white.withValues(alpha: 0.92)
           : AppColors.primary;
 
+      Widget buildBody() => Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              SizedBox(
+                width: 44,
+                height: 44,
+                child: busy
+                    ? Center(
+                        child: SizedBox(
+                          width: 22,
+                          height: 22,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: primary,
+                          ),
+                        ),
+                      )
+                    : IconButton(
+                        padding: EdgeInsets.zero,
+                        onPressed: () => unawaited(
+                          svc.toggle(
+                            widget.url,
+                            durationHintSec: widget.durationSec,
+                          ),
+                        ),
+                        icon: Icon(
+                          playing
+                              ? Icons.pause_rounded
+                              : Icons.play_arrow_rounded,
+                          color: primary,
+                          size: 34,
+                        ),
+                      ),
+              ),
+              Expanded(
+                child: SliderTheme(
+                  data: SliderTheme.of(context).copyWith(
+                    trackHeight: 5,
+                    thumbShape: const RoundSliderThumbShape(
+                      enabledThumbRadius: 7,
+                    ),
+                    overlayShape: const RoundSliderOverlayShape(
+                      overlayRadius: 16,
+                    ),
+                    activeTrackColor: progress,
+                    inactiveTrackColor: track,
+                    thumbColor: primary,
+                    overlayColor: primary.withValues(alpha: 0.14),
+                  ),
+                  child: Slider(
+                    value: sliderValue().clamp(0.0, 1.0),
+                    onChanged: canScrub && isActive
+                        ? (v) => setState(() => _dragFraction = v)
+                        : null,
+                    onChangeEnd: canScrub && isActive
+                        ? (v) {
+                            setState(() => _dragFraction = null);
+                            unawaited(
+                              svc.seekToFraction(v, widget.durationSec),
+                            );
+                          }
+                        : null,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          Padding(
+            padding: const EdgeInsetsDirectional.only(start: 44, end: 6),
+            child: Row(
+              children: [
+                Text(
+                  formatVoiceDuration(
+                    _dragFraction != null && ms > 0
+                        ? Duration(milliseconds: (_dragFraction! * ms).round())
+                        : position,
+                  ),
+                  style: TextStyle(fontSize: 11.5, color: secondary),
+                ),
+                const Spacer(),
+                Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: () => unawaited(svc.cyclePlaybackSpeed()),
+                    borderRadius: BorderRadius.circular(6),
+                    child: Tooltip(
+                      message: AppLocaleKeys.chatVoicePlaybackSpeed.tr,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 2,
+                        ),
+                        child: Text(
+                          speedLabel,
+                          style: TextStyle(
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.w600,
+                            color: primary,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  formatVoiceDuration(effectiveDur),
+                  style: TextStyle(fontSize: 11.5, color: secondary),
+                ),
+              ],
+            ),
+          ),
+          if (err != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: Text(
+                AppLocaleKeys.errorsServer.tr,
+                style: TextStyle(
+                  fontSize: 11,
+                  color: widget.isMe
+                      ? Colors.orange.shade100
+                      : Theme.of(context).colorScheme.error,
+                ),
+              ),
+            ),
+        ],
+      );
+
+      // Chat bubbles wrap content in IntrinsicWidth, which can't measure a
+      // LayoutBuilder (it collapses to 0 and squeezes the slider), so the
+      // compact layout must use a plain fixed width.
       return Directionality(
         textDirection: TextDirection.ltr,
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final maxW = widget.compact
-                ? 268.0
-                : (constraints.hasBoundedWidth && constraints.maxWidth.isFinite
-                    ? constraints.maxWidth
-                    : 400.0);
-            return ConstrainedBox(
-              constraints: BoxConstraints(minWidth: 200, maxWidth: maxW),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      SizedBox(
-                        width: 44,
-                        height: 44,
-                        child: busy
-                            ? Center(
-                                child: SizedBox(
-                                  width: 22,
-                                  height: 22,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    color: primary,
-                                  ),
-                                ),
-                              )
-                            : IconButton(
-                                padding: EdgeInsets.zero,
-                                onPressed: () => unawaited(
-                                  svc.toggle(
-                                    widget.url,
-                                    durationHintSec: widget.durationSec,
-                                  ),
-                                ),
-                                icon: Icon(
-                                  playing
-                                      ? Icons.pause_rounded
-                                      : Icons.play_arrow_rounded,
-                                  color: primary,
-                                  size: 34,
-                                ),
-                              ),
-                      ),
-                      Expanded(
-                        child: SliderTheme(
-                          data: SliderTheme.of(context).copyWith(
-                            trackHeight: 5,
-                            thumbShape: const RoundSliderThumbShape(
-                              enabledThumbRadius: 7,
-                            ),
-                            overlayShape: const RoundSliderOverlayShape(
-                              overlayRadius: 16,
-                            ),
-                            activeTrackColor: progress,
-                            inactiveTrackColor: track,
-                            thumbColor: primary,
-                            overlayColor: primary.withValues(alpha: 0.14),
-                          ),
-                          child: Slider(
-                            value: sliderValue().clamp(0.0, 1.0),
-                            onChanged: canScrub && isActive
-                                ? (v) => setState(() => _dragFraction = v)
-                                : null,
-                            onChangeEnd: canScrub && isActive
-                                ? (v) {
-                                    setState(() => _dragFraction = null);
-                                    unawaited(
-                                      svc.seekToFraction(v, widget.durationSec),
-                                    );
-                                  }
-                                : null,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  Padding(
-                    padding: const EdgeInsetsDirectional.only(start: 44, end: 6),
-                    child: Row(
-                      children: [
-                        Text(
-                          formatVoiceDuration(
-                            _dragFraction != null && ms > 0
-                                ? Duration(
-                                    milliseconds: (_dragFraction! * ms).round(),
-                                  )
-                                : position,
-                          ),
-                          style: TextStyle(fontSize: 11.5, color: secondary),
-                        ),
-                        const Spacer(),
-                        Material(
-                          color: Colors.transparent,
-                          child: InkWell(
-                            onTap: () => unawaited(svc.cyclePlaybackSpeed()),
-                            borderRadius: BorderRadius.circular(6),
-                            child: Tooltip(
-                              message: AppLocaleKeys.chatVoicePlaybackSpeed.tr,
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 6,
-                                  vertical: 2,
-                                ),
-                                child: Text(
-                                  speedLabel,
-                                  style: TextStyle(
-                                    fontSize: 11.5,
-                                    fontWeight: FontWeight.w600,
-                                    color: primary,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          formatVoiceDuration(effectiveDur),
-                          style: TextStyle(fontSize: 11.5, color: secondary),
-                        ),
-                      ],
-                    ),
-                  ),
-                  if (err != null)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 4),
-                      child: Text(
-                        AppLocaleKeys.errorsServer.tr,
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: widget.isMe
-                              ? Colors.orange.shade100
-                              : Theme.of(context).colorScheme.error,
-                        ),
-                      ),
-                    ),
-                ],
+        child: widget.compact
+            ? SizedBox(width: 248, child: buildBody())
+            : LayoutBuilder(
+                builder: (context, constraints) {
+                  final maxW =
+                      constraints.hasBoundedWidth &&
+                          constraints.maxWidth.isFinite
+                      ? constraints.maxWidth
+                      : 400.0;
+                  return ConstrainedBox(
+                    constraints: BoxConstraints(minWidth: 200, maxWidth: maxW),
+                    child: buildBody(),
+                  );
+                },
               ),
-            );
-          },
-        ),
       );
     });
   }

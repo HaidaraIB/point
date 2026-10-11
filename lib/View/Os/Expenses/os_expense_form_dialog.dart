@@ -84,8 +84,10 @@ class _OsExpenseFormDialogState extends State<_OsExpenseFormDialog> {
     _category = existing?.category ?? OsExpenseCategories.all.first;
     _paymentMethod =
         existing?.paymentMethod ?? OsExpensePaymentMethod.cash;
+    // No silent default: the expense must be charged to the account the user
+    // picks (auto-select only when there is exactly one).
     _bankAccountId = existing?.bankAccountId ??
-        (finance.bankAccounts.isNotEmpty ? finance.bankAccounts.first.id : null);
+        (finance.bankAccounts.length == 1 ? finance.bankAccounts.first.id : null);
     _branchId = existing?.branchId ?? finance.defaultBranchId ?? '';
     _paidBy = existing?.paidBy ??
         (home.employees.isNotEmpty
@@ -193,9 +195,17 @@ class _OsExpenseFormDialogState extends State<_OsExpenseFormDialog> {
       );
       return;
     }
+    final finance = Get.find<OsFinanceController>();
+    if (finance.bankAccounts.isNotEmpty &&
+        finance.accountById(_bankAccountId) == null) {
+      OsSnackbar.error(
+        AppLocaleKeys.osExpensesTitle.tr,
+        AppLocaleKeys.osVouchersErrorAccountRequired.tr,
+      );
+      return;
+    }
 
     setState(() => _saving = true);
-    final finance = Get.find<OsFinanceController>();
     try {
       final id = widget.existing?.id ?? FirestoreOsFinanceApi.newId();
       var imageUrl = _receiptUrl;
@@ -710,6 +720,43 @@ class _OsExpenseFormDialogState extends State<_OsExpenseFormDialog> {
                         ),
                       ],
                     ),
+                    Obx(() {
+                      final accounts = finance.bankAccounts
+                          .where((a) => a.id != null && a.id!.isNotEmpty)
+                          .toList();
+                      if (accounts.isEmpty) return const SizedBox.shrink();
+                      // A deleted / unknown account id must not stay selected.
+                      final selected =
+                          accounts.any((a) => a.id == _bankAccountId)
+                              ? _bankAccountId
+                              : null;
+                      return Padding(
+                        padding: const EdgeInsets.only(top: 14),
+                        child: DropdownButtonFormField<String>(
+                          key: ValueKey('account-$selected-${accounts.length}'),
+                          initialValue: selected,
+                          isExpanded: true,
+                          decoration: _dec(
+                            AppLocaleKeys.osExpensesBankAccount.tr,
+                            hint: AppLocaleKeys.osVouchersErrorAccountRequired.tr,
+                          ),
+                          items: [
+                            for (final a in accounts)
+                              DropdownMenuItem(
+                                value: a.id,
+                                child: Text(
+                                  '${a.name} (${_moneyFmt.format(a.balance)})',
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                          ],
+                          onChanged: (v) {
+                            if (v == null) return;
+                            setState(() => _bankAccountId = v);
+                          },
+                        ),
+                      );
+                    }),
                     const SizedBox(height: 18),
                     Divider(height: 1, color: theme.border),
                     const SizedBox(height: 14),

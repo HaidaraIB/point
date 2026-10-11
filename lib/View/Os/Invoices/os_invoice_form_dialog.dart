@@ -50,7 +50,11 @@ Future<void> showOsMarkPaidDialog(
     return;
   }
 
-  String? selected = invoice.bankAccountId ?? finance.bankAccounts.first.id;
+  // Linked account may have been deleted — fall back so the dropdown value
+  // is always one of its items.
+  String? selected = finance.accountById(invoice.bankAccountId) != null
+      ? invoice.bankAccountId
+      : finance.bankAccounts.first.id;
 
   final confirmed = await showDialog<bool>(
     context: context,
