@@ -11,6 +11,8 @@ class NotificationEmailPolicy {
     // دردشة — حجم الرسائل كبير
     'chat_message',
     'chat_read',
+    'chat_message_deleted',
+    'chat_message_edited',
 
     // موظف — تذكيرات زمنية متكررة لنفس المهمة
     'employee_task_due_soon',

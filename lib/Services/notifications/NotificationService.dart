@@ -58,14 +58,22 @@ class NotificationService {
   Future<void> handleIncomingMessage(RemoteMessage msg) async {
     final payload = _parsePayload(msg);
     if (payload == null) return;
-    final key = payload.chatId.trim();
+    await _runInChatChain(
+      payload.chatId,
+      () => _handleIncomingMessageImpl(msg, payload),
+    );
+  }
+
+  Future<void> _runInChatChain(
+    String chatId,
+    Future<void> Function() task,
+  ) async {
+    final key = chatId.trim();
     if (key.isEmpty) return;
 
     final previous = _incomingChainByChat[key] ?? Future<void>.value();
     late final Future<void> current;
-    current = previous
-        .catchError((_) {})
-        .then((_) => _handleIncomingMessageImpl(msg, payload));
+    current = previous.catchError((_) {}).then((_) => task());
     _incomingChainByChat[key] = current;
     try {
       await current;
@@ -74,6 +82,71 @@ class NotificationService {
         _incomingChainByChat.remove(key);
       }
     }
+  }
+
+  static const String chatMessageDeletedType = 'chat_message_deleted';
+  static const String chatMessageEditedType = 'chat_message_edited';
+
+  static bool isChatMessageMutationPayload(Map<Object?, Object?> data) {
+    final type =
+        (data['notificationType'] ?? data['notification_type'])
+            ?.toString()
+            .trim() ??
+        '';
+    return type == chatMessageDeletedType || type == chatMessageEditedType;
+  }
+
+  /// Silent `chat_message_deleted` / `chat_message_edited`: drop or re-text the
+  /// buffered line and re-render the conversation notification without alerting.
+  Future<void> handleChatMessageMutation(RemoteMessage msg) async {
+    if (kIsWeb) return;
+    final data = msg.data;
+    final chatId =
+        (_ciGet(data, 'chat_id') ?? _ciGet(data, 'chatId'))?.trim() ?? '';
+    final messageId =
+        (_ciGet(data, 'message_id') ?? _ciGet(data, 'messageId'))?.trim() ??
+        '';
+    if (chatId.isEmpty || messageId.isEmpty) return;
+    final type =
+        (data['notificationType'] ?? data['notification_type'])
+            ?.toString()
+            .trim();
+    final String? newText;
+    if (type == chatMessageEditedType) {
+      final t = _ciGet(data, 'text')?.toString() ?? '';
+      if (t.trim().isEmpty) return;
+      newText = t;
+    } else {
+      newText = null;
+    }
+
+    await init();
+    await _runInChatChain(chatId, () async {
+      try {
+        final buffer = await _chatStore.loadBuffer(chatId);
+        final next = ChatStore.applyMessageMutation(
+          buffer,
+          messageId,
+          newText: newText,
+        );
+        if (next == null) return;
+        await _chatStore.saveBuffer(next);
+        appLog(
+          'ChatPush mutation=$type chat_id=$chatId message_id=$messageId '
+          'buffer_size=${next.messages.length}',
+        );
+        if (next.messages.isEmpty) {
+          _debounceByChat.remove(chatId)?.cancel();
+          await _cancelOsNotification(chatId);
+        } else {
+          await showConversationNotification(chatId, silent: true);
+        }
+      } catch (e, st) {
+        appLog(
+          'ChatPush handleChatMessageMutation failed chat_id=$chatId: $e\n$st',
+        );
+      }
+    });
   }
 
   Future<void> _handleIncomingMessageImpl(
@@ -151,7 +224,12 @@ class NotificationService {
     }
   }
 
-  Future<void> showConversationNotification(String chatId) async {
+  /// [silent]: update an existing conversation entry (edit/delete) without
+  /// sound, vibration, or heads-up.
+  Future<void> showConversationNotification(
+    String chatId, {
+    bool silent = false,
+  }) async {
     if (kIsWeb) return;
     final normalized = chatId.trim();
     if (normalized.isEmpty) return;
@@ -247,13 +325,15 @@ class NotificationService {
         category: AndroidNotificationCategory.message,
         tag: androidChatNotificationTag(normalized),
         styleInformation: androidStyle,
+        silent: silent,
+        onlyAlertOnce: silent,
       );
 
       final iOSDetails = DarwinNotificationDetails(
         threadIdentifier: normalized,
-        presentAlert: true,
+        presentAlert: !silent,
         presentBadge: true,
-        presentSound: true,
+        presentSound: !silent,
         sound: iosPushSoundFile(soundBase),
       );
 

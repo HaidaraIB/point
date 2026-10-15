@@ -101,20 +101,7 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
   StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _chatsListSub;
   int _chatsEnrichGen = 0;
   final Set<String> _legacyPreviewFetched = {};
-  Worker? _presenceWorker;
   bool _didOpenInitialChat = false;
-
-  DateTime? _presenceOf(String? employeeId) {
-    final id = employeeId?.trim() ?? '';
-    if (id.isEmpty || !Get.isRegistered<HomeController>()) return null;
-    return Get.find<HomeController>().employeeLastSeenAt(id);
-  }
-
-  bool _isOnlinePresence(DateTime? at) {
-    if (at == null) return false;
-    return DateTime.now().difference(at.toLocal()) <=
-        kEmployeePresenceOnlineWindow;
-  }
 
   void _syncPresenceWatchFromChats(List<Map<String, dynamic>> chats) {
     final uid = _currentUserId?.trim() ?? '';
@@ -125,66 +112,9 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
     );
   }
 
-  String _privatePresenceLabel(String? otherEmployeeId) {
-    final at = _presenceOf(otherEmployeeId);
-    if (_isOnlinePresence(at)) {
-      final raw = 'employees.online_now'.tr;
-      final lang = Get.locale?.languageCode.toLowerCase() ?? '';
-      return lang == 'en' ? raw.toLowerCase() : raw;
-    }
-    if (at == null) return 'employees.last_seen_unknown'.tr;
-    final when = FunHelper.formatTimeAgo(at.toLocal());
-    return 'employees.last_seen_at'.trParams({'time': when});
-  }
-
-  int _connectedUsersCountForGroup(Map<String, dynamic> chat) {
-    final participants = List<String>.from(chat['participants'] ?? const []);
-    var count = 0;
-    for (final id in participants) {
-      if (id == (_currentUserId ?? '')) continue;
-      if (_isOnlinePresence(_presenceOf(id))) count++;
-    }
-    return count;
-  }
-
-  Widget _avatarWithOnlineDot({
-    required Widget avatar,
-    required bool showOnlineDot,
-  }) {
-    if (!showOnlineDot) return avatar;
-    return Stack(
-      clipBehavior: Clip.none,
-      children: [
-        avatar,
-        Positioned(
-          right: -1,
-          bottom: -1,
-          child: Container(
-            width: 12,
-            height: 12,
-            decoration: BoxDecoration(
-              color: const Color(0xFF16A34A),
-              shape: BoxShape.circle,
-              border: Border.all(color: Colors.white, width: 2),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
   @override
   void initState() {
     super.initState();
-    if (Get.isRegistered<HomeController>()) {
-      final hc = Get.find<HomeController>();
-      _presenceWorker = ever<Map<String, DateTime>>(hc.employeePresenceById, (
-        _,
-      ) {
-        if (!mounted) return;
-        setState(() {});
-      });
-    }
     _initUserThenLoad();
   }
 
@@ -194,8 +124,6 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
       Get.find<HomeController>().selectedChat = null;
     }
     _chatsListSub?.cancel();
-    _presenceWorker?.dispose();
-    _presenceWorker = null;
     _searchController.dispose();
     super.dispose();
   }
@@ -1268,8 +1196,6 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
                             Color? titleColor;
                             String? dmImageUrl;
                             String? otherIdForPresence;
-                            var showPrivateOnlineDot = false;
-                            String? titleSubline;
 
                             if (isGroup) {
                               displayName = _localizedGroupTitleFromChat(ch);
@@ -1279,11 +1205,6 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
                               groupAssetPath =
                                   _departmentGroupAssetPathFromChat(ch);
                               titleColor = Colors.blue.shade700;
-                              final connected = _connectedUsersCountForGroup(
-                                ch,
-                              );
-                              titleSubline = AppLocaleKeys.chatConnectedCount
-                                  .trParams({'count': '$connected'});
                             } else {
                               final participants = List<String>.from(
                                 ch['participants'] ?? [],
@@ -1313,13 +1234,6 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
                                     .trim();
                                 dmImageUrl = im.isEmpty ? null : im;
                               }
-                              final online = _isOnlinePresence(
-                                _presenceOf(otherIdForPresence),
-                              );
-                              showPrivateOnlineDot = online;
-                              titleSubline = _privatePresenceLabel(
-                                otherIdForPresence,
-                              );
                             }
 
                             final unreadIncoming =
@@ -1345,9 +1259,8 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
                                 onTap: () => _openExistingChat(ch),
                                 leading: chatListLeadingWithPinBadge(
                                   pinned: _pinnedChatIds.contains(chatId),
-                                  avatarChild: _avatarWithOnlineDot(
-                                    showOnlineDot:
-                                        !isGroup && showPrivateOnlineDot,
+                                  avatarChild: ChatPresenceAvatar(
+                                    userId: isGroup ? null : otherIdForPresence,
                                     avatar: chatLeadingAvatar(
                                       context,
                                       radius: 24,
@@ -1388,10 +1301,13 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
                                         : '',
                                   ),
                                 ),
-                                trailing: ChatListRowTrailing(
-                                  titleSubline: titleSubline,
-                                  highlightSubline:
-                                      !isGroup && showPrivateOnlineDot,
+                                trailing: ChatListPresenceTrailing(
+                                  isGroup: isGroup,
+                                  otherUserId: otherIdForPresence,
+                                  participantIds: List<String>.from(
+                                    ch['participants'] ?? const [],
+                                  ),
+                                  selfUserId: _currentUserId ?? '',
                                   unreadCount:
                                       (ch['unreadIncoming'] as int?) ?? 0,
                                 ),
@@ -1454,44 +1370,6 @@ class _MessageScreenState extends State<MessageScreen>
   ChatScrollSnapshot? _persistedScrollForOpen;
   bool _scrollPrefsReady = false;
   String? _currentUserRole;
-
-  DateTime? _presenceOf(String? employeeId) {
-    final id = employeeId?.trim() ?? '';
-    if (id.isEmpty || !Get.isRegistered<HomeController>()) return null;
-    return Get.find<HomeController>().employeeLastSeenAt(id);
-  }
-
-  bool _isOnlinePresence(DateTime? at) {
-    if (at == null) return false;
-    return DateTime.now().difference(at.toLocal()) <=
-        kEmployeePresenceOnlineWindow;
-  }
-
-  Widget _avatarWithOnlineDot({
-    required Widget avatar,
-    required bool showOnlineDot,
-  }) {
-    if (!showOnlineDot) return avatar;
-    return Stack(
-      clipBehavior: Clip.none,
-      children: [
-        avatar,
-        Positioned(
-          right: -1,
-          bottom: -1,
-          child: Container(
-            width: 12,
-            height: 12,
-            decoration: BoxDecoration(
-              color: const Color(0xFF16A34A),
-              shape: BoxShape.circle,
-              border: Border.all(color: Colors.white, width: 2),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
 
   String _initialFromName(String name) => avatarInitialsFromName(name);
 
@@ -2088,35 +1966,32 @@ class _MessageScreenState extends State<MessageScreen>
       );
     } else if (isGroup) {
       final participants = List<String>.from(widget.chat['participants'] ?? []);
-      for (var id in participants) {
-        if (id != widget.currentUserId) {
-          await FirestoreServices.sendFcm(
-            userId: id,
-            notificationType: 'chat_message',
-            copyForLocale: (locale) => ResolvedNotificationCopy(
-              title: NotifyLocale.tr(
-                locale,
-                AppLocaleKeys.chatFcmInGroupTitle,
-                {
-                  'user': widget.currentUserName,
-                  'group': _displayName,
-                },
-              ),
-              body: lastMessagePreview,
-            ),
-            fcmDataExtras: chatMessageFcmExtras(
-              chatId: _chatId,
-              chatTitle: fcmConvTitle,
-              chatDisplayName: fcmConvTitle,
-              senderName: widget.currentUserName,
-              senderId: widget.currentUserId,
-              messageId: msgRef.id,
-              isGroup: true,
-              timestampMs: sentAtMs,
-            ),
-          );
-        }
-      }
+      await FirestoreServices.sendFcmToEmployees(
+        userIds: participants,
+        excludeUserIds: {widget.currentUserId},
+        notificationType: 'chat_message',
+        copyForLocale: (locale) => ResolvedNotificationCopy(
+          title: NotifyLocale.tr(
+            locale,
+            AppLocaleKeys.chatFcmInGroupTitle,
+            {
+              'user': widget.currentUserName,
+              'group': _displayName,
+            },
+          ),
+          body: lastMessagePreview,
+        ),
+        fcmDataExtras: chatMessageFcmExtras(
+          chatId: _chatId,
+          chatTitle: fcmConvTitle,
+          chatDisplayName: fcmConvTitle,
+          senderName: widget.currentUserName,
+          senderId: widget.currentUserId,
+          messageId: msgRef.id,
+          isGroup: true,
+          timestampMs: sentAtMs,
+        ),
+      );
     }
   }
 
@@ -2171,8 +2046,6 @@ class _MessageScreenState extends State<MessageScreen>
   Widget build(BuildContext context) {
     final isGroup = widget.chat['isGroup'] ?? false;
     final otherAvatarUrl = widget.otherAvatarUrl?.trim() ?? '';
-    final privateOnlineDot =
-        !isGroup && _isOnlinePresence(_presenceOf(widget.otherUserId));
     return _wrapAndroidMessageHardwareBack(
       context,
       Scaffold(
@@ -2191,8 +2064,8 @@ class _MessageScreenState extends State<MessageScreen>
           title: Row(
             children: [
               if (!isGroup && isChatImageHttpUrl(widget.otherAvatarUrl)) ...[
-                _avatarWithOnlineDot(
-                  showOnlineDot: privateOnlineDot,
+                ChatPresenceAvatar(
+                  userId: isGroup ? null : widget.otherUserId,
                   avatar: chatLeadingAvatar(
                     context,
                     radius: 18,

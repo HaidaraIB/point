@@ -422,22 +422,29 @@ class FirestoreChatApi {
     }
   }
 
+  /// Latest message doc in `chats/{chatId}/messages` (by `timestamp`).
+  static Future<QueryDocumentSnapshot<Map<String, dynamic>>?>
+  fetchLatestMessageDoc(FirebaseFirestore fs, String chatId) async {
+    final q = await fs
+        .collection('chats')
+        .doc(chatId)
+        .collection('messages')
+        .orderBy('timestamp', descending: true)
+        .limit(1)
+        .get();
+    if (q.docs.isEmpty) return null;
+    return q.docs.first;
+  }
+
   /// آخر رسالة فعلية من المجموعة الفرعية (مصدر موثوق عند تعارض حقل المحادثة).
   static Future<String?> fetchLatestMessagePreviewForChat(
     FirebaseFirestore fs,
     String chatId,
   ) async {
     try {
-      final q =
-          await fs
-              .collection('chats')
-              .doc(chatId)
-              .collection('messages')
-              .orderBy('timestamp', descending: true)
-              .limit(1)
-              .get();
-      if (q.docs.isEmpty) return null;
-      return chatListPreviewFromMessageData(q.docs.first.data());
+      final doc = await fetchLatestMessageDoc(fs, chatId);
+      if (doc == null) return null;
+      return chatListPreviewFromMessageData(doc.data());
     } catch (e, st) {
       appLog('fetchLatestMessagePreviewForChat $chatId: $e\n$st');
       return null;
@@ -466,16 +473,9 @@ class FirestoreChatApi {
     String chatId,
   ) async {
     try {
-      final q =
-          await fs
-              .collection('chats')
-              .doc(chatId)
-              .collection('messages')
-              .orderBy('timestamp', descending: true)
-              .limit(1)
-              .get();
-      if (q.docs.isEmpty) return null;
-      return ChatListLastMessageMeta.fromMessageData(q.docs.first.data());
+      final doc = await fetchLatestMessageDoc(fs, chatId);
+      if (doc == null) return null;
+      return ChatListLastMessageMeta.fromMessageData(doc.data());
     } catch (e, st) {
       appLog('fetchLatestMessageMetaForChat $chatId: $e\n$st');
       return null;

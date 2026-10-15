@@ -25,7 +25,11 @@ class NotificationDestinationParser {
                 _ciGet(data, 'notification_type') ??
                 '')
             .trim();
-    if (notificationType == 'chat_read') return null;
+    if (notificationType == 'chat_read' ||
+        notificationType == 'chat_message_deleted' ||
+        notificationType == 'chat_message_edited') {
+      return null;
+    }
     final legacyType = (_ciGet(data, 'type') ?? '').trim();
     final isChatMessage =
         notificationType == 'chat_message' || legacyType == 'chat_message';

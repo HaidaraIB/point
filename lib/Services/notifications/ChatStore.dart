@@ -157,6 +157,42 @@ class ChatStore {
     );
   }
 
+  /// Removes ([newText] null) or re-texts the buffered message [messageId].
+  /// Returns null when the buffer does not contain that message.
+  static StoredChatBuffer? applyMessageMutation(
+    StoredChatBuffer buffer,
+    String messageId, {
+    String? newText,
+  }) {
+    final id = messageId.trim();
+    if (id.isEmpty || !buffer.messages.any((m) => m.messageId == id)) {
+      return null;
+    }
+    final next = <StoredMessage>[];
+    for (final m in buffer.messages) {
+      if (m.messageId != id) {
+        next.add(m);
+      } else if (newText != null) {
+        next.add(
+          StoredMessage(
+            messageId: m.messageId,
+            text: newText,
+            sender: m.sender,
+            senderId: m.senderId,
+            timestamp: m.timestamp,
+          ),
+        );
+      }
+    }
+    return StoredChatBuffer(
+      chatId: buffer.chatId,
+      chatTitle: buffer.chatTitle,
+      isGroupChat: buffer.isGroupChat,
+      lastReadAtMs: buffer.lastReadAtMs,
+      messages: next,
+    );
+  }
+
   StoredChatBuffer _normalizeBuffer(StoredChatBuffer buffer) {
     final chatId = buffer.chatId.trim();
     final seen = <String>{};

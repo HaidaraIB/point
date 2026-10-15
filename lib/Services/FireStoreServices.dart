@@ -451,6 +451,7 @@ class FirestoreServices extends FirestoreServicesBase
     Map<String, String>? fcmDataExtras,
     bool excludeCurrentActor = true,
     Set<String>? excludeUserIds,
+    bool silentDataOnly = false,
   }) =>
       FirestoreFcmApi.sendFcmToEmployees(
         userIds: userIds,
@@ -464,5 +465,6 @@ class FirestoreServices extends FirestoreServicesBase
         fcmDataExtras: fcmDataExtras,
         excludeCurrentActor: excludeCurrentActor,
         excludeUserIds: excludeUserIds,
+        silentDataOnly: silentDataOnly,
       );
 }

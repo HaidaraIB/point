@@ -168,6 +168,13 @@ class NotificationService {
           .handleChatReadMessage(message);
       return;
     }
+    if (chat_notifications.NotificationService.isChatMessageMutationPayload(
+      data,
+    )) {
+      await chat_notifications.NotificationService.instance
+          .handleChatMessageMutation(message);
+      return;
+    }
     if (_isSilentPushData(data)) {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setBool(StorageKeys.prefsPendingPushSync, true);

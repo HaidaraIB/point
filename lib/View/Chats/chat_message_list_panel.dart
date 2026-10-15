@@ -149,6 +149,8 @@ int chatMessageDisplayFingerprint(
 
     data['replyVideoUrl'],
 
+    data['replyDeleted'],
+
     data['editedAt'],
 
     data['replyToMessageId'],

@@ -32,6 +32,19 @@ void main() {
       );
     });
 
+    test('skips chat message edit/delete sync pushes', () {
+      for (final type in ['chat_message_deleted', 'chat_message_edited']) {
+        expect(
+          NotificationDestinationParser.parseStringMap({
+            'notificationType': type,
+            'chatId': 'c1',
+            'messageId': 'm1',
+          }),
+          isNull,
+        );
+      }
+    });
+
     test('chat_message with chatId opens chat', () {
       final dest = NotificationDestinationParser.parseStringMap({
         'notificationType': 'chat_message',

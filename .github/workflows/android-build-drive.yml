@@ -161,6 +161,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: android-release
+          retention-days: 1
           path: |
             Point *.apk
             Point *.aab

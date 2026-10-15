@@ -19,8 +19,15 @@ const Duration kChatInstantScrollDuration = Duration(milliseconds: 1);
 /// Presence heartbeat interval (see [HomeController._presenceHeartbeatInterval]).
 const Duration kEmployeePresenceHeartbeatInterval = Duration(seconds: 90);
 
+/// Web keeps beating in background tabs, where browsers align timers to
+/// whole minutes; 60s stays inside [kEmployeePresenceOnlineWindow].
+const Duration kEmployeePresenceHeartbeatIntervalWeb = Duration(seconds: 60);
+
 /// User is "online" when last heartbeat is within this window.
 const Duration kEmployeePresenceOnlineWindow = Duration(minutes: 2);
+
+/// How often presence labels re-evaluate against the wall clock.
+const Duration kChatPresenceClockInterval = Duration(seconds: 30);
 
 /// Max distinct presence docs watched by non-manager employees in chat UI.
 const int kEmployeePresenceWatchIdCap = 30;
@@ -48,7 +55,9 @@ Set<String> presenceWatchIdsFromChats(
 /// Call at the top of an [Obx] builder so GetX tracks presence map updates.
 RxMap<String, DateTime>? chatPresenceMapForObx() {
   if (!Get.isRegistered<HomeController>()) return null;
-  final map = Get.find<HomeController>().employeePresenceById;
+  final hc = Get.find<HomeController>();
+  hc.presenceClock.value;
+  final map = hc.employeePresenceById;
   map.length;
   return map;
 }
@@ -359,6 +368,9 @@ String? replyVideoUrlFromMessage(Map<String, dynamic> m) {
 
 /// Text beside the reply thumbnail in bubbles (avoid raw 📷 / 🎬 when a thumb is shown).
 String replyQuotePreviewLine(Map<String, dynamic> m) {
+  if (m['replyDeleted'] == true) {
+    return AppLocaleKeys.chatMessageDeletedBody.tr;
+  }
   final preview = (m['replyPreview'] as String?)?.trim() ?? '';
   final hasImg = (m['replyImageUrl'] as String?)?.trim().isNotEmpty ?? false;
   final hasVid = (m['replyVideoUrl'] as String?)?.trim().isNotEmpty ?? false;
@@ -470,6 +482,55 @@ int chatGroupConnectedCountFromPresence(
     if (chatIsOnlineFromLastSeen(presence[id])) count++;
   }
   return count;
+}
+
+/// Avatar with the green "online" dot overlay.
+Widget chatAvatarWithOnlineDot({
+  required Widget avatar,
+  required bool showOnlineDot,
+}) {
+  if (!showOnlineDot) return avatar;
+  return Stack(
+    clipBehavior: Clip.none,
+    children: [
+      avatar,
+      Positioned(
+        right: -1,
+        bottom: -1,
+        child: Container(
+          width: 12,
+          height: 12,
+          decoration: BoxDecoration(
+            color: const Color(0xFF16A34A),
+            shape: BoxShape.circle,
+            border: Border.all(color: Colors.white, width: 2),
+          ),
+        ),
+      ),
+    ],
+  );
+}
+
+/// [avatar] with a live online dot for [userId] (no dot when null/empty,
+/// e.g. groups). Rebuilds on presence snapshots and the presence clock.
+class ChatPresenceAvatar extends StatelessWidget {
+  final Widget avatar;
+  final String? userId;
+
+  const ChatPresenceAvatar({super.key, required this.avatar, this.userId});
+
+  @override
+  Widget build(BuildContext context) {
+    final id = userId?.trim() ?? '';
+    if (id.isEmpty || !Get.isRegistered<HomeController>()) return avatar;
+    return Obx(() {
+      final presence = chatPresenceMapForObx()!;
+      return chatAvatarWithOnlineDot(
+        avatar: avatar,
+        showOnlineDot: chatIsOnlineFromLastSeen(presence[id]),
+      );
+    });
+  }
 }
 
 /// Presence / connected-count subline for chat headers and list trailing text.

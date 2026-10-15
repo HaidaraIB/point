@@ -212,9 +212,12 @@ class _AppState extends State<App> with WidgetsBindingObserver {
       if (!kIsWeb) {
         unawaited(_recheckMobileVersionGateOnResume());
       }
-    } else if (state == AppLifecycleState.paused ||
-        state == AppLifecycleState.hidden ||
-        state == AppLifecycleState.detached) {
+    } else if (state == AppLifecycleState.detached ||
+        // Web: a background tab is still a live session — keep the presence
+        // heartbeat (browsers throttle it to ~1/min, inside the online window).
+        (!kIsWeb &&
+            (state == AppLifecycleState.paused ||
+                state == AppLifecycleState.hidden))) {
       if (Get.isRegistered<HomeController>()) {
         Get.find<HomeController>().handleAppLifecyclePaused();
       }

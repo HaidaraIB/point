@@ -579,7 +579,11 @@ class FirestoreFcmApi {
 
   static bool _shouldPersistFcmToNotificationInbox(String? notificationType) {
     final t = notificationType?.trim() ?? '';
-    return t != 'chat_message' && t != 'chat_unread_digest' && t != 'chat_read';
+    return t != 'chat_message' &&
+        t != 'chat_unread_digest' &&
+        t != 'chat_read' &&
+        t != 'chat_message_deleted' &&
+        t != 'chat_message_edited';
   }
 
   static Map<String, dynamic>? _navigationInboxData({
@@ -1282,6 +1286,9 @@ class FirestoreFcmApi {
     /// When true (default), do not notify the signed-in employee about their own action.
     bool excludeCurrentActor = true,
     Set<String>? excludeUserIds,
+
+    /// Data-only push (no alert, email, or inbox row) — e.g. chat sync events.
+    bool silentDataOnly = false,
   }) async {
     try {
       final excludedIds = _normalizedExcludeUserIds(excludeUserIds);
@@ -1311,9 +1318,8 @@ class FirestoreFcmApi {
       final fcmByCopy =
           <String, ({String title, String body, List<Map<String, dynamic>> recipients, List<({String token, String userId, bool isClient})> meta})>{};
 
-      final effectiveSendEmail = NotificationEmailPolicy.shouldSendEmail(
-        notificationType,
-      );
+      final effectiveSendEmail = !silentDataOnly &&
+          NotificationEmailPolicy.shouldSendEmail(notificationType);
 
       for (var i = 0; i < snapshots.length; i++) {
         final doc = snapshots[i];
@@ -1355,7 +1361,8 @@ class FirestoreFcmApi {
         final resolvedAction = resolved?.actionText ?? actionText;
         final resolvedEmailDetails = resolved?.emailDetails ?? emailDetails;
 
-        if (_shouldPersistFcmToNotificationInbox(notificationType)) {
+        if (!silentDataOnly &&
+            _shouldPersistFcmToNotificationInbox(notificationType)) {
           await FirestoreNotificationApi.addNotification(
             NotificationModel(
               title: resolvedTitle,
@@ -1466,6 +1473,7 @@ class FirestoreFcmApi {
           data: null,
           parentRequestId: parentRequestId,
           notificationType: notificationType,
+          silentDataOnly: silentDataOnly,
         );
       }
     } on FunctionException catch (e) {

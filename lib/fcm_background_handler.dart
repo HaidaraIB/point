@@ -33,6 +33,13 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
     );
     return;
   }
+  if (chat_notifications.NotificationService.isChatMessageMutationPayload(
+    data,
+  )) {
+    await chat_notifications.NotificationService.instance
+        .handleChatMessageMutation(message);
+    return;
+  }
   final silentRaw = data['silentSync'] ?? data['fcmSilentSync'];
   final silent = _isTruthy(silentRaw);
   if (silent) {

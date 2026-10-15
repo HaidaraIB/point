@@ -734,13 +734,43 @@ service cloud.firestore {
         && (!resource.data.keys().hasAny(['isRead']) || resource.data.isRead != true);
     }
 
+    // Content fields an admin soft delete may wipe (removal only — see below).
+    function messageSoftDeleteWipeKeys() {
+      return [
+        'text', 'attachmentUrl', 'fileName', 'durationSec',
+        'translations', 'translationsSourceHash',
+        'sentTranslation', 'sentTranslationLang', 'sentTranslationSourceHash',
+        'replyPreview', 'replyImageUrl', 'replyVideoUrl', 'replySenderName',
+        'isPinned', 'pinnedAt', 'pinnedBy',
+      ];
+    }
+
     function messageSoftDeleteByAdmin(chatIdParam) {
-      let d = request.resource.data.diff(resource.data).affectedKeys();
+      let d = request.resource.data.diff(resource.data);
       return isAdmin()
         && messageParticipantInChat(chatIdParam)
-        && d.hasOnly(['deleted', 'deletedAt', 'deletedBy'])
+        && d.affectedKeys().hasOnly(
+          ['deleted', 'deletedAt', 'deletedBy'].concat(messageSoftDeleteWipeKeys())
+        )
+        // Wipe keys may only be removed, never rewritten.
+        && !d.addedKeys().hasAny(messageSoftDeleteWipeKeys())
+        && !d.changedKeys().hasAny(messageSoftDeleteWipeKeys())
         && request.resource.data.deleted == true
         && request.resource.data.deletedBy == actorParticipantId();
+    }
+
+    // After an admin soft delete: strip the quoted copy from replies to it.
+    function messageReplyQuoteScrubByAdmin(chatIdParam) {
+      let d = request.resource.data.diff(resource.data);
+      return isAdmin()
+        && messageParticipantInChat(chatIdParam)
+        && d.affectedKeys().hasOnly(
+          ['replyDeleted', 'replyPreview', 'replyImageUrl', 'replyVideoUrl']
+        )
+        && !d.changedKeys().hasAny(['replyPreview', 'replyImageUrl', 'replyVideoUrl'])
+        && request.resource.data.replyDeleted == true
+        && resource.data.keys().hasAny(['replyToMessageId'])
+        && messageDocAt(chatIdParam, resource.data.replyToMessageId).deleted == true;
     }
 
     function messageTextEditBody(chatIdParam) {
@@ -1168,6 +1198,7 @@ service cloud.firestore {
           && (
             messageMarkReadUpdate(chatId)
             || messageSoftDeleteByAdmin(chatId)
+            || messageReplyQuoteScrubByAdmin(chatId)
             || messageTextEditBySender(chatId)
             || messageTextEditByAdmin(chatId)
             || messagePinUpdate(chatId)

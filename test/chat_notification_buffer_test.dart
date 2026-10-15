@@ -117,4 +117,32 @@ void main() {
       );
     });
   });
+
+  group('ChatStore.applyMessageMutation', () {
+    final buffer = StoredChatBuffer(
+      chatId: 'c1',
+      chatTitle: 'Team',
+      isGroupChat: true,
+      lastReadAtMs: 5,
+      messages: [_msg(id: 'a', ts: 10), _msg(id: 'b', ts: 20, text: 'old')],
+    );
+
+    test('removes a deleted message', () {
+      final next = ChatStore.applyMessageMutation(buffer, 'a')!;
+      expect(next.messages.map((m) => m.messageId), ['b']);
+      expect(next.chatTitle, 'Team');
+      expect(next.isGroupChat, isTrue);
+      expect(next.lastReadAtMs, 5);
+    });
+
+    test('replaces text of an edited message in place', () {
+      final next = ChatStore.applyMessageMutation(buffer, 'b', newText: 'new')!;
+      expect(next.messages.map((m) => m.text), ['hi', 'new']);
+      expect(next.messages.last.timestamp, 20);
+    });
+
+    test('returns null when the message is not buffered', () {
+      expect(ChatStore.applyMessageMutation(buffer, 'zzz'), isNull);
+    });
+  });
 }

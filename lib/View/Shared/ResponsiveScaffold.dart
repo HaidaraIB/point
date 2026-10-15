@@ -348,43 +348,6 @@ class _ChatPopupState extends State<ChatPopup> with WidgetsBindingObserver {
   String? _popupOtherUserId;
   List<String> _popupParticipants = const [];
 
-  DateTime? _presenceOf(String? employeeId) {
-    final id = employeeId?.trim() ?? '';
-    if (id.isEmpty || !Get.isRegistered<HomeController>()) return null;
-    return Get.find<HomeController>().employeeLastSeenAt(id);
-  }
-
-  bool _isOnlinePresence(DateTime? at) {
-    if (at == null) return false;
-    return DateTime.now().difference(at.toLocal()) <= const Duration(minutes: 2);
-  }
-
-  Widget _avatarWithOnlineDot({
-    required Widget avatar,
-    required bool showOnlineDot,
-  }) {
-    if (!showOnlineDot) return avatar;
-    return Stack(
-      clipBehavior: Clip.none,
-      children: [
-        avatar,
-        Positioned(
-          right: -1,
-          bottom: -1,
-          child: Container(
-            width: 12,
-            height: 12,
-            decoration: BoxDecoration(
-              color: const Color(0xFF16A34A),
-              shape: BoxShape.circle,
-              border: Border.all(color: Colors.white, width: 2),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
   void _rebindTypingWriterForPopup() {
     final uid = Get.find<HomeController>().currentEmployee.value?.id ?? '';
     if (uid.isEmpty) {
@@ -792,9 +755,6 @@ class _ChatPopupState extends State<ChatPopup> with WidgetsBindingObserver {
     final controller = Get.find<HomeController>();
     final selfPresenceId = controller.currentEmployee.value?.id ?? '';
     final headerHeight = widget.chat.minimized ? 45.0 : 54.0;
-    final privateOnlineDot =
-        !widget.chat.isGroup &&
-        _isOnlinePresence(_presenceOf(_popupOtherUserId));
 
     return Listener(
       behavior: HitTestBehavior.translucent,
@@ -848,7 +808,10 @@ class _ChatPopupState extends State<ChatPopup> with WidgetsBindingObserver {
                     Expanded(
                       child: Row(
                         children: [
-                          _avatarWithOnlineDot(
+                          ChatPresenceAvatar(
+                            userId: widget.chat.isGroup
+                                ? null
+                                : _popupOtherUserId,
                             avatar: chatLeadingAvatar(context,
                               radius: 14,
                               displayName: widget.chat.name,
@@ -860,7 +823,6 @@ class _ChatPopupState extends State<ChatPopup> with WidgetsBindingObserver {
                                   ? null
                                   : widget.chat.avatar,
                             ),
-                            showOnlineDot: privateOnlineDot,
                           ),
                           const SizedBox(width: 8),
                           Expanded(
@@ -1463,31 +1425,28 @@ class _ChatPopupState extends State<ChatPopup> with WidgetsBindingObserver {
         );
       }
     } else {
-      for (final id in participants) {
-        if (id != me.id) {
-          await FirestoreServices.sendFcm(
-            userId: id,
-            notificationType: 'chat_message',
-            copyForLocale: (locale) => ResolvedNotificationCopy(
-              title: NotifyLocale.tr(locale, 'chat.fcm_in_group_title', {
-                'user': me.name ?? '',
-                'group': title,
-              }),
-              body: lastMessagePreview,
-            ),
-            fcmDataExtras: chatMessageFcmExtras(
-              chatId: _chatId,
-              chatTitle: title,
-              chatDisplayName: fcmChatLabel,
-              senderName: senderName,
-              senderId: me.id ?? '',
-              messageId: msgRef.id,
-              isGroup: true,
-              timestampMs: sentAtMs,
-            ),
-          );
-        }
-      }
+      await FirestoreServices.sendFcmToEmployees(
+        userIds: participants,
+        excludeUserIds: {?me.id},
+        notificationType: 'chat_message',
+        copyForLocale: (locale) => ResolvedNotificationCopy(
+          title: NotifyLocale.tr(locale, 'chat.fcm_in_group_title', {
+            'user': me.name ?? '',
+            'group': title,
+          }),
+          body: lastMessagePreview,
+        ),
+        fcmDataExtras: chatMessageFcmExtras(
+          chatId: _chatId,
+          chatTitle: title,
+          chatDisplayName: fcmChatLabel,
+          senderName: senderName,
+          senderId: me.id ?? '',
+          messageId: msgRef.id,
+          isGroup: true,
+          timestampMs: sentAtMs,
+        ),
+      );
     }
   }
 }

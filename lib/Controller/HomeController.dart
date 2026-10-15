@@ -123,8 +123,9 @@ class HomeController extends GetxController {
   Timer? _publishFilterSaveDebounce;
   Timer? _presenceHeartbeatTimer;
   String? _presenceHeartbeatEmployeeId;
-  static const Duration _presenceHeartbeatInterval =
-      kEmployeePresenceHeartbeatInterval;
+  static Duration get _presenceHeartbeatInterval => kIsWeb
+      ? kEmployeePresenceHeartbeatIntervalWeb
+      : kEmployeePresenceHeartbeatInterval;
   bool _appInForeground = true;
 
   // RxList<TaskModel> allTasks = <TaskModel>[].obs;
@@ -3935,6 +3936,11 @@ class HomeController extends GetxController {
   Set<String> _presenceWatchIds = const {};
   bool _useFullPresenceStream = false;
   final RxMap<String, DateTime> employeePresenceById = <String, DateTime>{}.obs;
+
+  /// Ticks every [kChatPresenceClockInterval] so "online" expires and
+  /// "last seen …" advances without a new presence snapshot.
+  final RxInt presenceClock = 0.obs;
+  Timer? _presenceClockTimer;
   bool _fcmSetupInProgress = false;
 
   static bool _sameOsModuleAccess(List<String> a, List<String> b) {
@@ -4450,6 +4456,10 @@ class HomeController extends GetxController {
     ever(clients, (_) => update([homeDashboardUpdateId]));
     _restoreEmployeeSessionIfNeeded();
     _startEmployeePresenceStream();
+    _presenceClockTimer = Timer.periodic(
+      kChatPresenceClockInterval,
+      (_) => presenceClock.value++,
+    );
     super.onInit();
   }
 
@@ -4470,6 +4480,8 @@ class HomeController extends GetxController {
     _employeePresenceSub?.cancel();
     _employeePresenceSub = null;
     _stopTargetedPresenceDocListeners();
+    _presenceClockTimer?.cancel();
+    _presenceClockTimer = null;
     super.onClose();
   }
 
