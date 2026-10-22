@@ -32,7 +32,24 @@ export const QICARD_EVENTS_COLLECTION = "os_qicard_events";
 
 export type QicardEnvironment = "test" | "live";
 
-const SANDBOX_API_BASE = "https://uat-sandbox-3ds-api.qi.iq/api/v1";
+/** Hosts only; request paths are `{host}/api/v1/...`. */
+export const QICARD_SANDBOX_HOST = "https://uat-sandbox-3ds-api.qi.iq";
+export const QICARD_LIVE_DEFAULT_HOST = "https://3ds-api.qi.iq";
+const QICARD_API_PATH = "/api/v1";
+
+/**
+ * Normalizes a configured QiCard base URL to a bare host: trims, strips a
+ * trailing `/`, then a trailing `/api/v1` (Qi hands out the URL with it).
+ */
+export function normalizeQicardBaseUrl(raw: string): string {
+  return raw.trim().replace(/\/+$/, "").replace(/\/api\/v1$/i, "")
+    .replace(/\/+$/, "");
+}
+
+/** Live host: configured value (normalized) or the production default. */
+export function resolveQicardLiveHost(configured: string): string {
+  return normalizeQicardBaseUrl(configured) || QICARD_LIVE_DEFAULT_HOST;
+}
 
 export type QicardSettings = {
   environment: QicardEnvironment;
@@ -57,6 +74,8 @@ export type QicardSettingsStatus = {
   passwordPreview: string;
   hasWebhookPublicKey: boolean;
   webhookPublicKeyPreview: string;
+  /** Full PEM; a public key is not secret, the admin UI shows it as-is. */
+  webhookPublicKey: string;
   configuredInFirestore: boolean;
 };
 
@@ -84,18 +103,22 @@ function loadCredentialsForEnvironment(
       username: firestoreString(fields, "qicardTestUsername"),
       password: firestoreString(fields, "qicardTestPassword"),
       terminalId: firestoreString(fields, "qicardTestTerminalId"),
-      apiBase: SANDBOX_API_BASE,
+      apiBase: QICARD_SANDBOX_HOST,
     };
   }
   return {
     username: firestoreString(fields, "qicardLiveUsername"),
     password: firestoreString(fields, "qicardLivePassword"),
     terminalId: firestoreString(fields, "qicardLiveTerminalId"),
-    apiBase: firestoreString(fields, "qicardLiveApiBase"),
+    apiBase: resolveQicardLiveHost(firestoreString(fields, "qicardLiveApiBase")),
   };
 }
 
-function resolveQicardCredentials(
+/**
+ * Credentials for the selected environment only. Never falls back to the
+ * other environment: a live invoice must not be settled against sandbox.
+ */
+export function resolveQicardCredentials(
   fields: Record<string, unknown>,
 ): {
   environment: QicardEnvironment;
@@ -104,26 +127,17 @@ function resolveQicardCredentials(
   terminalId: string;
   apiBase: string;
 } | null {
-  const preferred = parseEnvironment(firestoreString(fields, "qicardEnvironment"));
-  const order: QicardEnvironment[] = preferred === "live"
-    ? ["live", "test"]
-    : ["test", "live"];
-
-  for (const environment of order) {
-    const creds = loadCredentialsForEnvironment(fields, environment);
-    if (creds.username && creds.password && creds.terminalId) {
-      const apiBase = environment === "live"
-        ? (creds.apiBase || "").replace(/\/+$/, "")
-        : SANDBOX_API_BASE;
-      if (environment === "live" && !apiBase) continue;
-      return { environment, ...creds, apiBase: apiBase || SANDBOX_API_BASE };
-    }
-  }
-  return null;
+  const environment = parseEnvironment(
+    firestoreString(fields, "qicardEnvironment"),
+  );
+  const creds = loadCredentialsForEnvironment(fields, environment);
+  if (!creds.username || !creds.password || !creds.terminalId) return null;
+  return { environment, ...creds };
 }
 
-export function qicardApiBaseUrl(settings: QicardSettings): string {
-  return settings.apiBase.replace(/\/+$/, "");
+/** `{host}/api/v1` for the resolved settings; callers append `/payment...`. */
+export function qicardApiBaseUrl(settings: Pick<QicardSettings, "apiBase">): string {
+  return `${normalizeQicardBaseUrl(settings.apiBase)}${QICARD_API_PATH}`;
 }
 
 function basicAuthHeader(username: string, password: string): string {
@@ -148,30 +162,36 @@ function normalizeCheckoutAmount(amount: number, currency: string): number {
   return Math.round(amount * 100) / 100;
 }
 
-export function formatQicardWebhookAmount(amount: number): string {
-  return `${amount.toString()}.000`;
+/** Qi's Node sample: `amount.toString() + '.000'`. Whole floats print as ints. */
+export function formatQicardWebhookAmount(amount: number | string): string {
+  const n = typeof amount === "number" && Number.isInteger(amount)
+    ? Math.trunc(amount)
+    : amount;
+  return `${String(n)}.000`;
 }
 
-export function buildQicardWebhookDataString(payload: {
-  paymentId?: string;
-  amount?: number;
-  currency?: string;
-  creationDate?: string;
-  status?: string;
-}): string {
-  const fields = [
-    payload.paymentId?.trim() || "-",
-    payload.amount != null && Number.isFinite(payload.amount)
-      ? formatQicardWebhookAmount(payload.amount)
+/**
+ * Signed string per Qi "Webhook Verification":
+ * `paymentId|amount|currency|creationDate|status`, `-` for any falsy value.
+ * Uses the raw body values (no trimming) so it matches what Qi signed.
+ */
+export function buildQicardWebhookDataString(
+  payload: Record<string, unknown>,
+): string {
+  const part = (v: unknown) => (v ? String(v) : "-");
+  const amount = payload.amount;
+  return [
+    part(payload.paymentId),
+    amount && (typeof amount === "number" || typeof amount === "string")
+      ? formatQicardWebhookAmount(amount)
       : "-",
-    payload.currency?.trim() || "-",
-    payload.creationDate?.trim() || "-",
-    payload.status?.trim() || "-",
-  ];
-  return fields.join("|");
+    part(payload.currency),
+    part(payload.creationDate),
+    part(payload.status),
+  ].join("|");
 }
 
-function pemToSpkiDer(pem: string): Uint8Array {
+function pemToSpkiDer(pem: string): Uint8Array<ArrayBuffer> {
   const b64 = pem
     .replace(/-----BEGIN PUBLIC KEY-----/g, "")
     .replace(/-----END PUBLIC KEY-----/g, "")
@@ -197,8 +217,9 @@ export async function verifyQicardWebhookSignature(
       false,
       ["verify"],
     );
-    const signature = Uint8Array.from(atob(signatureB64.trim()), (c) =>
-      c.charCodeAt(0)
+    const signature: Uint8Array<ArrayBuffer> = Uint8Array.from(
+      atob(signatureB64.trim()),
+      (c) => c.charCodeAt(0),
     );
     const data = new TextEncoder().encode(dataString);
     return await crypto.subtle.verify(
@@ -212,6 +233,16 @@ export async function verifyQicardWebhookSignature(
     console.warn("verifyQicardWebhookSignature failed:", msg);
     return false;
   }
+}
+
+/** Webhook RSA public key (PEM), readable even when credentials are incomplete. */
+export async function loadQicardWebhookPublicKey(
+  accessToken: string,
+  projectId: string,
+): Promise<string> {
+  const fields = await getFirestoreDoc(accessToken, projectId, OS_SETTINGS_DOC);
+  if (!fields) return "";
+  return firestoreString(fields, "qicardWebhookPublicKey").trim();
 }
 
 export async function loadQicardSettings(
@@ -269,9 +300,9 @@ export async function getQicardSettingsStatus(
     webhookPublicKeyPreview: webhookKey
       ? `${webhookKey.slice(0, 24)}…`
       : "",
+    webhookPublicKey: webhookKey,
     configuredInFirestore: Boolean(
-      creds.username && creds.password && creds.terminalId &&
-        (env !== "live" || firestoreString(fields, "qicardLiveApiBase")),
+      creds.username && creds.password && creds.terminalId,
     ),
   };
 }
@@ -289,8 +320,27 @@ function emptyQicardStatus(): QicardSettingsStatus {
     passwordPreview: "",
     hasWebhookPublicKey: false,
     webhookPublicKeyPreview: "",
+    webhookPublicKey: "",
     configuredInFirestore: false,
   };
+}
+
+/** Public key PEM only; a private key must never be stored. */
+export function isQicardPublicKeyPem(value: string): boolean {
+  return value.includes("BEGIN PUBLIC KEY") && !value.includes("PRIVATE KEY");
+}
+
+/** Empty (= default host) or an https URL; Basic auth must not go over http. */
+export function isValidQicardBaseUrl(raw: string): boolean {
+  const normalized = normalizeQicardBaseUrl(raw);
+  if (!normalized) return true;
+  try {
+    const url = new URL(normalized);
+    return url.protocol === "https:" && url.hostname.includes(".") &&
+      !url.search && !url.hash;
+  } catch {
+    return false;
+  }
 }
 
 export async function saveQicardSettings(
@@ -332,11 +382,15 @@ export async function saveQicardSettings(
   const currency = (input.currency ??
     firestoreString(fields, "qicardCurrency") ??
     "IQD").trim().toUpperCase();
-  const liveApiBase = (input.liveApiBase ??
-    firestoreString(fields, "qicardLiveApiBase")).trim().replace(/\/+$/, "");
-
-  if (environment === "live" && !liveApiBase) {
-    throw new Error("ERR_QICARD_LIVE_API_BASE_REQUIRED");
+  // Empty = use QICARD_LIVE_DEFAULT_HOST.
+  const liveApiBase = normalizeQicardBaseUrl(
+    input.liveApiBase ?? firestoreString(fields, "qicardLiveApiBase"),
+  );
+  if (!isValidQicardBaseUrl(liveApiBase)) {
+    throw new Error("ERR_QICARD_LIVE_API_BASE_INVALID");
+  }
+  if (input.webhookPublicKey && !isQicardPublicKeyPem(input.webhookPublicKey)) {
+    throw new Error("ERR_QICARD_WEBHOOK_KEY_INVALID");
   }
 
   const now = new Date().toISOString();

@@ -1484,13 +1484,37 @@ class AppTranslations extends Translations {
         'os.settings.qicard.password_hint': 'Leave blank to keep the current password',
         'os.settings.qicard.terminal_id': 'Terminal ID (X-Terminal-Id)',
         'os.settings.qicard.live_api_base': 'Live API base URL',
-        'os.settings.qicard.live_api_base_hint': 'e.g. https://api.qi.iq/api/v1',
+        'os.settings.qicard.live_api_base_hint':
+            'Paste it with or without /api/v1. Leave empty to use the default.',
         'os.settings.qicard.currency': 'Checkout currency',
         'os.settings.qicard.webhook_key': 'Webhook public key (PEM)',
         'os.settings.qicard.webhook_key_hint':
-            'Optional. Paste Qi public key to verify X-Signature on webhooks.',
+            'Optional. When saved, webhooks without a valid X-Signature are rejected. Applies to Test and Live.',
         'os.settings.qicard.webhook_key_configured':
             'A webhook public key is saved on the server.',
+        'os.settings.qicard.webhook_section':
+            'Webhook verification',
+        'os.settings.qicard.webhook_key_private':
+            'This is a private key. Don\'t share it. Use Qi\'s public key (rsapubkey.pem) instead.',
+        'os.settings.qicard.webhook_key_saved_active':
+            'Saved. Incoming webhooks are signature-checked.',
+        'os.settings.qicard.webhook_key_unsaved':
+            'Key looks valid. Save to start checking webhook signatures.',
+        'os.settings.qicard.webhook_key_will_remove':
+            'Saving will remove the saved key and stop signature checks.',
+        'os.settings.qicard.webhook_key_restore':
+            'Restore saved key',
+        'os.settings.qicard.webhook_key_clear':
+            'Clear',
+        'os.settings.qicard.webhook_key_file_error':
+            'Couldn\'t read that file. Try again or paste the key.',
+        'os.settings.qicard.live_api_base_effective':
+            'Requests will go to @url',
+        'os.settings.qicard.live_api_base_invalid':
+            'Enter a full https:// address, for example https://3ds-api.qi.iq',
+        'os.settings.qicard.webhook_key_load_pem': 'Load .pem file',
+        'os.settings.qicard.webhook_key_invalid':
+            'This isn\'t a valid public key. Use the rsapubkey.pem file Qi sent you.',
         'os.settings.qicard.use_sandbox': 'Fill sandbox test credentials',
         'os.settings.qicard.save': 'Save Qi Card settings',
         'os.settings.qicard.saved': 'Qi Card settings saved',
@@ -4702,15 +4726,39 @@ class AppTranslations extends Translations {
         "os.settings.qicard.username": "اسم مستخدم API",
         "os.settings.qicard.password": "كلمة مرور API",
         "os.settings.qicard.password_hint": "اتركها فارغة للإبقاء على كلمة المرور الحالية",
-        "os.settings.qicard.terminal_id": "معرّف Terminal (X-Terminal-Id)",
+        "os.settings.qicard.terminal_id": "معرّف Terminal (X-Terminal-Id)‎",
         "os.settings.qicard.live_api_base": "رابط API للإنتاج",
-        "os.settings.qicard.live_api_base_hint": "مثال: https://api.qi.iq/api/v1",
+        "os.settings.qicard.live_api_base_hint":
+            "يمكن لصقه مع الجزء api/v1 في نهايته أو بدونه. اتركه فارغاً لاستخدام العنوان الافتراضي.",
         "os.settings.qicard.currency": "عملة الدفع",
         "os.settings.qicard.webhook_key": "المفتاح العام للويب هوك (PEM)",
         "os.settings.qicard.webhook_key_hint":
-            "اختياري. الصق المفتاح العام من Qi للتحقق من X-Signature.",
+            "اختياري. عند حفظه تُرفض إشعارات الويب هوك التي لا تحمل توقيع X-Signature صحيحاً. يُستخدم في الاختبار والإنتاج.",
         "os.settings.qicard.webhook_key_configured":
             "تم حفظ مفتاح عام للويب هوك على الخادم.",
+        "os.settings.qicard.webhook_section":
+            "التحقق من توقيع الويب هوك",
+        "os.settings.qicard.webhook_key_private":
+            "هذا مفتاح خاص ولا يجب مشاركته. استخدم بدلاً منه ملف المفتاح العام rsapubkey.pem المرسَل من Qi.",
+        "os.settings.qicard.webhook_key_saved_active":
+            "محفوظ. يتم التحقق من توقيع كل إشعار ويب هوك وارد.",
+        "os.settings.qicard.webhook_key_unsaved":
+            "المفتاح يبدو صالحاً. احفظ الإعدادات لبدء التحقق من التوقيع.",
+        "os.settings.qicard.webhook_key_will_remove":
+            "عند الحفظ سيُحذف المفتاح المحفوظ ويتوقف التحقق من التوقيع.",
+        "os.settings.qicard.webhook_key_restore":
+            "استعادة المفتاح المحفوظ",
+        "os.settings.qicard.webhook_key_clear":
+            "مسح",
+        "os.settings.qicard.webhook_key_file_error":
+            "تعذّرت قراءة الملف. حاول مجدداً أو الصق المفتاح.",
+        "os.settings.qicard.live_api_base_effective":
+            "ستُرسل الطلبات إلى:\n‎@url",
+        "os.settings.qicard.live_api_base_invalid":
+            "أدخل عنواناً كاملاً يبدأ بـ https، مثل:\n‎https://3ds-api.qi.iq",
+        "os.settings.qicard.webhook_key_load_pem": "تحميل ملف PEM",
+        "os.settings.qicard.webhook_key_invalid":
+            "هذا ليس مفتاحاً عاماً صالحاً. استخدم ملف rsapubkey.pem المرسَل من Qi.",
         "os.settings.qicard.use_sandbox": "تعبئة بيانات الاختبار",
         "os.settings.qicard.save": "حفظ إعدادات Qi Card",
         "os.settings.qicard.saved": "تم حفظ إعدادات Qi Card",

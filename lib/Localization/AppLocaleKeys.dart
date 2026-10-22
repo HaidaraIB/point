@@ -971,6 +971,30 @@ class AppLocaleKeys {
       'os.settings.qicard.webhook_key_hint';
   static const osSettingsQicardWebhookKeyConfigured =
       'os.settings.qicard.webhook_key_configured';
+  static const osSettingsQicardWebhookKeyLoadPem =
+      'os.settings.qicard.webhook_key_load_pem';
+  static const osSettingsQicardWebhookKeyInvalid =
+      'os.settings.qicard.webhook_key_invalid';
+  static const osSettingsQicardWebhookSection =
+      'os.settings.qicard.webhook_section';
+  static const osSettingsQicardWebhookKeyPrivate =
+      'os.settings.qicard.webhook_key_private';
+  static const osSettingsQicardWebhookKeySavedActive =
+      'os.settings.qicard.webhook_key_saved_active';
+  static const osSettingsQicardWebhookKeyUnsaved =
+      'os.settings.qicard.webhook_key_unsaved';
+  static const osSettingsQicardWebhookKeyWillRemove =
+      'os.settings.qicard.webhook_key_will_remove';
+  static const osSettingsQicardWebhookKeyClear =
+      'os.settings.qicard.webhook_key_clear';
+  static const osSettingsQicardWebhookKeyRestore =
+      'os.settings.qicard.webhook_key_restore';
+  static const osSettingsQicardWebhookKeyFileError =
+      'os.settings.qicard.webhook_key_file_error';
+  static const osSettingsQicardLiveApiBaseEffective =
+      'os.settings.qicard.live_api_base_effective';
+  static const osSettingsQicardLiveApiBaseInvalid =
+      'os.settings.qicard.live_api_base_invalid';
   static const osSettingsQicardUseSandbox = 'os.settings.qicard.use_sandbox';
   static const osSettingsQicardSave = 'os.settings.qicard.save';
   static const osSettingsQicardSaved = 'os.settings.qicard.saved';

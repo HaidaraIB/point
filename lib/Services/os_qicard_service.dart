@@ -1,4 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:point/Models/Os/OsQicardSettingsStatus.dart';
 import 'package:point/Utils/EdgeFunctionRateLimiter.dart';
 import 'package:point/Utils/app_log.dart';
@@ -13,6 +14,11 @@ class OsQicardService {
 
   OsQicardSettingsStatus? _cachedSettings;
   OsQicardSettingsStatus? get cachedSettings => _cachedSettings;
+
+  /// Seeds the cache so the settings panel renders without a backend.
+  @visibleForTesting
+  set debugCachedSettings(OsQicardSettingsStatus? value) =>
+      _cachedSettings = value;
 
   static OsQicardSettingsStatus? parseSettingsFromResponse(dynamic data) {
     if (data is! Map) return null;

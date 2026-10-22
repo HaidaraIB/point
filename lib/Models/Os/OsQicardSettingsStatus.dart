@@ -11,6 +11,7 @@ class OsQicardSettingsStatus {
     required this.passwordPreview,
     required this.hasWebhookPublicKey,
     required this.webhookPublicKeyPreview,
+    this.webhookPublicKey = '',
     required this.configuredInFirestore,
   });
 
@@ -25,6 +26,9 @@ class OsQicardSettingsStatus {
   final String passwordPreview;
   final bool hasWebhookPublicKey;
   final String webhookPublicKeyPreview;
+
+  /// Full PEM (public, not secret).
+  final String webhookPublicKey;
   final bool configuredInFirestore;
 
   factory OsQicardSettingsStatus.empty() => const OsQicardSettingsStatus(
@@ -58,6 +62,7 @@ class OsQicardSettingsStatus {
       hasWebhookPublicKey: json['hasWebhookPublicKey'] == true,
       webhookPublicKeyPreview:
           (json['webhookPublicKeyPreview'] as String?)?.trim() ?? '',
+      webhookPublicKey: (json['webhookPublicKey'] as String?)?.trim() ?? '',
       configuredInFirestore: json['configuredInFirestore'] == true,
     );
   }
