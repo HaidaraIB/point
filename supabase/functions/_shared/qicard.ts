@@ -436,6 +436,65 @@ export async function saveQicardSettings(
   return await getQicardSettingsStatus(accessToken, projectId, environment);
 }
 
+/**
+ * A Qi failure with a stable `ERR_QICARD_*` code as `message` (so existing
+ * `startsWith("ERR_")` handlers keep working) plus Qi's own reason in `detail`.
+ */
+export class QicardError extends Error {
+  constructor(code: string, readonly detail: string = "") {
+    super(code);
+    this.name = "QicardError";
+  }
+}
+
+/** `detail` of a QicardError, or "" for any other error. */
+export function qicardErrorDetail(e: unknown): string {
+  return e instanceof QicardError ? e.detail : "";
+}
+
+/** Best-effort human reason from a Qi error body, capped for display. */
+export function extractQicardErrorMessage(data: Record<string, unknown>): string {
+  const pick = (v: unknown): string => {
+    if (typeof v === "string") return v.trim();
+    if (Array.isArray(v)) return v.map(pick).filter(Boolean).join("; ");
+    if (v && typeof v === "object") {
+      const o = v as Record<string, unknown>;
+      return pick(o.message ?? o.description ?? o.detail ?? o.error ?? "");
+    }
+    return "";
+  };
+  const msg = pick(data.message) || pick(data.error) || pick(data.errors) ||
+    pick(data.details) || pick(data.description) || pick(data.raw);
+  return msg.length > 300 ? `${msg.slice(0, 300)}…` : msg;
+}
+
+/** Qi's numeric `error.code`, or null when absent. */
+export function qicardProviderErrorCode(
+  data: Record<string, unknown>,
+): number | null {
+  const err = data.error;
+  if (!err || typeof err !== "object") return null;
+  const code = Number((err as Record<string, unknown>).code);
+  return Number.isFinite(code) ? code : null;
+}
+
+/** Qi error 21: a callback URL's domain is not whitelisted for the terminal. */
+const QICARD_ERROR_DOMAIN_PROHIBITED = 21;
+
+/** Maps a failed Qi response to a stable error code. */
+export function qicardCreateErrorCode(
+  status: number,
+  data: Record<string, unknown> = {},
+): string {
+  if (qicardProviderErrorCode(data) === QICARD_ERROR_DOMAIN_PROHIBITED) {
+    return "ERR_QICARD_DOMAIN_PROHIBITED";
+  }
+  if (status === 401 || status === 403) return "ERR_QICARD_AUTH_FAILED";
+  if (status === 404 || status === 405) return "ERR_QICARD_ENDPOINT_NOT_FOUND";
+  if (status >= 500) return "ERR_QICARD_PROVIDER_ERROR";
+  return "ERR_QICARD_REQUEST_REJECTED";
+}
+
 async function parseQicardResponse(res: Response): Promise<Record<string, unknown>> {
   const raw = await res.text();
   if (!raw.trim()) return {};
@@ -673,25 +732,65 @@ export async function createQicardSession(
   };
 
   const apiBase = qicardApiBaseUrl(settings);
-  const res = await fetch(`${apiBase}/payment`, {
-    method: "POST",
-    headers: {
-      Authorization: basicAuthHeader(settings.username, settings.password),
-      "X-Terminal-Id": settings.terminalId,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(body),
-  });
+  let res: Response;
+  try {
+    res = await fetch(`${apiBase}/payment`, {
+      method: "POST",
+      headers: {
+        Authorization: basicAuthHeader(settings.username, settings.password),
+        "X-Terminal-Id": settings.terminalId,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(body),
+    });
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    console.error("QiCard create unreachable:", settings.environment, apiBase, msg);
+    throw new QicardError(
+      "ERR_QICARD_UNREACHABLE",
+      `${settings.environment} ${apiBase}: ${msg}`,
+    );
+  }
 
   const data = await parseQicardResponse(res);
   if (!res.ok) {
-    console.error("QiCard create failed:", res.status, JSON.stringify(data));
-    throw new Error("ERR_QICARD_CREATE_FAILED");
+    console.error(
+      "QiCard create failed:",
+      settings.environment,
+      apiBase,
+      res.status,
+      JSON.stringify(data),
+    );
+    const code = qicardCreateErrorCode(res.status, data);
+    const reason = extractQicardErrorMessage(data);
+    // Name both callback URLs' hosts so the one to whitelist is obvious.
+    const urls = code === "ERR_QICARD_DOMAIN_PROHIBITED"
+      ? ` (finish: ${new URL(finishPaymentUrl).host}, notify: ${
+        new URL(body.notificationUrl as string).host
+      })`
+      : "";
+    throw new QicardError(
+      code,
+      `${settings.environment} HTTP ${res.status}${
+        reason ? `: ${reason}` : ""
+      }${urls}`,
+    );
   }
 
   const payment = parsePaymentObject(data);
   if (!payment.paymentId || !payment.formUrl) {
-    throw new Error("ERR_QICARD_CREATE_FAILED");
+    console.error(
+      "QiCard create returned no paymentId/formUrl:",
+      settings.environment,
+      JSON.stringify(data),
+    );
+    const reason = extractQicardErrorMessage(data);
+    throw new QicardError(
+      "ERR_QICARD_INVALID_RESPONSE",
+      `${settings.environment} HTTP ${res.status}: ${
+        reason || "missing paymentId/formUrl"
+      }`,
+    );
   }
 
   await setFirestoreDoc(

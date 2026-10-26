@@ -15,6 +15,7 @@ import {
   OS_SETTINGS_DOC,
 } from "../_shared/card-settings.ts";
 import { createOnlinePaymentSession } from "../_shared/card-checkout.ts";
+import { qicardErrorDetail } from "../_shared/qicard.ts";
 import {
   resolveInvoiceByPayLinkToken,
   resolveInvoiceByPayLinkTokenAcrossProjects,
@@ -214,7 +215,8 @@ Deno.serve(async (req: Request) => {
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     if (msg.startsWith("ERR_")) {
-      return json({ errorCode: msg }, 400);
+      const detail = qicardErrorDetail(e);
+      return json(detail ? { errorCode: msg, detail } : { errorCode: msg }, 400);
     }
     console.error("pay-link error:", msg);
     return json({ errorCode: "ERR_INTERNAL" }, 500);

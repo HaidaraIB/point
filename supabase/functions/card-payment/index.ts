@@ -6,6 +6,7 @@ import {
 import { getAccessToken } from "../_shared/firestore-rest.ts";
 import { assertOsAdmin, assertOsAccess } from "../_shared/os-admin.ts";
 import { createOnlinePaymentSession } from "../_shared/card-checkout.ts";
+import { qicardErrorDetail } from "../_shared/qicard.ts";
 import { buildPayHtmlUrl } from "../_shared/card-return-url.ts";
 import {
   getPaymentMethodsStatus,
@@ -219,7 +220,13 @@ Deno.serve(async (req: Request) => {
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
         if (msg.startsWith("ERR_")) {
-          return json({ success: false, errorCode: msg }, 400);
+          const detail = qicardErrorDetail(e);
+          return json(
+            detail
+              ? { success: false, errorCode: msg, detail }
+              : { success: false, errorCode: msg },
+            400,
+          );
         }
         throw e;
       }

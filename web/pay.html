@@ -54,6 +54,19 @@
           invalid: "رابط الدفع غير صالح أو منتهي.",
           unavailable: "لا توجد طرق دفع متاحة حالياً.",
           error: "تعذّر تحميل بيانات الفاتورة. حاول لاحقاً.",
+          startFailed: "تعذّر بدء الدفع. حاول لاحقاً أو اختر طريقة أخرى.",
+          ERR_QICARD_AUTH_FAILED: "رفضت Qi Card بيانات الدخول أو رقم الطرفية. تواصل مع الوكالة.",
+          ERR_QICARD_ENDPOINT_NOT_FOUND: "عنوان خادم Qi Card غير صحيح. تواصل مع الوكالة.",
+          ERR_QICARD_DOMAIN_PROHIBITED: "Qi Card لم تعتمد نطاق الموقع بعد. تواصل مع الوكالة.",
+          ERR_QICARD_UNREACHABLE: "تعذّر الاتصال بخادم Qi Card. حاول لاحقاً.",
+          ERR_QICARD_REQUEST_REJECTED: "رفضت Qi Card طلب الدفع.",
+          ERR_QICARD_PROVIDER_ERROR: "خدمة Qi Card تواجه مشكلة حالياً. حاول لاحقاً.",
+          ERR_QICARD_INVALID_RESPONSE: "ردّت Qi Card بشكل غير متوقع. حاول لاحقاً.",
+          ERR_QICARD_NOT_CONFIGURED: "Qi Card غير مُعدّة بعد. تواصل مع الوكالة.",
+          ERR_CARD_PAYMENT_DISABLED: "طريقة الدفع هذه غير مفعّلة حالياً.",
+          ERR_INVOICE_ALREADY_PAID: "تم دفع هذه الفاتورة مسبقاً.",
+          ERR_INVOICE_INVALID_AMOUNT: "مبلغ الفاتورة غير صالح.",
+          ERR_RATE_LIMITED: "محاولات كثيرة. انتظر قليلاً ثم حاول مجدداً.",
         },
         en: {
           brand: "Point OS",
@@ -70,6 +83,19 @@
           invalid: "This payment link is invalid.",
           unavailable: "No payment methods are available.",
           error: "Could not load invoice details. Please try again.",
+          startFailed: "Could not start the payment. Try again later or pick another method.",
+          ERR_QICARD_AUTH_FAILED: "Qi Card rejected the credentials or terminal ID. Contact the agency.",
+          ERR_QICARD_ENDPOINT_NOT_FOUND: "The Qi Card server address is wrong. Contact the agency.",
+          ERR_QICARD_DOMAIN_PROHIBITED: "Qi Card has not approved this site's domain yet. Contact the agency.",
+          ERR_QICARD_UNREACHABLE: "Could not reach the Qi Card server. Try again later.",
+          ERR_QICARD_REQUEST_REJECTED: "Qi Card rejected the payment request.",
+          ERR_QICARD_PROVIDER_ERROR: "Qi Card is having problems right now. Try again later.",
+          ERR_QICARD_INVALID_RESPONSE: "Qi Card sent an unexpected response. Try again later.",
+          ERR_QICARD_NOT_CONFIGURED: "Qi Card is not set up yet. Contact the agency.",
+          ERR_CARD_PAYMENT_DISABLED: "This payment method is not enabled.",
+          ERR_INVOICE_ALREADY_PAID: "This invoice has already been paid.",
+          ERR_INVOICE_INVALID_AMOUNT: "The invoice amount is invalid.",
+          ERR_RATE_LIMITED: "Too many attempts. Wait a moment and try again.",
         },
       };
 
@@ -263,9 +289,11 @@
           .then(function (res) {
             return res.json().then(function (body) {
               if (!res.ok) {
-                throw new Error(
+                var err = new Error(
                   (body && body.errorCode) ? String(body.errorCode) : "error"
                 );
+                err.detail = (body && body.detail) ? String(body.detail) : "";
+                throw err;
               }
               return body;
             });
@@ -280,10 +308,11 @@
           .catch(function (e) {
             paymentInFlight = false;
             var card = document.getElementById("card");
-            var msg = t("error");
-            if (e && e.message && e.message.indexOf("ERR_") === 0) {
-              msg = e.message;
-            }
+            var code = (e && e.message && e.message.indexOf("ERR_") === 0)
+              ? e.message
+              : "";
+            // Unknown codes fall back to the generic message; t() echoes the key.
+            var msg = code && t(code) !== code ? t(code) : t("startFailed");
             if (lastSummary) {
               renderSummary(lastSummary);
               var err = document.createElement("p");
@@ -291,6 +320,16 @@
               err.textContent = msg;
               err.setAttribute("role", "alert");
               card.appendChild(err);
+              if (code) {
+                // Code + provider reason, for support / the agency admin.
+                var detail = document.createElement("p");
+                detail.className = "muted";
+                detail.dir = "ltr";
+                detail.style.fontSize = "12px";
+                detail.style.wordBreak = "break-word";
+                detail.textContent = code + (e.detail ? " — " + e.detail : "");
+                card.appendChild(detail);
+              }
             } else {
               card.innerHTML =
                 '<p class="text-error">' + shared.escapeHtml(t("error")) + "</p>";
